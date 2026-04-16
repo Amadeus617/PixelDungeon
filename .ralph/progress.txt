@@ -11,3 +11,11 @@
 
 ## Token Budget Tracker
 _(尚未开始记录)_
+[2026-04-17 01:43] LEARN: test log entry
+[2026-04-17 02:25] FAIL: US-001 - Build failed after execution
+[2026-04-17 02:25] LEARN: Executed US-001 via Claude Code + GLM-5.1
+[2026-04-17 02:45] FAIL: US-001 - — Sandbox 阻止了所有文件写入操作
+[2026-04-17 02:45] LEARN: Executed US-001 via Claude Code + GLM-5.1
+[2026-04-17 02:45] FAIL: US-001 - Build failed after execution
+[2026-04-17 02:45] LEARN: Executed US-001 via Claude Code + GLM-5.1
+[2026-04-17 02:48] DONE: US-001
