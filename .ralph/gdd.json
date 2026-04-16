@@ -1,0 +1,24 @@
+{
+  "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡",
+  "mechanics": {
+    "movement": "WASD四方向移动，像素级碰撞",
+    "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
+    "items": "钥匙(开门必需)，宝箱(通关目标)",
+    "enemy": "史莱姆：随机移动，简单AI"
+  },
+  "balance": {
+    "playerHP": 3,
+    "enemyHP": 1,
+    "attackRange": 32,
+    "enemyCount": 3
+  },
+  "designLog": [
+    {
+      "date": "2026-04-16",
+      "author": "agent",
+      "change": "初始设计",
+      "reason": "MVP最小可玩版本"
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "project": "PixelDungeon",
+  "version": "0.1.0",
+  "branch": "main",
+  "engine": "phaser3",
+  "artStyle": {
+    "resolution": "16x16",
+    "palette": "sweetie-16",
+    "style": "top-down roguelike"
+  },
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "MVP - 一个可玩的地牢房间",
+      "status": "in-progress",
+      "userStories": [
+        {
+          "id": "US-001",
+          "title": "初始化 Phaser 项目结构",
+          "type": "code",
+          "description": "创建 Phaser 3 + TypeScript + Vite 项目骨架：入口文件、Phaser配置、HTML模板、基础场景框架",
+          "acceptanceCriteria": [
+            "npm run build 成功",
+            "tsc --noEmit 无错误",
+            "index.html 正确加载 Phaser canvas"
+          ],
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "artifacts": ["src/main.ts", "src/config/gameConfig.ts", "src/scenes/BootScene.ts", "src/scenes/GameScene.ts", "index.html"]
+        },
+        {
+          "id": "US-002",
+          "title": "生成主角骑士 sprite",
+          "type": "art",
+          "description": "使用 Replicate Retro Diffusion 生成16x16骑士角色4方向行走动画spritesheet",
+          "acceptanceCriteria": [
+            "Replicate API 成功返回图片URL",
+            "spritesheet 下载到 public/assets/sprites/knight.png",
+            "文件存在且 size > 1KB"
+          ],
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "artConfig": {
+            "model": "lucataco/retro-diffusion",
+            "prompt": "knight with sword and shield, 16x16 pixel art, top-down RPG style, 4-direction walking animation spritesheet",
+            "width": 64,
+            "height": 64,
+            "outputPath": "sprites/knight.png"
+          }
+        },
+        {
+          "id": "US-003",
+          "title": "生成史莱姆敌人 sprite",
+          "type": "art",
+          "description": "生成16x16史莱姆敌人动画sprite",
+          "acceptanceCriteria": [
+            "spritesheet 下载到 public/assets/sprites/slime.png",
+            "文件存在且 size > 1KB"
+          ],
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "artConfig": {
+            "model": "lucataco/retro-diffusion",
+            "prompt": "blue slime enemy, 16x16 pixel art, top-down RPG style, idle animation",
+            "width": 64,
+            "height": 16,
+            "outputPath": "sprites/slime.png"
+          }
+        },
+        {
+          "id": "US-004",
+          "title": "生成地牢 tileset",
+          "type": "art",
+          "description": "生成地牢地板和墙壁 tileset",
+          "acceptanceCriteria": [
+            "tileset 下载到 public/assets/tiles/dungeon_tiles.png",
+            "文件存在且 size > 1KB"
+          ],
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "artConfig": {
+            "model": "lucataco/retro-diffusion",
+            "prompt": "dungeon floor and wall tiles, 16x16 pixel art, stone texture, seamless tileset, dark fantasy",
+            "width": 128,
+            "height": 128,
+            "outputPath": "tiles/dungeon_tiles.png"
+          }
+        },
+        {
+          "id": "US-005",
+          "title": "实现玩家移动系统",
+          "type": "code",
+          "description": "加载角色sprite，实现键盘WASD控制移动和方向动画切换",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "vitest 测试通过：按键事件触发正确方向状态"
+          ],
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": ["US-001", "US-002"]
+        },
+        {
+          "id": "US-006",
+          "title": "实现基础地图渲染",
+          "type": "code",
+          "description": "用tilemap渲染16x16地牢房间，包含墙壁碰撞",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "地图正确渲染地牢地板和墙壁",
+            "玩家无法穿越墙壁"
+          ],
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": ["US-001", "US-004"]
+        },
+        {
+          "id": "US-007",
+          "title": "实现敌人AI",
+          "type": "code",
+          "description": "史莱姆敌人随机移动，碰到墙壁反弹",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "敌人在房间内随机移动不穿墙"
+          ],
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": ["US-001", "US-003", "US-006"]
+        },
+        {
+          "id": "US-008",
+          "title": "实现战斗系统",
+          "type": "code",
+          "description": "空格键攻击，范围内敌人扣血，敌人死亡消失，敌人碰玩家扣血",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "vitest 测试：攻击判定正确",
+            "敌人HP归零后从场景移除"
+          ],
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": ["US-005", "US-007"]
+        },
+        {
+          "id": "US-009",
+          "title": "实现道具系统（钥匙+宝箱）",
+          "type": "code",
+          "description": "房间内有一把钥匙和宝箱，拾取钥匙后可以打开宝箱",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "拾取钥匙后背包显示钥匙",
+            "靠近宝箱按空格触发开门"
+          ],
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": ["US-005", "US-006"]
+        },
+        {
+          "id": "US-010",
+          "title": "实现 HP 显示 UI",
+          "type": "code",
+          "description": "屏幕上方显示玩家HP条，受击时更新",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "HP条正确显示当前生命值"
+          ],
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": ["US-001", "US-008"]
+        },
+        {
+          "id": "US-011",
+          "title": "实现胜负判定",
+          "type": "code",
+          "description": "消灭所有敌人+打开宝箱=胜利，HP归零=失败，显示结果画面",
+          "acceptanceCriteria": [
+            "tsc --noEmit 通过",
+            "胜利条件正确触发",
+            "失败条件正确触发"
+          ],
+          "priority": 7,
+          "status": "pending",
+          "dependsOn": ["US-008", "US-009", "US-010"]
+        },
+        {
+          "id": "US-012",
+          "title": "核心系统单元测试",
+          "type": "test",
+          "description": "为移动系统、战斗系统、道具系统编写单元测试",
+          "acceptanceCriteria": [
+            "vitest run 全部通过",
+            "核心逻辑覆盖率 > 80%"
+          ],
+          "priority": 8,
+          "status": "pending",
+          "dependsOn": ["US-005", "US-008", "US-009"]
+        }
+      ]
+    }
+  ]
+}

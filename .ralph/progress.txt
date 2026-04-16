@@ -1,0 +1,13 @@
+# PixelDungeon 开发日志
+
+## Codebase Patterns
+- 使用 Phaser 3.87 + TypeScript 5.x + Vite
+- 所有场景继承 Phaser.Scene
+- Entity 使用类继承模式
+- 测试放在 tests/ 目录，镜像 src/ 结构
+- 质量门：tsc --noEmit && eslint src/ && vitest run && vite build
+- 美术资源统一 16x16 分辨率，sweetie-16 调色板
+- 提交格式：feat: [US-XXX] - 描述
+
+## Token Budget Tracker
+_(尚未开始记录)_
