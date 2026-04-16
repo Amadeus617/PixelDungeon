@@ -46,7 +46,7 @@
             "文件存在且 size > 1KB"
           ],
           "priority": 2,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "artConfig": {
             "model": "lucataco/retro-diffusion",

@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "US-002",
+    "status": "pending",
+    "model": "lucataco/retro-diffusion",
+    "prompt": "knight with sword and shield, 16x16 pixel art, top-down RPG style, 4-direction walking animation spritesheet",
+    "width": 64,
+    "height": 64,
+    "outputPath": "sprites/knight.png"
+  }
+]

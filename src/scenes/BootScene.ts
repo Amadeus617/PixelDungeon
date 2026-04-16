@@ -6,7 +6,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // Future asset loading goes here
+    this.load.spritesheet("knight", "assets/sprites/knight.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
   }
 
   create(): void {
