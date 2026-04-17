@@ -1,11 +1,40 @@
 [
   {
     "id": "US-002",
-    "status": "pending",
-    "model": "lucataco/retro-diffusion",
-    "prompt": "knight with sword and shield, 16x16 pixel art, top-down RPG style, 4-direction walking animation spritesheet",
+    "status": "done",
+    "model": "retro-diffusion/rd-fast",
+    "prompt": "knight with sword and shield, top-down RPG character, 4 directions",
+    "style": "game_asset",
     "width": 64,
     "height": 64,
-    "outputPath": "sprites/knight.png"
+    "outputPath": "sprites/knight.png",
+    "remove_bg": true,
+    "completedAt": "2026-04-18T01:23:59+08:00",
+    "fileSize": 4290
+  },
+  {
+    "id": "US-003",
+    "status": "done",
+    "model": "retro-diffusion/rd-fast",
+    "prompt": "blue slime enemy blob monster, top-down RPG enemy",
+    "style": "game_asset",
+    "width": 64,
+    "height": 16,
+    "outputPath": "sprites/slime.png",
+    "remove_bg": true,
+    "completedAt": "2026-04-18T01:24:28+08:00",
+    "fileSize": 2220
+  },
+  {
+    "id": "US-004",
+    "status": "done",
+    "model": "retro-diffusion/rd-tile",
+    "prompt": "dungeon floor and wall tiles, stone texture, dark fantasy",
+    "style": "tileset",
+    "width": 128,
+    "height": 128,
+    "outputPath": "tiles/dungeon_tiles.png",
+    "completedAt": "2026-04-18T01:25:36+08:00",
+    "fileSize": 21788
   }
 ]
