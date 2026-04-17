@@ -86,7 +86,7 @@
             "文件存在且 size > 1KB"
           ],
           "priority": 2,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "artConfig": {
             "model": "lucataco/retro-diffusion",
@@ -106,7 +106,7 @@
             "vitest 测试通过：按键事件触发正确方向状态"
           ],
           "priority": 3,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-001",
             "US-002"
@@ -123,7 +123,7 @@
             "玩家无法穿越墙壁"
           ],
           "priority": 3,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-001",
             "US-004"
@@ -139,7 +139,7 @@
             "敌人在房间内随机移动不穿墙"
           ],
           "priority": 4,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-001",
             "US-003",
@@ -157,7 +157,7 @@
             "敌人HP归零后从场景移除"
           ],
           "priority": 5,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-005",
             "US-007"
@@ -174,7 +174,7 @@
             "靠近宝箱按空格触发开门"
           ],
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-005",
             "US-006"
@@ -190,7 +190,7 @@
             "HP条正确显示当前生命值"
           ],
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-001",
             "US-008"
@@ -207,7 +207,7 @@
             "失败条件正确触发"
           ],
           "priority": 7,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-008",
             "US-009",
@@ -224,7 +224,7 @@
             "核心逻辑覆盖率 > 80%"
           ],
           "priority": 8,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-005",
             "US-008",

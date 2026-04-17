@@ -1,0 +1,205 @@
+import Phaser from "phaser";
+
+export type Direction = "up" | "down" | "left" | "right" | "idle";
+
+const PLAYER_MAX_HP = 10;
+const ATTACK_RANGE = 50;
+const ATTACK_DAMAGE = 1;
+const ATTACK_COOLDOWN = 400;
+const INVINCIBLE_DURATION = 1000;
+
+export class Player extends Phaser.Physics.Arcade.Sprite {
+  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private wasd!: {
+    W: Phaser.Input.Keyboard.Key;
+    A: Phaser.Input.Keyboard.Key;
+    S: Phaser.Input.Keyboard.Key;
+    D: Phaser.Input.Keyboard.Key;
+  };
+  private spaceKey!: Phaser.Input.Keyboard.Key;
+  private _direction: Direction = "down";
+  private speed: number = 120;
+  private _hp: number = PLAYER_MAX_HP;
+  private _maxHp: number = PLAYER_MAX_HP;
+  private lastAttackTime: number = 0;
+  private isAttacking: boolean = false;
+  private isInvincible: boolean = false;
+  private invincibleTimer: number = 0;
+
+  /** Combat config – exposed for testing and external use */
+  static readonly ATTACK_RANGE = ATTACK_RANGE;
+  static readonly ATTACK_DAMAGE = ATTACK_DAMAGE;
+
+  get direction(): Direction {
+    return this._direction;
+  }
+
+  get hp(): number {
+    return this._hp;
+  }
+
+  get maxHp(): number {
+    return this._maxHp;
+  }
+
+  get alive(): boolean {
+    return this._hp > 0;
+  }
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "knight");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+
+    this.setScale(3);
+    this.setCollideWorldBounds(true);
+    this.setDepth(10);
+
+    if (scene.input.keyboard) {
+      this.cursors = scene.input.keyboard.createCursorKeys();
+      this.wasd = {
+        W: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+        A: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+        S: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+        D: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      };
+      this.spaceKey = scene.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+      );
+    }
+
+    this.play("idle-down");
+  }
+
+  setWorldBounds(): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setBoundsRectangle(
+      this.scene.physics.world.bounds as Phaser.Geom.Rectangle
+    );
+  }
+
+  /** Returns the attack origin point and direction vector for hit detection */
+  getAttackZone(): { x: number; y: number; dx: number; dy: number } {
+    const offsets: Record<Exclude<Direction, "idle">, { dx: number; dy: number }> = {
+      up: { dx: 0, dy: -1 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 },
+      right: { dx: 1, dy: 0 },
+    };
+    const dir = this._direction === "idle" ? "down" : this._direction;
+    const o = offsets[dir];
+    return { x: this.x, y: this.y, dx: o.dx, dy: o.dy };
+  }
+
+  /** Check if an enemy is within attack range and in the facing direction */
+  isEnemyInAttackRange(enemyX: number, enemyY: number): boolean {
+    const zone = this.getAttackZone();
+    const dx = enemyX - zone.x;
+    const dy = enemyY - zone.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > ATTACK_RANGE) return false;
+
+    // Check if enemy is roughly in the facing direction (±60° cone)
+    if (dist > 0) {
+      const ndx = dx / dist;
+      const ndy = dy / dist;
+      const dot = ndx * zone.dx + ndy * zone.dy;
+      // cos(60°) = 0.5 — allow a 120° cone in front
+      if (dot < 0.25) return false;
+    }
+
+    return true;
+  }
+
+  takeDamage(amount: number): void {
+    if (this.isInvincible || !this.alive) return;
+    this._hp = Math.max(0, this._hp - amount);
+    this.isInvincible = true;
+    this.invincibleTimer = INVINCIBLE_DURATION;
+
+    // Flash effect
+    this.setAlpha(0.5);
+  }
+
+  private updateInvincibility(delta: number): void {
+    if (!this.isInvincible) return;
+    this.invincibleTimer -= delta;
+    // Blink effect
+    this.setAlpha(Math.floor(this.invincibleTimer / 100) % 2 === 0 ? 1 : 0.4);
+    if (this.invincibleTimer <= 0) {
+      this.isInvincible = false;
+      this.setAlpha(1);
+    }
+  }
+
+  update(_delta: number, time?: number): void {
+    if (!this.alive) return;
+
+    this.updateInvincibility(_delta);
+
+    if (!this.cursors || !this.wasd) return;
+
+    const left =
+      this.cursors.left.isDown || this.wasd.A.isDown;
+    const right =
+      this.cursors.right.isDown || this.wasd.D.isDown;
+    const up =
+      this.cursors.up.isDown || this.wasd.W.isDown;
+    const down =
+      this.cursors.down.isDown || this.wasd.S.isDown;
+
+    let vx = 0;
+    let vy = 0;
+
+    if (left) vx = -1;
+    else if (right) vx = 1;
+
+    if (up) vy = -1;
+    else if (down) vy = 1;
+
+    // Normalize diagonal movement
+    if (vx !== 0 && vy !== 0) {
+      const len = Math.sqrt(vx * vx + vy * vy);
+      vx /= len;
+      vy /= len;
+    }
+
+    this.setVelocity(vx * this.speed, vy * this.speed);
+
+    // Determine direction and animation
+    const isMoving = vx !== 0 || vy !== 0;
+
+    if (isMoving) {
+      // Use the last pressed dominant axis
+      if (Math.abs(vx) > Math.abs(vy)) {
+        this._direction = vx > 0 ? "right" : "left";
+      } else if (vy !== 0) {
+        this._direction = vy > 0 ? "down" : "up";
+      }
+      if (!this.isAttacking) {
+        this.play(`walk-${this._direction}`, true);
+      }
+    } else {
+      if (this._direction !== "idle" && !this.isAttacking) {
+        this.play(`idle-${this._direction}`, true);
+      }
+    }
+
+    // Handle attack input
+    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+      const now = time ?? this.scene.time.now;
+      if (now - this.lastAttackTime >= ATTACK_COOLDOWN) {
+        this.lastAttackTime = now;
+        this.isAttacking = true;
+        this.play(`idle-${this._direction === "idle" ? "down" : this._direction}`, true);
+        // Emit event so GameScene can handle hit detection
+        this.scene.events.emit("player-attack");
+        // End attack state after a short delay
+        this.scene.time.delayedCall(200, () => {
+          this.isAttacking = false;
+        });
+      }
+    }
+  }
+}

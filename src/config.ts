@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
 import { GameScene } from "./scenes/GameScene";
+import { ResultScene } from "./scenes/ResultScene";
 
 export const GAME_WIDTH = 800;
 export const GAME_HEIGHT = 600;
@@ -17,6 +18,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       gravity: { x: 0, y: 0 },
     },
   },
-  scene: [BootScene, GameScene],
+  scene: [BootScene, GameScene, ResultScene],
   pixelArt: true,
 };
