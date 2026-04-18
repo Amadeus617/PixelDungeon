@@ -28,6 +28,9 @@ echo "[$(date)] Starting task: $TASK_ID - $TASK_TITLE"
 read -r -d "" PROMPT << PROMPT_EOF
 你在 /root/game-project/ 目录下开发一个 2D Roguelike 游戏（Phaser 3 + TypeScript + Vite）。
 
+IMPORTANT: 在开始任何工作之前，先用 Skill 工具加载 /using-superpowers skill。
+然后根据任务类型加载适合的 skill（如 /writing-plans, /systematic-debugging 等）。
+
 当前任务: $TASK_ID - $TASK_TITLE
 类型: $TASK_TYPE
 描述: $TASK_DESC
@@ -49,9 +52,8 @@ FAIL: $TASK_ID 原因
 PROMPT_EOF
 
 # 3. 运行 Claude Code
-RESULT=$(claude --print --model GLM-5.1 --bare --dangerously-skip-permissions --add-dir /root/game-project \
-  --max-budget-usd 2 \
-  --append-system-prompt "你是一个游戏开发者，专注于 Phaser 3 + TypeScript 游戏。保持简洁，直接写代码。" \
+RESULT=$(claude --print --model GLM-5.1 --dangerously-skip-permissions --add-dir /root/game-project \
+  --max-budget-usd 3 \
   -p "$PROMPT" 2>&1)
 
 echo "$RESULT"

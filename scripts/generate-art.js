@@ -37,25 +37,31 @@ async function main() {
   const task = queue.find(t => t.status === "pending");
   if (!task) { console.log("No pending art tasks"); process.exit(0); }
 
-  console.log("Generating:", task.prompt);
+  console.log("Generating:", task.id, task.prompt);
   const replicate = new Replicate({ auth: token });
 
-  const output = await replicate.run(task.model, {
-    input: {
-      prompt: task.prompt,
-      width: task.width || 64,
-      height: task.height || 64,
-      num_outputs: 1,
-    }
-  });
+  // Build input based on model type
+  const input = {
+    prompt: task.prompt,
+    width: task.width || 64,
+    height: task.height || 64,
+    num_images: 1,
+  };
+  if (task.style) input.style = task.style;
+  if (task.remove_bg) input.remove_bg = true;
+
+  const output = await replicate.run(task.model, { input });
 
   const url = Array.isArray(output) ? output[0] : output;
+  // Handle FileOutput objects from replicate SDK
+  const finalUrl = typeof url === "object" && url.url ? url.url : url;
+
   const filePath = path.join(ASSETS_DIR, task.outputPath);
-  await downloadFile(url, filePath);
+  await downloadFile(finalUrl, filePath);
 
   const stats = fs.statSync(filePath);
-  if (stats.size < 1024) {
-    console.error("Generated file too small, possibly corrupt");
+  if (stats.size < 500) {
+    console.error("Generated file too small (" + stats.size + " bytes), possibly corrupt");
     process.exit(1);
   }
 
@@ -64,7 +70,7 @@ async function main() {
   task.fileSize = stats.size;
   fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
 
-  budget.replicate.used += 0.05;
+  budget.replicate.used = +(budget.replicate.used + 0.05).toFixed(2);
   budget.replicate.runs.push({
     date: new Date().toISOString(),
     model: task.model,
@@ -76,4 +82,4 @@ async function main() {
   console.log("Done:", filePath, "(" + stats.size + " bytes)");
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(err => { console.error(err.message || err); process.exit(1); });

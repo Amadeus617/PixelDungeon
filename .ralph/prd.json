@@ -230,6 +230,36 @@
             "US-008",
             "US-009"
           ]
+        },
+        {
+          "id": "US-013",
+          "title": "添加金币收集功能",
+          "description": "在地图中随机放置金币道具，玩家触碰即拾取，HUD 显示金币数量。参考现有 KeyItem.ts 和 Chest.ts 的实现模式。",
+          "type": "code",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "地图中有金币 Sprite",
+            "玩家触碰金币时自动拾取",
+            "HUD 显示金币计数",
+            "tsc --noEmit 和 npm run build 通过"
+          ]
+        },
+        {
+          "id": "US-014",
+          "title": "添加生命药水道具",
+          "description": "在地图中随机放置红色药水道具，玩家触碰后恢复1点HP，最多恢复到最大HP。参考现有 Coin.ts 和 KeyItem.ts 的模式。",
+          "type": "code",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "地图中有药水 Sprite",
+            "玩家触碰药水时恢复HP",
+            "HP不超过最大值",
+            "tsc --noEmit 和 npm run build 通过"
+          ]
         }
       ]
     }

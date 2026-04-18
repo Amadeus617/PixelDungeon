@@ -70,6 +70,38 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Generate health potion texture
+    if (!this.textures.exists("health_potion")) {
+      const g = this.add.graphics();
+      // Potion body (red)
+      g.fillStyle(0xff0000, 1);
+      g.fillRect(5, 5, 6, 8);
+      // Potion neck
+      g.fillStyle(0xff3333, 1);
+      g.fillRect(6, 3, 4, 3);
+      // Potion cork
+      g.fillStyle(0x8b4513, 1);
+      g.fillRect(6, 2, 4, 2);
+      // Highlight
+      g.fillStyle(0xff6666, 1);
+      g.fillRect(6, 6, 2, 4);
+      g.generateTexture("health_potion", 16, 16);
+      g.destroy();
+    }
+
+    // Generate coin texture
+    if (!this.textures.exists("coin")) {
+      const g = this.add.graphics();
+      g.fillStyle(0xffd700, 1);
+      g.fillCircle(8, 8, 6);
+      g.fillStyle(0xdaa520, 1);
+      g.fillCircle(8, 8, 4);
+      g.fillStyle(0xffd700, 1);
+      g.fillCircle(8, 8, 2);
+      g.generateTexture("coin", 16, 16);
+      g.destroy();
+    }
+
     // Row 0 (frames 0-3):  down
     // Row 1 (frames 4-7):  left
     // Row 2 (frames 8-11): right

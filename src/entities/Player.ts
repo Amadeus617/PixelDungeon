@@ -112,6 +112,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return true;
   }
 
+  /** Heal HP, capped at maxHp. Returns the actual amount healed. */
+  heal(amount: number): number {
+    if (!this.alive) return 0;
+    const before = this._hp;
+    this._hp = Math.min(this._maxHp, this._hp + amount);
+    return this._hp - before;
+  }
+
   takeDamage(amount: number): void {
     if (this.isInvincible || !this.alive) return;
     this._hp = Math.max(0, this._hp - amount);

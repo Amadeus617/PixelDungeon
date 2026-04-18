@@ -3,11 +3,16 @@ import { Player } from "@/entities/Player";
 import { Slime } from "@/entities/Slime";
 import { KeyItem } from "@/entities/KeyItem";
 import { Chest } from "@/entities/Chest";
+import { Coin } from "@/entities/Coin";
+import { HealthPotion } from "@/entities/HealthPotion";
 import { DungeonMap } from "@/map";
 import { Inventory } from "@/systems/Inventory";
 import { HUD } from "@/ui/HUD";
 
 const SLIME_COUNT = 4;
+const COIN_COUNT = 5;
+const HEALTH_POTION_COUNT = 3;
+const HEALTH_POTION_HEAL = 1;
 const ENEMY_CONTACT_DAMAGE = 1;
 
 export type GameResult = "win" | "lose";
@@ -21,6 +26,9 @@ export class GameScene extends Phaser.Scene {
   private hud!: HUD;
   private keyItem!: KeyItem;
   private chests: Chest[] = [];
+  private coins: Coin[] = [];
+  private healthPotions: HealthPotion[] = [];
+  private coinCount = 0;
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private gameOver = false;
 
@@ -82,6 +90,39 @@ export class GameScene extends Phaser.Scene {
     const chest = new Chest(this, chestPos.x, chestPos.y);
     this.chests.push(chest);
 
+    // Spawn coins on random floor tiles
+    this.coinCount = 0;
+    for (let i = 0; i < COIN_COUNT; i++) {
+      const coinPos = this.dungeonMap.getRandomFloorPos(this);
+      const coin = new Coin(this, coinPos.x, coinPos.y);
+      this.coins.push(coin);
+    }
+
+    // Spawn health potions on random floor tiles
+    for (let i = 0; i < HEALTH_POTION_COUNT; i++) {
+      const potionPos = this.dungeonMap.getRandomFloorPos(this);
+      const potion = new HealthPotion(this, potionPos.x, potionPos.y);
+      this.healthPotions.push(potion);
+    }
+
+    // Overlap: player picks up health potions
+    for (const potion of this.healthPotions) {
+      this.physics.add.overlap(this.player, potion, () => {
+        if (potion.collect()) {
+          this.player.heal(HEALTH_POTION_HEAL);
+        }
+      });
+    }
+
+    // Overlap: player picks up coins
+    for (const coin of this.coins) {
+      this.physics.add.overlap(this.player, coin, () => {
+        if (coin.collect()) {
+          this.coinCount++;
+        }
+      });
+    }
+
     // Overlap: player picks up key
     this.physics.add.overlap(this.player, this.keyItem, () => {
       if (this.keyItem.collect()) {
@@ -97,7 +138,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD (needs both inventory and player for HP display)
-    this.hud = new HUD(this, this.inventory, this.player);
+    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount);
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);

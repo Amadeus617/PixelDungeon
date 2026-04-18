@@ -6,7 +6,7 @@ const HP_BAR_WIDTH = 200;
 const HP_BAR_HEIGHT = 14;
 const HP_BAR_PAD = 2;
 
-/** Heads-up display showing HP bar and inventory contents. */
+/** Heads-up display showing HP bar, inventory contents, and coin count. */
 export class HUD extends Phaser.GameObjects.Container {
   // Key section
   private keyIcon!: Phaser.GameObjects.Image;
@@ -17,15 +17,21 @@ export class HUD extends Phaser.GameObjects.Container {
   private hpBarFill!: Phaser.GameObjects.Rectangle;
   private hpText!: Phaser.GameObjects.Text;
 
+  // Coin section
+  private coinIcon!: Phaser.GameObjects.Image;
+  private coinLabel!: Phaser.GameObjects.Text;
+
   private player: Player;
   private inventory: Inventory;
+  private getCoinCount: () => number;
 
-  constructor(scene: Phaser.Scene, inventory: Inventory, player: Player) {
+  constructor(scene: Phaser.Scene, inventory: Inventory, player: Player, getCoinCount: () => number) {
     super(scene, 10, 10);
     scene.add.existing(this);
     this.setDepth(100).setScrollFactor(0);
     this.player = player;
     this.inventory = inventory;
+    this.getCoinCount = getCoinCount;
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -79,6 +85,24 @@ export class HUD extends Phaser.GameObjects.Container {
     });
     this.keyLabel.setVisible(false);
     this.add(this.keyLabel);
+
+    // --- Coin section (below key section) ---
+    const coinY = keyY + 44;
+    const coinBg = scene.add.rectangle(0, coinY, 130, 36, 0x000000, 0.6);
+    coinBg.setOrigin(0);
+    this.add(coinBg);
+
+    this.coinIcon = scene.add.image(12, coinY + 18, "coin");
+    this.coinIcon.setScale(2);
+    this.coinIcon.setOrigin(0);
+    this.add(this.coinIcon);
+
+    this.coinLabel = scene.add.text(38, coinY + 8, "Coins: 0", {
+      fontSize: "14px",
+      color: "#ffd700",
+      fontFamily: "monospace",
+    });
+    this.add(this.coinLabel);
   }
 
   /** Call every frame to keep HUD in sync with player and inventory. */
@@ -100,5 +124,7 @@ export class HUD extends Phaser.GameObjects.Container {
     const hasKey = this.inventory.has("key");
     this.keyIcon.setVisible(hasKey);
     this.keyLabel.setVisible(hasKey);
+
+    this.coinLabel.setText(`Coins: ${this.getCoinCount()}`);
   }
 }
