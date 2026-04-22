@@ -9,6 +9,7 @@ import { DungeonMap } from "@/map";
 import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
+import { RoomCameraSystem } from "@/systems/RoomCameraSystem";
 
 const SLIME_COUNT = 4;
 const COIN_COUNT = 5;
@@ -34,6 +35,7 @@ export class GameScene extends Phaser.Scene {
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private gameOver = false;
+  private roomCameraSystem!: RoomCameraSystem;
 
   constructor() {
     super({ key: "GameScene" });
@@ -58,10 +60,19 @@ export class GameScene extends Phaser.Scene {
 
     this.player.setWorldBounds();
 
-    // Camera follows player in the larger dungeon
-    this.cameras.main.setBounds(0, 0, worldW, worldH);
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setZoom(1);
+    // Room-based camera system with smooth follow and transition effects
+    this.roomCameraSystem = new RoomCameraSystem(
+      this,
+      this.dungeonMap.getDungeonData(),
+      this.dungeonMap.TILE_SIZE,
+      3 // tile scale
+    );
+
+    // Find the room the player spawns in (entrance room)
+    const entranceRoomIdx = this.dungeonMap.getDungeonData().rooms.indexOf(
+      this.dungeonMap.getDungeonData().entranceRoom
+    );
+    this.roomCameraSystem.init(this.player, entranceRoomIdx);
 
     // Create a physics group for slimes
     this.slimeGroup = this.physics.add.group();
@@ -255,6 +266,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.hud.update();
+
+    // Update room camera system (detects room changes)
+    this.roomCameraSystem.update(this.player.x, this.player.y);
 
     // Check lose condition first (death takes priority)
     if (this.checkLoseCondition()) {
