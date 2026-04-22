@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Inventory } from "@/systems/Inventory";
 import { Player } from "@/entities/Player";
+import { ScoreSystem } from "@/systems/ScoreSystem";
 
 const HP_BAR_WIDTH = 200;
 const HP_BAR_HEIGHT = 14;
@@ -21,17 +22,22 @@ export class HUD extends Phaser.GameObjects.Container {
   private coinIcon!: Phaser.GameObjects.Image;
   private coinLabel!: Phaser.GameObjects.Text;
 
+  // Score section
+  private scoreLabel!: Phaser.GameObjects.Text;
+
   private player: Player;
   private inventory: Inventory;
   private getCoinCount: () => number;
+  private scoreSystem: ScoreSystem;
 
-  constructor(scene: Phaser.Scene, inventory: Inventory, player: Player, getCoinCount: () => number) {
+  constructor(scene: Phaser.Scene, inventory: Inventory, player: Player, getCoinCount: () => number, scoreSystem: ScoreSystem) {
     super(scene, 10, 10);
     scene.add.existing(this);
     this.setDepth(100).setScrollFactor(0);
     this.player = player;
     this.inventory = inventory;
     this.getCoinCount = getCoinCount;
+    this.scoreSystem = scoreSystem;
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -103,6 +109,19 @@ export class HUD extends Phaser.GameObjects.Container {
       fontFamily: "monospace",
     });
     this.add(this.coinLabel);
+
+    // --- Score section (below coin section) ---
+    const scoreY = coinY + 44;
+    const scoreBg = scene.add.rectangle(0, scoreY, 160, 36, 0x000000, 0.6);
+    scoreBg.setOrigin(0);
+    this.add(scoreBg);
+
+    this.scoreLabel = scene.add.text(12, scoreY + 8, "Score: 0", {
+      fontSize: "14px",
+      color: "#ffffff",
+      fontFamily: "monospace",
+    });
+    this.add(this.scoreLabel);
   }
 
   /** Call every frame to keep HUD in sync with player and inventory. */
@@ -126,5 +145,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.keyLabel.setVisible(hasKey);
 
     this.coinLabel.setText(`Coins: ${this.getCoinCount()}`);
+
+    this.scoreLabel.setText(`Score: ${this.scoreSystem.score}`);
   }
 }

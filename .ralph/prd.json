@@ -260,6 +260,21 @@
             "HP不超过最大值",
             "tsc --noEmit 和 npm run build 通过"
           ]
+        },
+        {
+          "id": "US-015",
+          "title": "添加游戏得分系统",
+          "description": "玩家拾取金币+10分，击败敌人+50分，通关时显示总分。参考现有 Coin.ts 和 Enemy.ts 的实现。",
+          "type": "code",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "拾取金币+10分",
+            "击败敌人+50分",
+            "HUD显示当前分数",
+            "tsc + build通过"
+          ]
         }
       ]
     }

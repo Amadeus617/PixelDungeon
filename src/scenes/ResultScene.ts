@@ -7,8 +7,8 @@ export class ResultScene extends Phaser.Scene {
     super({ key: "ResultScene" });
   }
 
-  create(data: { result: GameResult }): void {
-    const { result } = data;
+  create(data: { result: GameResult; score?: number }): void {
+    const { result, score } = data;
 
     // Semi-transparent overlay
     const bg = this.add.rectangle(
@@ -49,10 +49,22 @@ export class ResultScene extends Phaser.Scene {
     });
     subtitle.setOrigin(0.5);
 
+    // Score display
+    if (score !== undefined) {
+      const scoreText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, `Final Score: ${score}`, {
+        fontSize: "24px",
+        color: "#ffd700",
+        fontFamily: "monospace",
+        stroke: "#000000",
+        strokeThickness: 3,
+      });
+      scoreText.setOrigin(0.5);
+    }
+
     // Restart prompt
     const restart = this.add.text(
       GAME_WIDTH / 2,
-      GAME_HEIGHT / 2 + 80,
+      GAME_HEIGHT / 2 + 100,
       "Press SPACE or ENTER to restart",
       {
         fontSize: "18px",

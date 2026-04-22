@@ -7,6 +7,7 @@ import { Coin } from "@/entities/Coin";
 import { HealthPotion } from "@/entities/HealthPotion";
 import { DungeonMap } from "@/map";
 import { Inventory } from "@/systems/Inventory";
+import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
 
 const SLIME_COUNT = 4;
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   private coins: Coin[] = [];
   private healthPotions: HealthPotion[] = [];
   private coinCount = 0;
+  private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private gameOver = false;
 
@@ -38,6 +40,7 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.gameOver = false;
+    this.scoreSystem.reset();
 
     this.dungeonMap = new DungeonMap(this);
 
@@ -119,6 +122,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.overlap(this.player, coin, () => {
         if (coin.collect()) {
           this.coinCount++;
+          this.scoreSystem.addCoinPoints();
         }
       });
     }
@@ -138,7 +142,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD (needs both inventory and player for HP display)
-    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount);
+    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem);
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
@@ -153,7 +157,12 @@ export class GameScene extends Phaser.Scene {
     for (const slime of this.slimes) {
       if (!slime.active) continue;
       if (this.player.isEnemyInAttackRange(slime.x, slime.y)) {
+        const wasDead = slime.isDead;
         slime.takeDamage(Player.ATTACK_DAMAGE);
+        // Award score only on the kill blow
+        if (!wasDead && slime.isDead) {
+          this.scoreSystem.addEnemyPoints();
+        }
       }
     }
 
@@ -198,7 +207,7 @@ export class GameScene extends Phaser.Scene {
 
     // Transition to result scene after a short delay
     this.time.delayedCall(800, () => {
-      this.scene.start("ResultScene", { result });
+      this.scene.start("ResultScene", { result, score: this.scoreSystem.score });
     });
   }
 
