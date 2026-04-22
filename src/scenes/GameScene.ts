@@ -167,7 +167,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD (needs both inventory and player for HP display)
-    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem);
+    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem, this.roomCameraSystem);
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
@@ -269,6 +269,11 @@ export class GameScene extends Phaser.Scene {
 
     // Update room camera system (detects room changes)
     this.roomCameraSystem.update(this.player.x, this.player.y);
+
+    // Freeze player input during room transition
+    if (this.roomCameraSystem.isTransitioning()) {
+      this.player.setVelocity(0, 0);
+    }
 
     // Check lose condition first (death takes priority)
     if (this.checkLoseCondition()) {

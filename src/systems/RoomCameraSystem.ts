@@ -2,10 +2,13 @@ import Phaser from "phaser";
 import type { DungeonData, RoomDef } from "@/map";
 
 /** Configuration for the room camera system */
-const CAMERA_LERP_X = 0.08;
-const CAMERA_LERP_Y = 0.08;
-const TRANSITION_DURATION = 300; // ms for fade effect
-const TRANSITION_HOLD = 100; // ms to hold the fade before fading back in
+const CAMERA_LERP_X = 0.1;
+const CAMERA_LERP_Y = 0.1;
+const TRANSITION_DURATION = 200; // ms for fade effect
+const TRANSITION_HOLD = 50; // ms to hold the fade before fading back in
+
+/** Callback type for room change events */
+export type RoomChangedCallback = (roomIndex: number, room: RoomDef, previousRoomIndex: number) => void;
 
 /**
  * Manages room-based camera following and room transition effects.
@@ -23,8 +26,16 @@ export class RoomCameraSystem {
 
   /** Index into dungeonData.rooms for the room the player is currently in */
   private currentRoomIndex: number = 0;
+  /** Previous room index, used for corridor re-entry detection */
+  private previousRoomIndex: number = 0;
   /** Whether a room transition is currently in progress */
   private transitioning = false;
+  /** Whether the camera is in corridor mode (full world bounds) */
+  private inCorridor = false;
+  /** Tracked set of visited room indices */
+  private visitedRooms: Set<number> = new Set();
+  /** Room change event callback */
+  private onRoomChangedCallback?: RoomChangedCallback;
 
   constructor(
     scene: Phaser.Scene,
@@ -51,6 +62,21 @@ export class RoomCameraSystem {
   /** Whether a transition is in progress */
   isTransitioning(): boolean {
     return this.transitioning;
+  }
+
+  /** Set a callback for room change events */
+  setOnRoomChanged(cb: RoomChangedCallback): void {
+    this.onRoomChangedCallback = cb;
+  }
+
+  /** Check if a room has been visited */
+  isRoomVisited(roomIndex: number): boolean {
+    return this.visitedRooms.has(roomIndex);
+  }
+
+  /** Get the set of all visited room indices */
+  getVisitedRooms(): ReadonlySet<number> {
+    return this.visitedRooms;
   }
 
   /**
@@ -118,7 +144,11 @@ export class RoomCameraSystem {
    */
   init(target: Phaser.GameObjects.GameObject, startRoomIndex: number = 0): void {
     this.currentRoomIndex = startRoomIndex;
+    this.previousRoomIndex = startRoomIndex;
     this.transitioning = false;
+    this.inCorridor = false;
+    this.visitedRooms.clear();
+    this.visitedRooms.add(startRoomIndex);
 
     const cam = this.scene.cameras.main;
     this.setCameraToRoom(this.currentRoomIndex, cam);
@@ -131,13 +161,11 @@ export class RoomCameraSystem {
    *
    * @param playerX - Player's world X position
    * @param playerY - Player's world Y position
-   * @param onRoomChanged - Callback fired when the room changes: (newRoomIndex, room) => void
    * @returns true if a transition was triggered
    */
   update(
     playerX: number,
-    playerY: number,
-    onRoomChanged?: (roomIndex: number, room: RoomDef) => void
+    playerY: number
   ): boolean {
     if (this.transitioning) return false;
 
@@ -145,20 +173,26 @@ export class RoomCameraSystem {
 
     // If player is in a corridor (room = -1), expand camera to full world
     if (detectedRoom === -1) {
-      const cam = this.scene.cameras.main;
-      // Only switch to world bounds if we're not already in corridor mode
-      // and player has left the current room
-      if (!this.isInRoomBounds(playerX, playerY, this.currentRoomIndex)) {
+      if (!this.inCorridor) {
+        this.inCorridor = true;
+        const cam = this.scene.cameras.main;
         this.setCameraToWorld(cam);
       }
       return false;
+    }
+
+    // Mark that we're no longer in a corridor
+    if (this.inCorridor) {
+      this.inCorridor = false;
     }
 
     // Same room, no transition needed
     if (detectedRoom === this.currentRoomIndex) return false;
 
     // Player entered a new room!
-    this.triggerTransition(detectedRoom, onRoomChanged);
+    this.previousRoomIndex = this.currentRoomIndex;
+    this.visitedRooms.add(detectedRoom);
+    this.triggerTransition(detectedRoom);
     return true;
   }
 
@@ -179,8 +213,7 @@ export class RoomCameraSystem {
    * Trigger a room transition with a fade effect.
    */
   private triggerTransition(
-    newRoomIndex: number,
-    onRoomChanged?: (roomIndex: number, room: RoomDef) => void
+    newRoomIndex: number
   ): void {
     this.transitioning = true;
     const cam = this.scene.cameras.main;
@@ -195,8 +228,13 @@ export class RoomCameraSystem {
         this.currentRoomIndex = newRoomIndex;
         this.setCameraToRoom(newRoomIndex, cam);
 
-        if (onRoomChanged) {
-          onRoomChanged(newRoomIndex, this.dungeonData.rooms[newRoomIndex]);
+        // Fire room-changed callback
+        if (this.onRoomChangedCallback) {
+          this.onRoomChangedCallback(
+            newRoomIndex,
+            this.dungeonData.rooms[newRoomIndex],
+            this.previousRoomIndex
+          );
         }
 
         // Brief hold then fade back in

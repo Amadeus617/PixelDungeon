@@ -2,10 +2,12 @@ import Phaser from "phaser";
 import { Inventory } from "@/systems/Inventory";
 import { Player } from "@/entities/Player";
 import { ScoreSystem } from "@/systems/ScoreSystem";
+import type { RoomCameraSystem } from "@/systems/RoomCameraSystem";
 
 const HP_BAR_WIDTH = 200;
 const HP_BAR_HEIGHT = 14;
 const HP_BAR_PAD = 2;
+const ROOM_NAME_DISPLAY_MS = 2000; // how long to show room name
 
 /** Heads-up display showing HP bar, inventory contents, and coin count. */
 export class HUD extends Phaser.GameObjects.Container {
@@ -25,12 +27,25 @@ export class HUD extends Phaser.GameObjects.Container {
   // Score section
   private scoreLabel!: Phaser.GameObjects.Text;
 
+  // Room name overlay
+  private roomNameText!: Phaser.GameObjects.Text;
+  private roomNameBg!: Phaser.GameObjects.Rectangle;
+  private roomNameTimer: Phaser.Time.TimerEvent | null = null;
+
   private player: Player;
   private inventory: Inventory;
   private getCoinCount: () => number;
   private scoreSystem: ScoreSystem;
+  private roomCameraSystem?: RoomCameraSystem;
 
-  constructor(scene: Phaser.Scene, inventory: Inventory, player: Player, getCoinCount: () => number, scoreSystem: ScoreSystem) {
+  constructor(
+    scene: Phaser.Scene,
+    inventory: Inventory,
+    player: Player,
+    getCoinCount: () => number,
+    scoreSystem: ScoreSystem,
+    roomCameraSystem?: RoomCameraSystem
+  ) {
     super(scene, 10, 10);
     scene.add.existing(this);
     this.setDepth(100).setScrollFactor(0);
@@ -38,6 +53,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.inventory = inventory;
     this.getCoinCount = getCoinCount;
     this.scoreSystem = scoreSystem;
+    this.roomCameraSystem = roomCameraSystem;
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -122,6 +138,68 @@ export class HUD extends Phaser.GameObjects.Container {
       fontFamily: "monospace",
     });
     this.add(this.scoreLabel);
+
+    // --- Room name overlay (centered, shown briefly on room change) ---
+    const gameWidth = (scene.game.config.width as number) || 800;
+    const roomNameX = gameWidth / 2 - 80;
+
+    this.roomNameBg = scene.add.rectangle(roomNameX, -10, 180, 40, 0x000000, 0.7);
+    this.roomNameBg.setOrigin(0);
+    this.roomNameBg.setVisible(false);
+    this.add(this.roomNameBg);
+
+    this.roomNameText = scene.add.text(roomNameX + 90, 10, "", {
+      fontSize: "16px",
+      color: "#ffffff",
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 3,
+    });
+    this.roomNameText.setOrigin(0.5, 0);
+    this.roomNameText.setVisible(false);
+    this.roomNameText.setAlpha(0);
+    this.add(this.roomNameText);
+
+    // Listen for room changes from the camera system
+    if (this.roomCameraSystem) {
+      this.roomCameraSystem.setOnRoomChanged((_idx, _room, _prevIdx) => {
+        this.showRoomName(this.getRoomLabel(_idx));
+      });
+    }
+  }
+
+  /** Show a room name overlay that fades out after a brief delay */
+  private showRoomName(name: string): void {
+    this.roomNameText.setText(name);
+    this.roomNameBg.setVisible(true);
+    this.roomNameText.setVisible(true);
+    this.roomNameText.setAlpha(1);
+
+    // Clear any existing timer
+    if (this.roomNameTimer) {
+      this.roomNameTimer.remove();
+    }
+
+    // Fade out after delay
+    this.roomNameTimer = this.scene.time.delayedCall(ROOM_NAME_DISPLAY_MS, () => {
+      this.scene.tweens.add({
+        targets: [this.roomNameText, this.roomNameBg],
+        alpha: 0,
+        duration: 500,
+        onComplete: () => {
+          this.roomNameText.setVisible(false);
+          this.roomNameBg.setVisible(false);
+        },
+      });
+      this.roomNameTimer = null;
+    });
+  }
+
+  /** Generate a room label from its index */
+  private getRoomLabel(roomIndex: number): string {
+    const labels = ["Entrance Hall", "Guard Room", "Dark Chamber", "Treasure Vault", "Exit Passage"];
+    if (roomIndex < labels.length) return labels[roomIndex];
+    return `Room ${roomIndex + 1}`;
   }
 
   /** Call every frame to keep HUD in sync with player and inventory. */

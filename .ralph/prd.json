@@ -303,7 +303,7 @@
           "description": "当玩家走到房间边缘时自动切换到相邻房间。相机平滑跟随玩家移动。",
           "type": "code",
           "priority": 2,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-016"
           ],
