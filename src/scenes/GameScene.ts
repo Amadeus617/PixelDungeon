@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { Player } from "@/entities/Player";
 import { Slime } from "@/entities/Slime";
+import { Skeleton } from "@/entities/Skeleton";
 import { KeyItem } from "@/entities/KeyItem";
 import { Chest } from "@/entities/Chest";
 import { Coin } from "@/entities/Coin";
@@ -12,6 +13,7 @@ import { HUD } from "@/ui/HUD";
 import { RoomCameraSystem } from "@/systems/RoomCameraSystem";
 
 const SLIME_COUNT = 4;
+const SKELETON_COUNT = 3;
 const COIN_COUNT = 5;
 const HEALTH_POTION_COUNT = 3;
 const HEALTH_POTION_HEAL = 1;
@@ -24,6 +26,8 @@ export class GameScene extends Phaser.Scene {
   private player!: Player;
   private slimes: Slime[] = [];
   private slimeGroup!: Phaser.Physics.Arcade.Group;
+  private skeletons: Skeleton[] = [];
+  private skeletonGroup!: Phaser.Physics.Arcade.Group;
   private dungeonMap!: DungeonMap;
   private inventory!: Inventory;
   private hud!: HUD;
@@ -98,6 +102,33 @@ export class GameScene extends Phaser.Scene {
       this.player,
       this.slimeGroup,
       (_playerObj, _slimeObj) => {
+        this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
+      }
+    );
+
+    // --- Skeletons ---
+    this.skeletonGroup = this.physics.add.group();
+
+    for (let i = 0; i < SKELETON_COUNT; i++) {
+      // Spawn skeletons in rooms 2..N-1 (skip entrance and first combat room)
+      const roomIdx = 2 + (i % Math.max(1, dungeonData.rooms.length - 2));
+      const actualIdx = Math.min(roomIdx, dungeonData.rooms.length - 1);
+      const room = dungeonData.rooms[actualIdx];
+      const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
+      const skeleton = new Skeleton(this, spos.x, spos.y);
+      skeleton.setPlayerRef(this.player);
+      this.physics.add.collider(skeleton, wallLayer, () => {
+        skeleton.onHitWall();
+      });
+      this.skeletons.push(skeleton);
+      this.skeletonGroup.add(skeleton);
+    }
+
+    // Skeleton contact with player → player takes damage
+    this.physics.add.overlap(
+      this.player,
+      this.skeletonGroup,
+      () => {
         this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
       }
     );
@@ -197,6 +228,26 @@ export class GameScene extends Phaser.Scene {
       this.slimeGroup.remove(ds, true, true);
     }
     this.slimes = this.slimes.filter((s) => s.active);
+
+    // --- Attack skeletons ---
+    this.skeletons = this.skeletons.filter((s) => s.active);
+
+    for (const skeleton of this.skeletons) {
+      if (!skeleton.active) continue;
+      if (this.player.isEnemyInAttackRange(skeleton.x, skeleton.y)) {
+        const wasDead = skeleton.isDead;
+        skeleton.takeDamage(Player.ATTACK_DAMAGE);
+        if (!wasDead && skeleton.isDead) {
+          this.scoreSystem.addEnemyPoints();
+        }
+      }
+    }
+
+    const deadSkeletons = this.skeletons.filter((s) => !s.active);
+    for (const ds of deadSkeletons) {
+      this.skeletonGroup.remove(ds, true, true);
+    }
+    this.skeletons = this.skeletons.filter((s) => s.active);
   }
 
   /** Try to open a nearby chest if the player has a key. */
@@ -245,6 +296,10 @@ export class GameScene extends Phaser.Scene {
     // Only update living slimes
     for (const slime of this.slimes) {
       slime.update(delta);
+    }
+    // Update skeletons
+    for (const skeleton of this.skeletons) {
+      skeleton.update(delta);
     }
 
     // Chest interaction on space press (handled here to intercept before attack)

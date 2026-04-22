@@ -1,0 +1,115 @@
+import Phaser from "phaser";
+
+const SKELETON_SPEED = 45;
+const SKELETON_MAX_HP = 2;
+const TRACK_RANGE = 200;
+
+export class Skeleton extends Phaser.Physics.Arcade.Sprite {
+  private _hp: number = SKELETON_MAX_HP;
+  private _maxHp: number = SKELETON_MAX_HP;
+  private playerRef!: Phaser.GameObjects.Sprite;
+  private dirTimer: number = 0;
+  private dirInterval: number = 2000;
+  private wanderVx: number = 0;
+  private wanderVy: number = 0;
+
+  get hp(): number {
+    return this._hp;
+  }
+
+  get maxHp(): number {
+    return this._maxHp;
+  }
+
+  get isDead(): boolean {
+    return this._hp <= 0;
+  }
+
+  constructor(scene: Phaser.Scene, x: number, y: number) {
+    super(scene, x, y, "skeleton");
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+
+    this.setScale(3);
+    this.setCollideWorldBounds(true);
+    this.setDepth(10);
+
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setBoundsRectangle(
+      scene.physics.world.bounds as Phaser.Geom.Rectangle
+    );
+
+    this.pickWanderDirection();
+    this.play("skeleton-move", true);
+  }
+
+  /** Set a reference to the player so the skeleton can track them. */
+  setPlayerRef(player: Phaser.GameObjects.Sprite): void {
+    this.playerRef = player;
+  }
+
+  private pickWanderDirection(): void {
+    const angle = Math.random() * Math.PI * 2;
+    this.wanderVx = Math.cos(angle);
+    this.wanderVy = Math.sin(angle);
+    this.dirInterval = Phaser.Math.Between(1500, 3500);
+    this.dirTimer = 0;
+  }
+
+  /** Called when skeleton collides with a wall – pick new direction */
+  onHitWall(): void {
+    this.pickWanderDirection();
+  }
+
+  takeDamage(amount: number): void {
+    this._hp = Math.max(0, this._hp - amount);
+    // Flash white on hit
+    this.setTint(0xffffff);
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
+    if (this._hp <= 0) {
+      this.die();
+    }
+  }
+
+  private die(): void {
+    this.setVelocity(0, 0);
+    this.setActive(false);
+    this.setVisible(false);
+    this.destroy();
+  }
+
+  update(delta: number): void {
+    if (!this.active) return;
+
+    let vx: number;
+    let vy: number;
+
+    // Track player if within range and reference exists
+    if (this.playerRef && this.playerRef.active) {
+      const dx = this.playerRef.x - this.x;
+      const dy = this.playerRef.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist <= TRACK_RANGE && dist > 0) {
+        // Chase player
+        vx = (dx / dist) * SKELETON_SPEED;
+        vy = (dy / dist) * SKELETON_SPEED;
+        this.setVelocity(vx, vy);
+        return;
+      }
+    }
+
+    // Wander randomly
+    this.dirTimer += delta;
+    if (this.dirTimer >= this.dirInterval) {
+      this.pickWanderDirection();
+    }
+
+    this.setVelocity(
+      this.wanderVx * SKELETON_SPEED,
+      this.wanderVy * SKELETON_SPEED
+    );
+  }
+}

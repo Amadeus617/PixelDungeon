@@ -102,6 +102,46 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Generate skeleton sprite (procedural 4-frame spritesheet)
+    if (!this.textures.exists("skeleton")) {
+      const g = this.add.graphics();
+      for (let frame = 0; frame < 4; frame++) {
+        const ox = frame * 16;
+        // Skull
+        g.fillStyle(0xe8e8d0, 1);
+        g.fillRoundedRect(ox + 4, 1, 8, 8, 2);
+        // Eye sockets
+        g.fillStyle(0x1a0a2e, 1);
+        g.fillRect(ox + 5, 3, 2, 2);
+        g.fillRect(ox + 9, 3, 2, 2);
+        // Jaw
+        g.fillStyle(0xd0d0b8, 1);
+        g.fillRect(ox + 5, 7, 6, 2);
+        // Teeth
+        g.fillStyle(0x1a0a2e, 1);
+        g.fillRect(ox + 6, 7, 1, 1);
+        g.fillRect(ox + 8, 7, 1, 1);
+        g.fillRect(ox + 10, 7, 1, 1);
+        // Ribcage
+        g.fillStyle(0xd0d0b8, 1);
+        g.fillRect(ox + 6, 9, 4, 4);
+        g.fillStyle(0x1a0a2e, 1);
+        g.fillRect(ox + 7, 10, 2, 1);
+        // Arms (animate slightly per frame)
+        g.fillStyle(0xd0d0b8, 1);
+        const armOffset = frame % 2 === 0 ? 0 : 1;
+        g.fillRect(ox + 4, 9 + armOffset, 2, 3);
+        g.fillRect(ox + 10, 9 + (1 - armOffset), 2, 3);
+        // Legs (animate per frame)
+        const legSpread = frame % 2 === 0 ? 0 : 1;
+        g.fillStyle(0xd0d0b8, 1);
+        g.fillRect(ox + 6 - legSpread, 13, 2, 3);
+        g.fillRect(ox + 8 + legSpread, 13, 2, 3);
+      }
+      g.generateTexture("skeleton", 64, 16);
+      g.destroy();
+    }
+
     // Row 0 (frames 0-3):  down
     // Row 1 (frames 4-7):  left
     // Row 2 (frames 8-11): right
@@ -161,6 +201,20 @@ export class BootScene extends Phaser.Scene {
     this.anims.create({
       key: "slime-move",
       frames: this.anims.generateFrameNumbers("slime", { start: 2, end: 3 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    // Skeleton animations
+    this.anims.create({
+      key: "skeleton-idle",
+      frames: this.anims.generateFrameNumbers("skeleton", { start: 0, end: 1 }),
+      frameRate: 4,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: "skeleton-move",
+      frames: this.anims.generateFrameNumbers("skeleton", { start: 2, end: 3 }),
       frameRate: 6,
       repeat: -1,
     });

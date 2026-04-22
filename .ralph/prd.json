@@ -320,7 +320,7 @@
           "description": "新增骷髅敌人类型：比史莱姆更强（HP=2），会追踪玩家。BootScene 中生成骷髅 sprite。",
           "type": "code",
           "priority": 3,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Skeleton.ts 敌人文件",
