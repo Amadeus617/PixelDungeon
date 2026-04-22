@@ -8,7 +8,7 @@ PROGRESS=$RALPH_DIR/progress.txt
 case "$1" in
   next)
     jq -c '
-      .milestones[0].userStories as $stories |
+      .milestones[].userStories as $stories |
       $stories | map(select(.status == "pending")) |
       map(select(
         (.dependsOn // []) | length == 0 or
@@ -21,7 +21,7 @@ case "$1" in
   done)
     ID=$2
     jq --arg id "$ID" '
-      (.milestones[0].userStories[] | select(.id == $id)).status = "done"
+      (.milestones[].userStories[] | select(.id == $id)).status = "done"
     ' "$PRD" > /tmp/prd_tmp.json && mv /tmp/prd_tmp.json "$PRD"
     echo "[$(date '+%Y-%m-%d %H:%M')] DONE: $ID" >> "$PROGRESS"
     echo "Marked $ID as done"
@@ -30,13 +30,13 @@ case "$1" in
     ID=$2
     REASON="${@:3}"
     jq --arg id "$ID" --arg r "$REASON" '
-      (.milestones[0].userStories[] | select(.id == $id)).status = "blocked"
+      (.milestones[].userStories[] | select(.id == $id)).status = "blocked"
     ' "$PRD" > /tmp/prd_tmp.json && mv /tmp/prd_tmp.json "$PRD"
     echo "[$(date '+%Y-%m-%d %H:%M')] FAIL: $ID - $REASON" >> "$PROGRESS"
     echo "Marked $ID as blocked: $REASON"
     ;;
   status)
-    jq -r '.milestones[0].userStories[] | "\(.id) \(.status) \(.title)"' "$PRD"
+    jq -r '.milestones[].userStories[] | "\(.id) \(.status) \(.title)"' "$PRD"
     ;;
   log)
     MSG="${@:2}"

@@ -1,22 +1,22 @@
 import Phaser from "phaser";
-import { generateRoom, isWall } from "./dungeonData";
+import { generateDungeon, isWall, type DungeonData, getRandomFloorInRoom } from "./dungeonData";
 
 export class DungeonMap {
   readonly TILE_SIZE = 16;
-  readonly MAP_WIDTH = 16;
-  readonly MAP_HEIGHT = 16;
+  private dungeonData!: DungeonData;
 
   private tilemap!: Phaser.Tilemaps.Tilemap;
   private wallLayer!: Phaser.Tilemaps.TilemapLayer;
   private collideIndices: number[] = [];
+  private scale: number = 3;
 
   constructor(scene: Phaser.Scene) {
-    const roomData = generateRoom();
+    this.dungeonData = generateDungeon();
     this.buildCollideIndices();
 
     // Create tilemap programmatically
     this.tilemap = scene.make.tilemap({
-      data: roomData,
+      data: this.dungeonData.tiles,
       tileWidth: this.TILE_SIZE,
       tileHeight: this.TILE_SIZE,
     });
@@ -36,18 +36,16 @@ export class DungeonMap {
 
     this.wallLayer = this.tilemap.createLayer(0, tileset, 0, 0)!;
     this.wallLayer.setDepth(0);
-    this.wallLayer.setScale(3);
+    this.wallLayer.setScale(this.scale);
 
     // Mark wall tiles as collidable
     this.wallLayer.setCollisionByExclusion([-1], false);
-    // Only collide with actual wall tiles
     for (const idx of this.collideIndices) {
       this.wallLayer.setCollision(idx, true);
     }
   }
 
   private buildCollideIndices(): void {
-    // Check all possible tile indices (0..63)
     for (let i = 0; i < 64; i++) {
       if (isWall(i)) {
         this.collideIndices.push(i);
@@ -62,28 +60,81 @@ export class DungeonMap {
 
   /** World pixel width */
   getWorldWidth(): number {
-    return this.MAP_WIDTH * this.TILE_SIZE * 3;
+    return this.dungeonData.width * this.TILE_SIZE * this.scale;
   }
 
   /** World pixel height */
-  getWorldHeight(): number {
-    return this.MAP_HEIGHT * this.TILE_SIZE * 3;
+  returnWorldHeight(): number {
+    return this.dungeonData.height * this.TILE_SIZE * this.scale;
   }
 
-  /** Get a random floor tile center position in world pixels */
+  getWorldHeight(): number {
+    return this.dungeonData.height * this.TILE_SIZE * this.scale;
+  }
+
+  /** Map width in tiles */
+  getMapWidth(): number {
+    return this.dungeonData.width;
+  }
+
+  /** Map height in tiles */
+  getMapHeight(): number {
+    return this.dungeonData.height;
+  }
+
+  /** Get the dungeon data */
+  getDungeonData(): DungeonData {
+    return this.dungeonData;
+  }
+
+  /** Get a random floor tile center position in world pixels (any room) */
   getRandomFloorPos(scene: Phaser.Scene): { x: number; y: number } {
-    const scale = 3;
-    for (;;) {
-      const col = Phaser.Math.Between(1, this.MAP_WIDTH - 2);
-      const row = Phaser.Math.Between(1, this.MAP_HEIGHT - 2);
-      const tile = this.wallLayer.getTileAt(col, row);
-      if (tile && !isWall(tile.index)) {
-        return {
-          x: (col * this.TILE_SIZE + this.TILE_SIZE / 2) * scale,
-          y: (row * this.TILE_SIZE + this.TILE_SIZE / 2) * scale,
-        };
+    const room = this.dungeonData.rooms[
+      Math.floor(Math.random() * this.dungeonData.rooms.length)
+    ];
+    return this.getRandomFloorPosInRoom(room);
+  }
+
+  /** Get a random floor position in a specific room (world pixels) */
+  getRandomFloorPosInRoom(room: { col: number; row: number; width: number; height: number }): { x: number; y: number } {
+    const pos = getRandomFloorInRoom(this.dungeonData.tiles, room);
+    return {
+      x: (pos.col * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,
+      y: (pos.row * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,
+    };
+  }
+
+  /** Get the player spawn position (entrance room center, world pixels) */
+  getPlayerSpawnPos(): { x: number; y: number } {
+    return this.getRandomFloorPosInRoom(this.dungeonData.entranceRoom);
+  }
+
+  /** Get stairs (exit) position in world pixels */
+  getStairsPos(): { x: number; y: number } {
+    const exitRoom = this.dungeonData.exitRoom;
+    // Find the stairs tile
+    for (let r = exitRoom.row; r < exitRoom.row + exitRoom.height; r++) {
+      for (let c = exitRoom.col; c < exitRoom.col + exitRoom.width; c++) {
+        if (this.dungeonData.tiles[r]?.[c] === 34) { // T.STAIRS
+          return {
+            x: (c * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,
+            y: (r * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,
+          };
+        }
       }
     }
+    // Fallback to room center
+    return this.getRandomFloorPosInRoom(exitRoom);
+  }
+
+  /** Check if a world pixel position is on the stairs tile */
+  isOnStairs(worldX: number, worldY: number): boolean {
+    const col = Math.floor(worldX / (this.TILE_SIZE * this.scale));
+    const row = Math.floor(worldY / (this.TILE_SIZE * this.scale));
+    if (row < 0 || row >= this.dungeonData.height || col < 0 || col >= this.dungeonData.width) {
+      return false;
+    }
+    return this.dungeonData.tiles[row][col] === 34; // T.STAIRS
   }
 
   destroy(): void {

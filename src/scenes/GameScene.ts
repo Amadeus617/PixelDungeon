@@ -15,6 +15,7 @@ const COIN_COUNT = 5;
 const HEALTH_POTION_COUNT = 3;
 const HEALTH_POTION_HEAL = 1;
 const ENEMY_CONTACT_DAMAGE = 1;
+const STAIRS_REACH_DISTANCE = 40;
 
 export type GameResult = "win" | "lose";
 
@@ -48,22 +49,31 @@ export class GameScene extends Phaser.Scene {
     const worldH = this.dungeonMap.getWorldHeight();
     this.physics.world.setBounds(0, 0, worldW, worldH);
 
-    // Place player on a random floor tile
-    const pos = this.dungeonMap.getRandomFloorPos(this);
-    this.player = new Player(this, pos.x, pos.y);
+    // Place player at the entrance room spawn point
+    const spawnPos = this.dungeonMap.getPlayerSpawnPos();
+    this.player = new Player(this, spawnPos.x, spawnPos.y);
 
     // Collide player with wall tiles
     this.physics.add.collider(this.player, this.dungeonMap.getWallLayer());
 
     this.player.setWorldBounds();
 
+    // Camera follows player in the larger dungeon
+    this.cameras.main.setBounds(0, 0, worldW, worldH);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    this.cameras.main.setZoom(1);
+
     // Create a physics group for slimes
     this.slimeGroup = this.physics.add.group();
 
-    // Spawn slimes on random floor tiles
+    // Spawn slimes in rooms other than the entrance
     const wallLayer = this.dungeonMap.getWallLayer();
+    const dungeonData = this.dungeonMap.getDungeonData();
     for (let i = 0; i < SLIME_COUNT; i++) {
-      const spos = this.dungeonMap.getRandomFloorPos(this);
+      // Distribute slimes across non-entrance rooms
+      const roomIdx = 1 + (i % (dungeonData.rooms.length - 1)); // rooms 1..N-1
+      const room = dungeonData.rooms[roomIdx];
+      const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
       const slime = new Slime(this, spos.x, spos.y);
       this.physics.add.collider(slime, wallLayer, (_slimeObj) => {
         slime.onHitWall();
@@ -84,26 +94,30 @@ export class GameScene extends Phaser.Scene {
     // --- Item system ---
     this.inventory = new Inventory();
 
-    // Spawn key on a random floor tile
-    const keyPos = this.dungeonMap.getRandomFloorPos(this);
+    // Spawn key in a middle room
+    const midRoomIdx = Math.floor(dungeonData.rooms.length / 2);
+    const keyPos = this.dungeonMap.getRandomFloorPosInRoom(dungeonData.rooms[midRoomIdx]);
     this.keyItem = new KeyItem(this, keyPos.x, keyPos.y);
 
-    // Spawn chest on a random floor tile (ensure different from key)
-    const chestPos = this.dungeonMap.getRandomFloorPos(this);
+    // Spawn chest in a non-entrance room
+    const chestRoomIdx = Math.max(1, dungeonData.rooms.length - 2);
+    const chestPos = this.dungeonMap.getRandomFloorPosInRoom(dungeonData.rooms[chestRoomIdx]);
     const chest = new Chest(this, chestPos.x, chestPos.y);
     this.chests.push(chest);
 
-    // Spawn coins on random floor tiles
+    // Spawn coins across all rooms
     this.coinCount = 0;
     for (let i = 0; i < COIN_COUNT; i++) {
-      const coinPos = this.dungeonMap.getRandomFloorPos(this);
+      const coinRoom = dungeonData.rooms[i % dungeonData.rooms.length];
+      const coinPos = this.dungeonMap.getRandomFloorPosInRoom(coinRoom);
       const coin = new Coin(this, coinPos.x, coinPos.y);
       this.coins.push(coin);
     }
 
-    // Spawn health potions on random floor tiles
+    // Spawn health potions across rooms
     for (let i = 0; i < HEALTH_POTION_COUNT; i++) {
-      const potionPos = this.dungeonMap.getRandomFloorPos(this);
+      const potionRoom = dungeonData.rooms[(i + 1) % dungeonData.rooms.length];
+      const potionPos = this.dungeonMap.getRandomFloorPosInRoom(potionRoom);
       const potion = new HealthPotion(this, potionPos.x, potionPos.y);
       this.healthPotions.push(potion);
     }
@@ -187,10 +201,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkWinCondition(): boolean {
-    // Win: all slimes dead AND at least one chest opened
-    const allEnemiesDead = this.slimes.filter((s) => s.active).length === 0;
-    const chestOpened = this.chests.some((c) => c.isOpen);
-    return allEnemiesDead && chestOpened;
+    // Win: reach the stairs in the exit room
+    const stairsPos = this.dungeonMap.getStairsPos();
+    const dx = this.player.x - stairsPos.x;
+    const dy = this.player.y - stairsPos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return dist < STAIRS_REACH_DISTANCE;
   }
 
   private checkLoseCondition(): boolean {
@@ -246,7 +262,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Check win condition
+    // Check win condition: player reaches the stairs
     if (this.checkWinCondition()) {
       this.endGame("win");
     }

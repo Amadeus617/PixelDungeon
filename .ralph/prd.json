@@ -12,7 +12,7 @@
     {
       "id": "M1",
       "title": "MVP - 一个可玩的地牢房间",
-      "status": "in-progress",
+      "status": "done",
       "userStories": [
         {
           "id": "US-001",
@@ -274,6 +274,93 @@
             "击败敌人+50分",
             "HUD显示当前分数",
             "tsc + build通过"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M2 - 多房间探索与内容扩展",
+      "status": "in-progress",
+      "userStories": [
+        {
+          "id": "US-016",
+          "title": "实现多房间地牢生成",
+          "description": "生成 3-5 个连通的房间，每房间有不同大小和布局。玩家从入口房间开始，到达出口房间通关。使用现有的 BootScene tile 生成方式。",
+          "type": "code",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "至少 3 个不同房间",
+            "房间之间有通道连接",
+            "玩家可以从入口走到出口",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-017",
+          "title": "添加房间切换和相机跟随",
+          "description": "当玩家走到房间边缘时自动切换到相邻房间。相机平滑跟随玩家移动。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [
+            "US-016"
+          ],
+          "acceptanceCriteria": [
+            "玩家到达房间边缘时切换房间",
+            "相机平滑跟随",
+            "切换时有简单过渡效果",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-018",
+          "title": "添加骷髅敌人",
+          "description": "新增骷髅敌人类型：比史莱姆更强（HP=2），会追踪玩家。BootScene 中生成骷髅 sprite。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton.ts 敌人文件",
+            "HP=2，追踪玩家 AI",
+            "BootScene 生成骷髅 sprite",
+            "GameScene 中生成骷髅",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-019",
+          "title": "添加攻击力提升道具",
+          "description": "在地图中随机放置剑道具，拾取后下一次攻击伤害翻倍。参考现有 HealthPotion.ts 模式。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "AttackBoost.ts 道具文件",
+            "拾取后攻击力翻倍",
+            "效果持续一次攻击后消失",
+            "BootScene 生成剑 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-020",
+          "title": "添加小地图 HUD",
+          "description": "在屏幕右上角显示小地图，标记玩家位置、已探索房间、敌人和道具位置。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [
+            "US-016"
+          ],
+          "acceptanceCriteria": [
+            "右上角显示小地图",
+            "标记玩家位置",
+            "标记已探索区域",
+            "tsc + build 通过"
           ]
         }
       ]
