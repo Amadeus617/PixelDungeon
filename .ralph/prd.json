@@ -684,6 +684,120 @@
             "每个房间只触发一次",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-041",
+          "title": "Slime 受击闪白反馈 — 与 Skeleton 一致",
+          "description": "Slime.takeDamage() 当前没有任何视觉反馈，直接减血。Skeleton 有 setTint(0xffffff) + delayedCall clearTint 闪白效果。应给 Slime 添加相同的受击闪白效果，保持战斗打击感一致性。",
+          "type": "code",
+          "priority": 26,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.takeDamage() 时触发 setTint(0xffffff) 闪白",
+            "100ms 后自动 clearTint 恢复",
+            "效果与 Skeleton.takeDamage() 一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-042",
+          "title": "玩家攻击动画 — 挥剑视觉效果",
+          "description": "当前玩家攻击时只播放 idle 动画，没有视觉上的挥剑效果。需要添加攻击动画帧或在攻击方向生成短暂挥砍特效（如弧形粒子/半透明斩击 sprite），让攻击有明确的视觉反馈。",
+          "type": "code",
+          "priority": 27,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "按空格攻击时显示挥砍视觉效果",
+            "视觉效果方向与玩家朝向一致",
+            "效果持续 150-250ms",
+            "不影响攻击判定逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-043",
+          "title": "玩家死亡动画 — 渐隐 + 倒地效果",
+          "description": "当前玩家死亡时 physics.pause() + setVelocity(0,0) 直接冻结，没有死亡过渡。应添加：1) 玩家 alpha 渐隐 (1→0, ~800ms)；2) 红色 tint 闪烁；3) 死亡后短暂延迟再转场到 ResultScene。增强死亡体验的戏剧感。",
+          "type": "code",
+          "priority": 28,
+          "status": "pending",
+          "dependsOn": [
+            "US-029"
+          ],
+          "acceptanceCriteria": [
+            "玩家 HP=0 时触发死亡动画（红闪 + 渐隐）",
+            "动画期间禁止玩家输入",
+            "动画完成后（~800ms）转场 ResultScene",
+            "胜利时无死亡动画",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-044",
+          "title": "房间深度难度递增 — 越深敌人越强",
+          "description": "当前所有房间敌人类型和数量固定（4 Slime + 3 Skeleton），无论房间深度。应实现基于房间索引的难度递增：靠前的房间只有 Slime 且数量少，越深入房间增加 Skeleton 比例和总数。例如：Room 1: 2 Slime; Room 2: 2 Slime + 1 Skeleton; Room 3+: 1 Slime + 2 Skeleton + 1 extra per room。与 US-028 难度缩放互补。",
+          "type": "code",
+          "priority": 29,
+          "status": "pending",
+          "dependsOn": [
+            "US-036"
+          ],
+          "acceptanceCriteria": [
+            "敌人数量和类型根据房间索引变化",
+            "入口房间无敌人",
+            "越深的房间敌人总数越多",
+            "最后房间敌人密度最高",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-045",
+          "title": "道具悬浮动画 — 金币/药水/钥匙上下浮动",
+          "description": "所有拾取道具（金币、药水、钥匙、攻击提升）当前静止不动，在像素风地牢中容易被忽略。应添加上下浮动动画 (y ±3-5px, 周期 800-1200ms)，让道具更有存在感和吸引力。可使用 Phaser tweens 实现。",
+          "type": "code",
+          "priority": 30,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin、HealthPotion、KeyItem、AttackBoost 创建时添加 y 轴浮动 tween",
+            "浮动幅度 3-5px，周期 800-1200ms，yoyo",
+            "不影响碰撞检测（tween 只改视觉位置不改 physics body）",
+            "拾取时 tween 自动停止",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-046",
+          "title": "AttackBoost 限时 buff HUD 倒计时显示",
+          "description": "US-030 将 AttackBoost 改为 10s 限时 buff，但当前 HUD 的 attackBoostLabel 只显示 \"ATK x2!\"。需要在 buff 激活期间显示剩余秒数（如 \"ATK x2 [8s]\"），让玩家感知 buff 时效，增强紧迫感和策略性。",
+          "type": "code",
+          "priority": 31,
+          "status": "pending",
+          "dependsOn": [
+            "US-030"
+          ],
+          "acceptanceCriteria": [
+            "AttackBoost buff 激活时 HUD 显示剩余时间",
+            "时间格式：\"ATK x2 [Ns]\"，N 为剩余整秒数",
+            "buff 过期后 HUD 自动隐藏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-047",
+          "title": "ResultScene 胜利文案修正 — 改为「到达出口」",
+          "description": "当前 ResultScene 胜利时显示 \"You defeated all enemies and claimed the treasure!\" 但实际胜利条件是到达出口楼梯（checkWinCondition: player reaches stairs）。文案与逻辑不一致，需改为 \"You found the exit and escaped the dungeon!\" 或类似措辞。",
+          "type": "code",
+          "priority": 32,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "胜利文案描述「到达出口」而非「击败所有敌人」",
+            "失败文案保持不变",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

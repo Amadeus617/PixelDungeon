@@ -61,6 +61,12 @@
       "author": "agent-review",
       "change": "第二轮设计审查新增 6 个改进 US（US-035~US-040）：通关计时、敌人HP重平衡（Slime 2/Skeleton 4）、药水回复提升至3HP、TitleScene标题画面、房间探索进度HUD、房间清除奖励机制。更新 balanceAnalysis 和 improvements。",
       "reason": "定期设计审查发现：缺乏计时/进度维度、敌人强度倒挂未实际修复、药水回复太弱、缺少标题画面"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "第三轮设计审查新增 7 个改进 US（US-041~US-047）：Slime受击闪白一致性、攻击挥剑动画、玩家死亡渐隐动画、房间深度难度递增、道具悬浮动画、buff倒计时HUD、胜利文案修正。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：Slime/Skeleton 受击反馈不一致、攻击无视觉反馈、死亡无动画、难度无递增曲线、道具不醒目、buff无倒计时、胜利文案与逻辑不符"
     }
   ],
   "improvements": {
@@ -84,7 +90,14 @@
       "US-037: 生命药水回复量提升至 3 HP",
       "US-038: TitleScene 游戏标题画面",
       "US-039: 房间探索进度追踪 HUD",
-      "US-040: 房间清除奖励机制"
+      "US-040: 房间清除奖励机制",
+      "US-041: Slime 受击闪白反馈（与 Skeleton 一致）",
+      "US-042: 攻击挥剑视觉效果",
+      "US-043: 玩家死亡渐隐动画",
+      "US-044: 房间深度难度递增",
+      "US-045: 道具悬浮动画",
+      "US-046: AttackBoost buff 倒计时 HUD",
+      "US-047: ResultScene 胜利文案修正"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -95,7 +108,14 @@
       "HealthPotion 只回复 1 HP（玩家上限 10），回复比例极低（10%）。建议改为 3 HP 或 30% 上限，让药水拾取有实质意义",
       "当前没有游戏时间追踪，建议在 GameScene 中记录开始时间，ResultScene 显示通关用时",
       "走廊宽度 3 tiles 比较宽敞，地刺陷阱可以放置在走廊中段，增加通过决策",
-      "玩家速度 120 远高于敌人（Slime 60, Skeleton 45），战斗中可以轻松逃跑。可考虑在追踪模式下给 Skeleton 加速"
+      "玩家速度 120 远高于敌人（Slime 60, Skeleton 45），战斗中可以轻松逃跑。可考虑在追踪模式下给 Skeleton 加速",
+      "Slime 受击无闪白反馈（Skeleton 有），导致战斗反馈不一致。简单 fix：复制 Skeleton 的 setTint + clearTint",
+      "玩家攻击时播放的是 idle 动画，没有「挥剑」感。可添加攻击方向上的弧形斩击特效 sprite（半透明，150ms 消失）",
+      "玩家死亡直接 freeze + pause，缺少戏剧感。应添加红闪 + 渐隐 + 延迟转场的死亡序列",
+      "房间难度无递增——所有房间固定 4 Slime + 3 Skeleton。应改为基于房间索引的递增分配，让探索有进度感",
+      "道具（金币/药水/钥匙）静止不动，在暗色地图上不醒目。Phaser tween 做 y 轴浮动即可，成本极低",
+      "AttackBoost 改为限时 buff 后（US-030），HUD 需要显示倒计时秒数，否则玩家不知道 buff 何时过期",
+      "ResultScene 胜利文案 \"defeated all enemies\" 与实际胜利条件（到达楼梯）不符，需改为 \"reached the exit\""
     ]
   },
   "balanceAnalysis": {
@@ -135,6 +155,36 @@
         "area": "缺少探索进度感",
         "detail": "玩家不知道已经探索了多少，缺少进度目标感",
         "recommendation": "HUD 显示已访问/总房间数（US-039）"
+      },
+      {
+        "area": "受击反馈不一致",
+        "detail": "Skeleton.takeDamage() 有 setTint(0xffffff) 闪白效果，Slime.takeDamage() 无任何视觉反馈",
+        "recommendation": "给 Slime 添加相同的闪白效果（US-041）"
+      },
+      {
+        "area": "攻击无视觉反馈",
+        "detail": "玩家攻击时只播放 idle 动画，没有挥剑/斩击视觉效果，打击感弱",
+        "recommendation": "添加攻击方向上的斩击特效 sprite（US-042）"
+      },
+      {
+        "area": "死亡体验突兀",
+        "detail": "玩家 HP=0 时直接冻结，无过渡动画。800ms 后硬切 ResultScene",
+        "recommendation": "添加红闪 + 渐隐死亡动画（US-043）"
+      },
+      {
+        "area": "房间难度无梯度",
+        "detail": "所有房间固定 4 Slime + 3 Skeleton，入口房旁边的房间与最深处房间难度相同",
+        "recommendation": "基于房间索引递增分配敌人类型和数量（US-044），与 US-028 难度缩放配合"
+      },
+      {
+        "area": "道具不醒目",
+        "detail": "金币/药水/钥匙静止放置，在深色 tileset 上容易被忽略，降低了探索奖励的正反馈",
+        "recommendation": "添加 y 轴浮动 tween（±4px, 1s 周期），成本低效果好（US-045）"
+      },
+      {
+        "area": "胜利文案错误",
+        "detail": "ResultScene 显示 \"You defeated all enemies and claimed the treasure!\" 但胜利条件是到达楼梯",
+        "recommendation": "改为 \"You found the exit and escaped the dungeon!\"（US-047）"
       }
     ]
   }
