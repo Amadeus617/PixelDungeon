@@ -369,7 +369,7 @@
           "description": "GDD 记录 playerHP=3/enemyHP=1 但代码实际为 playerHP=10/slimeHP=3/skeletonHP=2。更新 gdd.json 的 balance 部分以反映代码中的真实数值，确保设计文档与实现一致。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "gdd.json balance 对象中所有数值与代码常量一致",
