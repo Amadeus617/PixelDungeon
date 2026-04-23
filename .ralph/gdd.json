@@ -49,6 +49,12 @@
       "author": "agent-review",
       "change": "同步平衡参数：GDD 原记录 playerHP=3/enemyHP=1 与实际代码不符，已更新为代码真实值。新增详细参数记录。标注待改进：缺少音效、受击反馈、难度曲线、标题画面。",
       "reason": "2026-04-23 定期设计审查发现文档与实现脱节"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "设计审查新增 6 个改进 US（US-029~US-034）：knockback击退、AttackBoost限时buff、走廊陷阱、暂停功能、敌人掉落、胜利文案修复。更新 improvements 设计备注。",
+      "reason": "定期设计审查发现战斗反馈不足、道具策略性弱、UX缺失暂停、文案不一致等问题"
     }
   ],
   "improvements": {
@@ -60,13 +66,49 @@
       "US-025: localStorage 最高分",
       "US-026: 修复胜利文案",
       "US-027: 敌人 HP 条",
-      "US-028: 难度缩放机制"
+      "US-028: 难度缩放机制",
+      "US-029: 玩家 knockback + 死亡动画",
+      "US-030: AttackBoost 限时 10s buff",
+      "US-031: 走廊地刺陷阱",
+      "US-032: ESC 暂停功能",
+      "US-033: 敌人击杀掉落物品",
+      "US-034: 胜利文案 + 通关统计"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
       "当前无死亡动画，玩家直接冻结，需添加死亡播放/渐隐效果",
       "走廊中无敌人巡逻，可增加走廊陷阱或巡逻敌人增加紧张感",
-      "缺少移动端触控支持，未来可考虑虚拟摇杆"
+      "缺少移动端触控支持，未来可考虑虚拟摇杆",
+      "Slime 有 3 HP 但 Skeleton 只有 2 HP，而 Skeleton 是更「高级」的敌人（有追踪 AI）。建议反转或重新平衡：Skeleton 3-4 HP，Slime 1-2 HP，让敌人强度与出场顺序匹配",
+      "HealthPotion 只回复 1 HP（玩家上限 10），回复比例极低（10%）。建议改为 3 HP 或 30% 上限，让药水拾取有实质意义",
+      "当前没有游戏时间追踪，建议在 GameScene 中记录开始时间，ResultScene 显示通关用时",
+      "走廊宽度 3 tiles 比较宽敞，地刺陷阱可以放置在走廊中段，增加通过决策",
+      "玩家速度 120 远高于敌人（Slime 60, Skeleton 45），战斗中可以轻松逃跑。可考虑在追踪模式下给 Skeleton 加速"
+    ]
+  },
+  "balanceAnalysis": {
+    "date": "2026-04-23",
+    "issues": [
+      {
+        "area": "敌人强度倒挂",
+        "detail": "Slime(普通AI) 3HP > Skeleton(追踪AI) 2HP，后期敌人反而更弱",
+        "recommendation": "Skeleton HP 提升至 3-4，Slime HP 降至 2"
+      },
+      {
+        "area": "药水回复太弱",
+        "detail": "HealthPotion 回复 1/10 HP (10%)，玩家几乎没有拾取动力",
+        "recommendation": "回复量提升至 3 HP 或最大 HP 的 30%"
+      },
+      {
+        "area": "AttackBoost 策略不足",
+        "detail": "一次性双倍伤害，无持续策略意义",
+        "recommendation": "改为 10s 限时 buff（US-030）"
+      },
+      {
+        "area": "缺乏受伤反馈",
+        "detail": "Slime 受伤无视觉反馈，玩家无打击感",
+        "recommendation": "添加受伤闪白 + knockback（US-022, US-029）"
+      }
     ]
   }
 }

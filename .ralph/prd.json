@@ -484,6 +484,112 @@
             "难度等级显示在 HUD 上",
             "tsc --noEmit 通过"
           ]
+        },
+        {
+          "id": "US-029",
+          "title": "玩家死亡/受击添加 knockback 击退效果",
+          "description": "玩家受击时添加向后击退位移（knockback），增强战斗打击感。同时在玩家死亡时添加死亡动画（渐隐或闪烁），而非直接冻结。击退方向根据伤害来源计算，距离约 20-30px，持续 200ms。",
+          "type": "code",
+          "priority": 14,
+          "status": "pending",
+          "dependsOn": [
+            "US-022"
+          ],
+          "acceptanceCriteria": [
+            "玩家受击时向伤害来源反方向位移 20-30px",
+            "击退期间玩家无法操作（约 200ms）",
+            "玩家死亡播放渐隐动画而非直接冻结",
+            "knockback 不导致穿墙（碰撞检测生效）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-030",
+          "title": "AttackBoost 改为限时 buff 增加策略性",
+          "description": "当前 AttackBoost 是一次性消耗（下一击双倍伤害），策略性不足。改为拾取后获得 10 秒攻击力翻倍 buff，HUD 显示 buff 倒计时。buff 结束后自动消失。这样玩家需要规划拾取时机（留到多敌人房间再捡）。",
+          "type": "code",
+          "priority": 15,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "拾取 AttackBoost 后获得 10 秒 ATK x2 buff",
+            "HUD 显示 buff 倒计时进度条或文字",
+            "buff 期间所有攻击均享受双倍伤害",
+            "buff 自然到期后恢复正常伤害",
+            "多次拾取刷新持续时间而非叠加",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-031",
+          "title": "走廊陷阱机制 — 地刺陷阱",
+          "description": "在连接房间的走廊中随机放置地刺陷阱。玩家经过时触发，造成 1 点伤害并短暂减速。陷阱有视觉提示（地面纹理差异）让警觉的玩家可以避开。增加走廊通过的风险感和探索紧张感。",
+          "type": "code",
+          "priority": 16,
+          "status": "pending",
+          "dependsOn": [
+            "US-016"
+          ],
+          "acceptanceCriteria": [
+            "走廊中随机生成 0-2 个地刺陷阱",
+            "陷阱踩踏后造成 1 点伤害",
+            "受击后 500ms 移动速度减半",
+            "陷阱有视觉区别于普通地板（尖刺纹理）",
+            "陷阱可被玩家提前发现和绕开",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-032",
+          "title": "添加暂停功能（ESC 暂停游戏）",
+          "description": "当前游戏没有暂停功能。添加 ESC 键暂停，显示半透明遮罩和「PAUSED」文字，再次按 ESC 或点击 Resume 恢复。暂停时冻结所有游戏逻辑和物理引擎。这是roguelike的基本UX需求。",
+          "type": "code",
+          "priority": 17,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "按 ESC 键暂停游戏",
+            "暂停时显示半透明遮罩 + PAUSED 文字 + Resume 提示",
+            "暂停时所有物理和更新逻辑停止",
+            "再次按 ESC 恢复游戏",
+            "ResultScene 中不触发暂停",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-033",
+          "title": "敌人击杀掉落物品机制",
+          "description": "当前敌人死亡后直接消失，缺乏正反馈。添加敌人死亡掉落机制：有概率掉落金币（30%）、小回复药（10%）。骷髅比史莱姆有更高掉落率。击杀后播放简单的粒子消散效果，掉落物弹出到随机位置。增加战斗奖励感。",
+          "type": "code",
+          "priority": 18,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "史莱姆击杀 30% 概率掉落金币、10% 概率掉落小回复药",
+            "骷髅击杀 50% 概率掉落金币、15% 概率掉落小回复药",
+            "小回复药回复 2 HP（与地图上的 1 HP 药水区分）",
+            "掉落物以小抛物线弹出",
+            "敌人死亡播放粒子消散或闪烁效果",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-034",
+          "title": "胜利条件与 ResultScene 文案一致性修复",
+          "description": "当前胜利条件是「到达出口房间的楼梯」，但 ResultScene 胜利文案写的是「You defeated all enemies and claimed the treasure!」，与实际胜利条件不一致。需要将文案改为反映真实通关条件（找到钥匙、到达楼梯逃离地牢），并增加通关统计信息（房间数、击败敌人数、金币数、用时）。",
+          "type": "code",
+          "priority": 19,
+          "status": "pending",
+          "dependsOn": [
+            "US-026"
+          ],
+          "acceptanceCriteria": [
+            "胜利文案改为反映实际通关条件（找到钥匙、到达楼梯）",
+            "ResultScene 显示通关统计：击败敌人数、金币数、得分",
+            "失败文案保持不变或微调",
+            "文案风格与游戏整体基调一致",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
