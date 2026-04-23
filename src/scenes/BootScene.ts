@@ -102,6 +102,30 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Generate attack boost (sword) texture
+    if (!this.textures.exists("attack_boost")) {
+      const g = this.add.graphics();
+      // Blade (silver/white)
+      g.fillStyle(0xc0c0c0, 1);
+      g.fillRect(7, 1, 2, 9);
+      // Blade tip
+      g.fillRect(6, 1, 4, 2);
+      // Guard (gold)
+      g.fillStyle(0xffd700, 1);
+      g.fillRect(4, 9, 8, 2);
+      // Handle (brown)
+      g.fillStyle(0x8b4513, 1);
+      g.fillRect(7, 11, 2, 4);
+      // Pommel (gold)
+      g.fillStyle(0xffd700, 1);
+      g.fillRect(6, 14, 4, 2);
+      // Blade highlight
+      g.fillStyle(0xe8e8e8, 1);
+      g.fillRect(7, 3, 1, 6);
+      g.generateTexture("attack_boost", 16, 16);
+      g.destroy();
+    }
+
     // Generate skeleton sprite (procedural 4-frame spritesheet)
     if (!this.textures.exists("skeleton")) {
       const g = this.add.graphics();

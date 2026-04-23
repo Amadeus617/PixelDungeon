@@ -336,7 +336,7 @@
           "description": "在地图中随机放置剑道具，拾取后下一次攻击伤害翻倍。参考现有 HealthPotion.ts 模式。",
           "type": "code",
           "priority": 4,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "AttackBoost.ts 道具文件",

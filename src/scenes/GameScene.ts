@@ -6,6 +6,7 @@ import { KeyItem } from "@/entities/KeyItem";
 import { Chest } from "@/entities/Chest";
 import { Coin } from "@/entities/Coin";
 import { HealthPotion } from "@/entities/HealthPotion";
+import { AttackBoost } from "@/entities/AttackBoost";
 import { DungeonMap } from "@/map";
 import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
@@ -17,6 +18,7 @@ const SKELETON_COUNT = 3;
 const COIN_COUNT = 5;
 const HEALTH_POTION_COUNT = 3;
 const HEALTH_POTION_HEAL = 1;
+const ATTACK_BOOST_COUNT = 2;
 const ENEMY_CONTACT_DAMAGE = 1;
 const STAIRS_REACH_DISTANCE = 40;
 
@@ -35,6 +37,8 @@ export class GameScene extends Phaser.Scene {
   private chests: Chest[] = [];
   private coins: Coin[] = [];
   private healthPotions: HealthPotion[] = [];
+  private attackBoosts: AttackBoost[] = [];
+  private attackBoosted = false;
   private coinCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
@@ -164,11 +168,28 @@ export class GameScene extends Phaser.Scene {
       this.healthPotions.push(potion);
     }
 
+    // Spawn attack boosts across rooms (skip entrance room)
+    for (let i = 0; i < ATTACK_BOOST_COUNT; i++) {
+      const boostRoom = dungeonData.rooms[(i + 1) % dungeonData.rooms.length];
+      const boostPos = this.dungeonMap.getRandomFloorPosInRoom(boostRoom);
+      const boost = new AttackBoost(this, boostPos.x, boostPos.y);
+      this.attackBoosts.push(boost);
+    }
+
     // Overlap: player picks up health potions
     for (const potion of this.healthPotions) {
       this.physics.add.overlap(this.player, potion, () => {
         if (potion.collect()) {
           this.player.heal(HEALTH_POTION_HEAL);
+        }
+      });
+    }
+
+    // Overlap: player picks up attack boosts
+    for (const boost of this.attackBoosts) {
+      this.physics.add.overlap(this.player, boost, () => {
+        if (boost.collect()) {
+          this.attackBoosted = true;
         }
       });
     }
@@ -198,7 +219,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD (needs both inventory and player for HP display)
-    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem, this.roomCameraSystem);
+    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem, this.roomCameraSystem, () => this.attackBoosted);
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
@@ -207,6 +228,12 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerAttack(): void {
     if (this.gameOver) return;
 
+    const damage = this.attackBoosted ? Player.ATTACK_DAMAGE * 2 : Player.ATTACK_DAMAGE;
+    // Consume the boost after one attack
+    if (this.attackBoosted) {
+      this.attackBoosted = false;
+    }
+
     // Filter out dead slimes
     this.slimes = this.slimes.filter((s) => s.active);
 
@@ -214,7 +241,7 @@ export class GameScene extends Phaser.Scene {
       if (!slime.active) continue;
       if (this.player.isEnemyInAttackRange(slime.x, slime.y)) {
         const wasDead = slime.isDead;
-        slime.takeDamage(Player.ATTACK_DAMAGE);
+        slime.takeDamage(damage);
         // Award score only on the kill blow
         if (!wasDead && slime.isDead) {
           this.scoreSystem.addEnemyPoints();
@@ -236,7 +263,7 @@ export class GameScene extends Phaser.Scene {
       if (!skeleton.active) continue;
       if (this.player.isEnemyInAttackRange(skeleton.x, skeleton.y)) {
         const wasDead = skeleton.isDead;
-        skeleton.takeDamage(Player.ATTACK_DAMAGE);
+        skeleton.takeDamage(damage);
         if (!wasDead && skeleton.isDead) {
           this.scoreSystem.addEnemyPoints();
         }

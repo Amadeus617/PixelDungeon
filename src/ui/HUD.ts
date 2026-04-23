@@ -27,6 +27,10 @@ export class HUD extends Phaser.GameObjects.Container {
   // Score section
   private scoreLabel!: Phaser.GameObjects.Text;
 
+  // Attack boost indicator
+  private attackBoostIcon!: Phaser.GameObjects.Image;
+  private attackBoostLabel!: Phaser.GameObjects.Text;
+
   // Room name overlay
   private roomNameText!: Phaser.GameObjects.Text;
   private roomNameBg!: Phaser.GameObjects.Rectangle;
@@ -37,6 +41,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private getCoinCount: () => number;
   private scoreSystem: ScoreSystem;
   private roomCameraSystem?: RoomCameraSystem;
+  private getAttackBoosted: () => boolean;
 
   constructor(
     scene: Phaser.Scene,
@@ -44,7 +49,8 @@ export class HUD extends Phaser.GameObjects.Container {
     player: Player,
     getCoinCount: () => number,
     scoreSystem: ScoreSystem,
-    roomCameraSystem?: RoomCameraSystem
+    roomCameraSystem?: RoomCameraSystem,
+    getAttackBoosted: () => boolean = () => false
   ) {
     super(scene, 10, 10);
     scene.add.existing(this);
@@ -54,6 +60,8 @@ export class HUD extends Phaser.GameObjects.Container {
     this.getCoinCount = getCoinCount;
     this.scoreSystem = scoreSystem;
     this.roomCameraSystem = roomCameraSystem;
+
+    this.getAttackBoosted = getAttackBoosted;
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -138,6 +146,26 @@ export class HUD extends Phaser.GameObjects.Container {
       fontFamily: "monospace",
     });
     this.add(this.scoreLabel);
+
+    // --- Attack boost section (below score section) ---
+    const boostY = scoreY + 44;
+    const boostBg = scene.add.rectangle(0, boostY, 160, 36, 0x000000, 0.6);
+    boostBg.setOrigin(0);
+    this.add(boostBg);
+
+    this.attackBoostIcon = scene.add.image(12, boostY + 18, "attack_boost");
+    this.attackBoostIcon.setScale(2);
+    this.attackBoostIcon.setOrigin(0);
+    this.attackBoostIcon.setVisible(false);
+    this.add(this.attackBoostIcon);
+
+    this.attackBoostLabel = scene.add.text(38, boostY + 8, "ATK x2!", {
+      fontSize: "14px",
+      color: "#ff4444",
+      fontFamily: "monospace",
+    });
+    this.attackBoostLabel.setVisible(false);
+    this.add(this.attackBoostLabel);
 
     // --- Room name overlay (centered, shown briefly on room change) ---
     const gameWidth = (scene.game.config.width as number) || 800;
@@ -225,5 +253,9 @@ export class HUD extends Phaser.GameObjects.Container {
     this.coinLabel.setText(`Coins: ${this.getCoinCount()}`);
 
     this.scoreLabel.setText(`Score: ${this.scoreSystem.score}`);
+
+    const boosted = this.getAttackBoosted();
+    this.attackBoostIcon.setVisible(boosted);
+    this.attackBoostLabel.setVisible(boosted);
   }
 }
