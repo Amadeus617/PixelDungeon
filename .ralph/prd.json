@@ -352,7 +352,7 @@
           "description": "在屏幕右上角显示小地图，标记玩家位置、已探索房间、敌人和道具位置。",
           "type": "code",
           "priority": 5,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-016"
           ],
