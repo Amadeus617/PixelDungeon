@@ -67,6 +67,12 @@
       "author": "agent-review",
       "change": "第三轮设计审查新增 7 个改进 US（US-041~US-047）：Slime受击闪白一致性、攻击挥剑动画、玩家死亡渐隐动画、房间深度难度递增、道具悬浮动画、buff倒计时HUD、胜利文案修正。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：Slime/Skeleton 受击反馈不一致、攻击无视觉反馈、死亡无动画、难度无递增曲线、道具不醒目、buff无倒计时、胜利文案与逻辑不符"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "第四轮设计审查新增 7 个改进 US（US-048~US-054）：通关统计面板、受伤红闪反馈优化、敌人重生机制、宝箱交互提示引导、走廊视觉装饰、得分系统扩展（房间清除+时间奖励）、随机种子支持可复现地牢。",
+      "reason": "定期设计审查发现：通关反馈维度不足(缺统计)、受伤视觉反馈不够醒目、地牢清空后无持续挑战、新手引导缺失、走廊视觉单调、得分系统维度单一、地牢不可复现影响调试和分享"
     }
   ],
   "improvements": {
@@ -97,7 +103,14 @@
       "US-044: 房间深度难度递增",
       "US-045: 道具悬浮动画",
       "US-046: AttackBoost buff 倒计时 HUD",
-      "US-047: ResultScene 胜利文案修正"
+      "US-047: ResultScene 胜利文案修正",
+      "US-048: ResultScene 通关数据统计面板（击杀/金币/用时/房间）",
+      "US-049: 受伤红闪 + 无敌帧视觉反馈优化",
+      "US-050: 敌人重生机制 — 离开房间后概率重生",
+      "US-051: 宝箱交互引导 — 无钥匙时显示提示",
+      "US-052: 走廊装饰 — 火把/裂纹/碎石氛围增强",
+      "US-053: ScoreSystem 扩展 — 房间清除 + 时间奖励",
+      "US-054: 随机种子支持 — 可复现地牢"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -115,7 +128,14 @@
       "房间难度无递增——所有房间固定 4 Slime + 3 Skeleton。应改为基于房间索引的递增分配，让探索有进度感",
       "道具（金币/药水/钥匙）静止不动，在暗色地图上不醒目。Phaser tween 做 y 轴浮动即可，成本极低",
       "AttackBoost 改为限时 buff 后（US-030），HUD 需要显示倒计时秒数，否则玩家不知道 buff 何时过期",
-      "ResultScene 胜利文案 \"defeated all enemies\" 与实际胜利条件（到达楼梯）不符，需改为 \"reached the exit\""
+      "ResultScene 胜利文案 \"defeated all enemies\" 与实际胜利条件（到达楼梯）不符，需改为 \"reached the exit\"",
+      "ResultScene 只显示 Final Score，缺少通关统计（击杀数、金币、用时），玩家无法回顾游戏表现。应扩展 scene data 传递更多统计信息（US-048）",
+      "玩家受伤反馈只有 alpha 闪烁，不够醒目。受伤瞬间应红闪 setTint(0xff0000)，然后无敌期间 alpha 闪烁。两段反馈给玩家明确的「被打」信号（US-049）",
+      "地牢清空后变成空房间，后期探索无意义。应添加敌人重生机制：离开房间后基于距离/时间概率重生，保持持续威胁感（US-050）",
+      "宝箱交互无引导——没有钥匙时靠近宝箱没反馈，新玩家不知道为什么打不开。需添加条件提示文字（US-051）",
+      "走廊完全是空白地板，缺少地牢氛围。随机放置装饰 tile（火把、裂纹、碎石）增加视觉丰富度，不影响碰撞（US-052）",
+      "ScoreSystem 只有金币(+10)和击杀(+50)两种得分，维度太单一。添加房间清除(+100)和时间奖励分，鼓励高效探索（US-053）",
+      "generateDungeon() 用 Math.random()，无法复现。改为支持 seed 参数 + seeded RNG，便于调试、测试和分享种子挑战（US-054）"
     ]
   },
   "balanceAnalysis": {
@@ -185,6 +205,26 @@
         "area": "胜利文案错误",
         "detail": "ResultScene 显示 \"You defeated all enemies and claimed the treasure!\" 但胜利条件是到达楼梯",
         "recommendation": "改为 \"You found the exit and escaped the dungeon!\"（US-047）"
+      },
+      {
+        "area": "得分维度单一",
+        "detail": "ScoreSystem 只有 2 种加分方式（金币 +10，击杀 +50），缺少探索效率和速度奖励维度",
+        "recommendation": "新增房间清除 +100 分 + 通关时间奖励（US-053）"
+      },
+      {
+        "area": "地牢后期空洞",
+        "detail": "所有敌人被清除后地牢变为空城，探索无意义，尤其是 3-5 房间的小地图很快清空",
+        "recommendation": "离开房间后基于时间/距离概率重生敌人（US-050）"
+      },
+      {
+        "area": "缺少新手引导",
+        "detail": "宝箱交互无提示——没有钥匙时靠近宝箱无反馈，新玩家不知道为什么无法开启",
+        "recommendation": "添加条件性浮动提示文字（US-051）"
+      },
+      {
+        "area": "地牢不可复现",
+        "detail": "Math.random() 导致每次生成不同地牢，无法复现 bug、无法分享种子挑战",
+        "recommendation": "支持 seed 参数 + seeded PRNG（US-054）"
       }
     ]
   }

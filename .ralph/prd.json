@@ -798,6 +798,117 @@
             "失败文案保持不变",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-048",
+          "title": "ResultScene 通关数据统计面板",
+          "description": "通关后 ResultScene 显示详细统计：击杀敌人数、收集金币数、使用药水数、通关用时、探索房间数。目前只显示 Final Score，缺少详细数据让玩家了解自己的游戏过程。",
+          "type": "code",
+          "priority": 33,
+          "status": "pending",
+          "dependsOn": [
+            "US-035"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene 显示击杀数/金币数/用时/房间数等统计",
+            "统计数据从 GameScene 正确传递到 ResultScene",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-049",
+          "title": "玩家受伤/无敌帧期间的视觉反馈优化",
+          "description": "当前玩家受伤时只有 alpha 闪烁(0.4/1.0 交替)。改进为：受伤瞬间红闪 tint，无敌期间保持半透明闪烁。增强受伤感知，避免玩家不知道自己被打。",
+          "type": "code",
+          "priority": 34,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "受伤瞬间 setTint(0xff0000) 红闪 150ms",
+            "无敌期间 alpha 闪烁保留",
+            "无敌结束后 clearTint + alpha=1",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-050",
+          "title": "敌人重生/房间重置机制防止空房间",
+          "description": "当前敌人在房间切换后不会重生，玩家清完所有房间后地牢变为空城。添加机制：当玩家离开已清除房间足够远后，已清除房间的敌人有一定概率重新生成，保持持续挑战。",
+          "type": "code",
+          "priority": 35,
+          "status": "pending",
+          "dependsOn": [
+            "US-044"
+          ],
+          "acceptanceCriteria": [
+            "玩家离开已清除房间后，敌人有概率重生",
+            "重生敌人数量和强度基于房间深度",
+            "重生不影响当前正在进行的战斗",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-051",
+          "title": "钥匙使用引导 — 未持有钥匙时宝箱交互提示",
+          "description": "当玩家靠近宝箱但没有钥匙时，没有反馈。应显示提示文字（如\"需要钥匙\"），帮助新玩家理解道具系统。当前宝箱交互逻辑在 GameScene.handleChestInteraction() 中，需在 Player 靠近 Chest 且无 key 时显示浮动提示。",
+          "type": "code",
+          "priority": 36,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "靠近宝箱无钥匙时显示 \"需要钥匙\" 浮动提示",
+            "获得钥匙后靠近宝箱显示 \"按空格键开启\" 提示",
+            "已开启宝箱不显示提示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-052",
+          "title": "走廊视觉装饰 — 随机火把/裂纹装饰",
+          "description": "走廊目前完全是空白地板，无视觉变化。在走廊墙壁旁随机放置装饰性 tile（火把光效、墙壁裂纹、地面碎石），增加地牢氛围和探索沉浸感。使用 dungeonData.ts 中的 DECOR_STONE tile 或新增装饰 tile。",
+          "type": "code",
+          "priority": 37,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊墙壁旁随机放置装饰 tile",
+            "装饰不影响碰撞和路径",
+            "每条走廊至少 1-2 个装饰点",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-053",
+          "title": "ScoreSystem 集成房间清除奖励和通关时间奖励",
+          "description": "当前 ScoreSystem 只有金币(+10)和击杀(+50)两种加分。应扩展：房间清除额外加分(+100)、通关时间奖励(越快越高)。这让得分系统更全面，鼓励高效探索。需配合 US-035(计时)和 US-040(房间清除奖励)。",
+          "type": "code",
+          "priority": 38,
+          "status": "pending",
+          "dependsOn": [
+            "US-035",
+            "US-040"
+          ],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 addRoomClearPoints() +100 分",
+            "通关时根据用时计算时间奖励分",
+            "ResultScene 显示得分构成明细",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-054",
+          "title": "DungeonMap 随机种子支持 — 可复现地牢",
+          "description": "当前 generateDungeon() 使用 Math.random()，无法复现同一地牢。改为支持传入 seed，使用 seeded RNG。便于：调试特定地牢布局、分享种子挑战、测试稳定性。影响 dungeonData.ts 的 generateDungeon 和所有 Math.random 调用点。",
+          "type": "code",
+          "priority": 39,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "generateDungeon 接受可选 seed 参数",
+            "相同 seed 生成完全相同的地牢布局",
+            "不传 seed 时保持随机行为",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
