@@ -362,6 +362,128 @@
             "标记已探索区域",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-021",
+          "title": "同步 GDD 平衡参数与代码实现",
+          "description": "GDD 记录 playerHP=3/enemyHP=1 但代码实际为 playerHP=10/slimeHP=3/skeletonHP=2。更新 gdd.json 的 balance 部分以反映代码中的真实数值，确保设计文档与实现一致。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gdd.json balance 对象中所有数值与代码常量一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-022",
+          "title": "添加敌人受击反馈效果",
+          "description": "Slime 被攻击时无受击反馈（Skeleton 有白色闪烁）。为 Slime 添加与 Skeleton 一致的受击白色闪烁效果，并为所有敌人添加短暂击退（knockback）效果：受击时沿攻击反方向被推开一小段距离。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 受击时产生白色闪烁 tint 效果",
+            "所有敌人受击时沿攻击反方向产生 knockback 位移",
+            "knockback 完成后恢复移动",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-023",
+          "title": "添加简易音效系统",
+          "description": "游戏当前完全静音，体验感差。使用 Phaser 内置 Web Audio API 生成程序化音效（无需外部音频文件）：攻击挥砍声、敌人死亡声、拾取道具声、受伤声、开门/宝箱声。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player 攻击时播放挥砍音效",
+            "敌人死亡时播放消灭音效",
+            "拾取金币/钥匙/药水时播放对应音效",
+            "玩家受击时播放受伤音效",
+            "音效通过 Phaser SoundManager 播放，不依赖外部音频文件",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-024",
+          "title": "添加游戏开始标题画面",
+          "description": "游戏启动后直接进入 GameScene，缺少标题画面。添加 BootScene 之后、GameScene 之前的 TitleScene：显示游戏名称 PixelDungeon、像素风标题美术、按空格开始提示、可选的简单动画。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "游戏启动后先显示 TitleScene",
+            "显示游戏标题 PixelDungeon",
+            "按 SPACE/ENTER 开始游戏进入 GameScene",
+            "标题画面有至少一种动态元素（闪烁文字/动画等）",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-025",
+          "title": "添加本地最高分持久化存储",
+          "description": "游戏重启后所有得分记录丢失。使用 localStorage 保存最高分，在 ResultScene 显示当前得分与历史最高分对比。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每次游戏结束时将得分存入 localStorage",
+            "ResultScene 显示当前得分和历史最高分",
+            "新纪录时显示特殊高亮提示",
+            "首次游玩无历史记录时正常显示",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-026",
+          "title": "修复 ResultScene 胜利文案与胜利条件不一致",
+          "description": "胜利条件为到达楼梯（stairs），但 ResultScene 胜利文案写的是 \"You defeated all enemies and claimed the treasure!\"。修改为与实际胜利条件匹配的文案，如 \"You found the exit and escaped the dungeon!\"",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "胜利文案描述到达出口/楼梯而非消灭所有敌人",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-027",
+          "title": "添加敌人 HP 条显示",
+          "description": "敌人被攻击后玩家无法判断剩余血量。为 Slime 和 Skeleton 添加小型 HP 条（显示在精灵上方），仅在受伤后可见，满血时隐藏。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "敌人受击后头顶显示 HP 条",
+            "HP 条实时反映当前生命值",
+            "满血时 HP 条隐藏",
+            "敌人死亡后 HP 条消失",
+            "tsc --noEmit 通过"
+          ]
+        },
+        {
+          "id": "US-028",
+          "title": "添加随机难度缩放机制",
+          "description": "每次运行游戏（从 TitleScene 重新开始）时，基于运行次数逐步提升敌人数量和速度。首次 4 slime + 3 skeleton，之后每次 +1 slime（上限 8）和 +10% 速度（上限 200%），增加重玩价值。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "第 N 次游戏时敌人数量和速度按公式缩放",
+            "slime 数量上限为 8",
+            "速度倍率上限为 2x",
+            "难度等级显示在 HUD 上",
+            "tsc --noEmit 通过"
+          ]
         }
       ]
     }

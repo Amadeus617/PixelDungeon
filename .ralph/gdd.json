@@ -8,10 +8,34 @@
     "enemy": "史莱姆：随机移动，简单AI"
   },
   "balance": {
-    "playerHP": 3,
-    "enemyHP": 1,
-    "attackRange": 32,
-    "enemyCount": 3
+    "playerHP": 10,
+    "playerSpeed": 120,
+    "playerAttackDamage": 1,
+    "playerAttackRange": 50,
+    "playerAttackCooldown": 400,
+    "playerInvincibleDuration": 1000,
+    "enemyHP": {
+      "slime": 3,
+      "skeleton": 2
+    },
+    "enemySpeed": {
+      "slime": 60,
+      "skeleton": 45
+    },
+    "enemyCount": {
+      "slime": 4,
+      "skeleton": 3
+    },
+    "skeletonTrackRange": 200,
+    "enemyContactDamage": 1,
+    "coinCount": 5,
+    "healthPotionCount": 3,
+    "healthPotionHeal": 1,
+    "attackBoostCount": 2,
+    "coinPoints": 10,
+    "enemyKillPoints": 50,
+    "dungeonRooms": "3-5 random",
+    "roomSize": "10-16 tiles"
   },
   "designLog": [
     {
@@ -19,6 +43,30 @@
       "author": "agent",
       "change": "初始设计",
       "reason": "MVP最小可玩版本"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "同步平衡参数：GDD 原记录 playerHP=3/enemyHP=1 与实际代码不符，已更新为代码真实值。新增详细参数记录。标注待改进：缺少音效、受击反馈、难度曲线、标题画面。",
+      "reason": "2026-04-23 定期设计审查发现文档与实现脱节"
     }
-  ]
+  ],
+  "improvements": {
+    "nextPriority": [
+      "US-021: 同步 GDD 平衡参数（本次已完成 gdd.json 更新）",
+      "US-022: 敌人受击反馈 + knockback",
+      "US-023: 程序化音效系统",
+      "US-024: TitleScene 标题画面",
+      "US-025: localStorage 最高分",
+      "US-026: 修复胜利文案",
+      "US-027: 敌人 HP 条",
+      "US-028: 难度缩放机制"
+    ],
+    "designNotes": [
+      "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
+      "当前无死亡动画，玩家直接冻结，需添加死亡播放/渐隐效果",
+      "走廊中无敌人巡逻，可增加走廊陷阱或巡逻敌人增加紧张感",
+      "缺少移动端触控支持，未来可考虑虚拟摇杆"
+    ]
+  }
 }
