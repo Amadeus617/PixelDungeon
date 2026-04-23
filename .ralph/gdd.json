@@ -55,6 +55,12 @@
       "author": "agent-review",
       "change": "设计审查新增 6 个改进 US（US-029~US-034）：knockback击退、AttackBoost限时buff、走廊陷阱、暂停功能、敌人掉落、胜利文案修复。更新 improvements 设计备注。",
       "reason": "定期设计审查发现战斗反馈不足、道具策略性弱、UX缺失暂停、文案不一致等问题"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "第二轮设计审查新增 6 个改进 US（US-035~US-040）：通关计时、敌人HP重平衡（Slime 2/Skeleton 4）、药水回复提升至3HP、TitleScene标题画面、房间探索进度HUD、房间清除奖励机制。更新 balanceAnalysis 和 improvements。",
+      "reason": "定期设计审查发现：缺乏计时/进度维度、敌人强度倒挂未实际修复、药水回复太弱、缺少标题画面"
     }
   ],
   "improvements": {
@@ -72,7 +78,13 @@
       "US-031: 走廊地刺陷阱",
       "US-032: ESC 暂停功能",
       "US-033: 敌人击杀掉落物品",
-      "US-034: 胜利文案 + 通关统计"
+      "US-034: 胜利文案 + 通关统计",
+      "US-035: 游戏通关计时系统",
+      "US-036: 敌人强度重平衡 Slime→2HP / Skeleton→4HP",
+      "US-037: 生命药水回复量提升至 3 HP",
+      "US-038: TitleScene 游戏标题画面",
+      "US-039: 房间探索进度追踪 HUD",
+      "US-040: 房间清除奖励机制"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -108,6 +120,21 @@
         "area": "缺乏受伤反馈",
         "detail": "Slime 受伤无视觉反馈，玩家无打击感",
         "recommendation": "添加受伤闪白 + knockback（US-022, US-029）"
+      },
+      {
+        "area": "缺少时间追踪",
+        "detail": "ResultScene 没有通关用时显示，缺少速度挑战维度",
+        "recommendation": "GameScene 记录开始时间，ResultScene 显示用时（US-035）"
+      },
+      {
+        "area": "房间清除无反馈",
+        "detail": "清完一个房间所有敌人后没有任何反馈或奖励，战斗正反馈断裂",
+        "recommendation": "添加 Room Clear 文字动画 + 额外积分奖励（US-040）"
+      },
+      {
+        "area": "缺少探索进度感",
+        "detail": "玩家不知道已经探索了多少，缺少进度目标感",
+        "recommendation": "HUD 显示已访问/总房间数（US-039）"
       }
     ]
   }

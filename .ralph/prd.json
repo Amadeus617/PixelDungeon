@@ -590,6 +590,100 @@
             "文案风格与游戏整体基调一致",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-035",
+          "title": "游戏通关计时系统",
+          "description": "在 GameScene 中记录游戏开始时间，ResultScene 中显示通关用时（MM:SS 格式）。让玩家有速度挑战的动力，增加重玩价值。当前 ResultScene 完全没有时间维度。",
+          "type": "code",
+          "priority": 20,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.create() 中记录 startTime = Date.now()",
+            "传递 elapsedTime 给 ResultScene",
+            "ResultScene 显示通关时间（格式 MM:SS）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-036",
+          "title": "敌人强度重平衡 — Skeleton/Slime HP 修正",
+          "description": "当前 Slime（普通随机AI）3HP > Skeleton（追踪AI）2HP，后期敌人反而更弱。应调整：Skeleton HP → 4，Slime HP → 2，使敌人强度与 AI 复杂度和出场顺序匹配。同时 Skeleton 追踪速度可从 45 提至 55。",
+          "type": "code",
+          "priority": 21,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime HP 改为 2（gdd.json 同步更新）",
+            "Skeleton HP 改为 4（gdd.json 同步更新）",
+            "Skeleton 追踪速度改为 55",
+            "GameScene 常量同步更新",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-037",
+          "title": "生命药水回复量提升至 3 HP",
+          "description": "当前 HealthPotion 回复 1 HP（玩家上限 10），回复比例仅 10%，几乎没有拾取动力。提升至 3 HP（30%），让药水成为有意义的战术选择。",
+          "type": "code",
+          "priority": 22,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HEALTH_POTION_HEAL 常量改为 3",
+            "gdd.json healthPotionHeal 改为 3",
+            "HUD 显示回复量数字飘字（可选）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-038",
+          "title": "添加 TitleScene 游戏标题画面",
+          "description": "当前游戏直接进入 GameScene，缺少标题画面。添加一个 TitleScene 显示游戏标题「PixelDungeon」、像素风装饰和「按任意键开始」提示。这是基本游戏体验的起点，US-024 已 pending 但未有具体实现计划。",
+          "type": "code",
+          "priority": 23,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "新建 src/scenes/TitleScene.ts",
+            "显示游戏标题、版本号、操作说明",
+            "按任意键或 Enter/Space 进入 GameScene",
+            "config.ts 的 scene 列表中加入 TitleScene（排在 BootScene 之后）",
+            "像素风视觉风格与整体一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-039",
+          "title": "房间探索进度追踪 — 百分比显示",
+          "description": "在 HUD 上显示当前探索进度（已访问房间数/总房间数），给玩家探索目标感和成就感。配合 Minimap 的迷雾系统，增强探索体验。",
+          "type": "code",
+          "priority": 24,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 显示探索进度如 \"Rooms: 2/5\"",
+            "从 RoomCameraSystem.getVisitedRooms() 获取数据",
+            "每次进入新房间时更新显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-040",
+          "title": "添加房间清除奖励机制",
+          "description": "当前清完一个房间的敌人没有即时正反馈。添加「房间清除」奖励：消灭房间内所有敌人后，显示 \"Room Clear!\" 文字动画并奖励 100 分，增强战斗正反馈循环。",
+          "type": "code",
+          "priority": 25,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "检测当前房间敌人是否全部消灭",
+            "显示 \"Room Clear!\" 浮动文字动画（渐隐上飘）",
+            "奖励额外 100 分",
+            "每个房间只触发一次",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
