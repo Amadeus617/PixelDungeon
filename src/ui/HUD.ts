@@ -3,6 +3,7 @@ import { Inventory } from "@/systems/Inventory";
 import { Player } from "@/entities/Player";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import type { RoomCameraSystem } from "@/systems/RoomCameraSystem";
+import { Minimap } from "@/ui/Minimap";
 
 const HP_BAR_WIDTH = 200;
 const HP_BAR_HEIGHT = 14;
@@ -31,6 +32,9 @@ export class HUD extends Phaser.GameObjects.Container {
   private attackBoostIcon!: Phaser.GameObjects.Image;
   private attackBoostLabel!: Phaser.GameObjects.Text;
 
+  // Minimap
+  private minimap!: Minimap;
+
   // Room name overlay
   private roomNameText!: Phaser.GameObjects.Text;
   private roomNameBg!: Phaser.GameObjects.Rectangle;
@@ -43,6 +47,14 @@ export class HUD extends Phaser.GameObjects.Container {
   private roomCameraSystem?: RoomCameraSystem;
   private getAttackBoosted: () => boolean;
 
+  // Minimap entity getters (passed from GameScene)
+  private minimapGetSlimes: () => Phaser.GameObjects.Sprite[];
+  private minimapGetSkeletons: () => Phaser.GameObjects.Sprite[];
+  private minimapGetCoins: () => Phaser.GameObjects.Sprite[];
+  private minimapGetChests: () => Phaser.GameObjects.Sprite[];
+  private minimapGetHealthPotions: () => Phaser.GameObjects.Sprite[];
+  private minimapGetKeyItem: () => Phaser.GameObjects.Sprite | null;
+
   constructor(
     scene: Phaser.Scene,
     inventory: Inventory,
@@ -50,7 +62,15 @@ export class HUD extends Phaser.GameObjects.Container {
     getCoinCount: () => number,
     scoreSystem: ScoreSystem,
     roomCameraSystem?: RoomCameraSystem,
-    getAttackBoosted: () => boolean = () => false
+    getAttackBoosted: () => boolean = () => false,
+    minimapEntityGetters?: {
+      getSlimes: () => Phaser.GameObjects.Sprite[];
+      getSkeletons: () => Phaser.GameObjects.Sprite[];
+      getCoins: () => Phaser.GameObjects.Sprite[];
+      getChests: () => Phaser.GameObjects.Sprite[];
+      getHealthPotions: () => Phaser.GameObjects.Sprite[];
+      getKeyItem: () => Phaser.GameObjects.Sprite | null;
+    }
   ) {
     super(scene, 10, 10);
     scene.add.existing(this);
@@ -62,6 +82,14 @@ export class HUD extends Phaser.GameObjects.Container {
     this.roomCameraSystem = roomCameraSystem;
 
     this.getAttackBoosted = getAttackBoosted;
+
+    // Store minimap entity getters
+    this.minimapGetSlimes = minimapEntityGetters?.getSlimes ?? (() => []);
+    this.minimapGetSkeletons = minimapEntityGetters?.getSkeletons ?? (() => []);
+    this.minimapGetCoins = minimapEntityGetters?.getCoins ?? (() => []);
+    this.minimapGetChests = minimapEntityGetters?.getChests ?? (() => []);
+    this.minimapGetHealthPotions = minimapEntityGetters?.getHealthPotions ?? (() => []);
+    this.minimapGetKeyItem = minimapEntityGetters?.getKeyItem ?? (() => null);
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -188,6 +216,25 @@ export class HUD extends Phaser.GameObjects.Container {
     this.roomNameText.setAlpha(0);
     this.add(this.roomNameText);
 
+    // --- Minimap (top-right corner) ---
+    if (this.roomCameraSystem) {
+      this.minimap = new Minimap(
+        scene,
+        this.roomCameraSystem.getDungeonData(),
+        this.roomCameraSystem,
+        16, // tileSize
+        3,  // tileScale
+        () => this.player,
+        this.minimapGetSlimes,
+        this.minimapGetSkeletons,
+        this.minimapGetCoins,
+        this.minimapGetChests,
+        this.minimapGetHealthPotions,
+        this.minimapGetKeyItem
+      );
+      this.add(this.minimap);
+    }
+
     // Listen for room changes from the camera system
     if (this.roomCameraSystem) {
       this.roomCameraSystem.setOnRoomChanged((_idx, _room, _prevIdx) => {
@@ -257,5 +304,10 @@ export class HUD extends Phaser.GameObjects.Container {
     const boosted = this.getAttackBoosted();
     this.attackBoostIcon.setVisible(boosted);
     this.attackBoostLabel.setVisible(boosted);
+
+    // Update minimap
+    if (this.minimap) {
+      this.minimap.update();
+    }
   }
 }

@@ -219,7 +219,23 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD (needs both inventory and player for HP display)
-    this.hud = new HUD(this, this.inventory, this.player, () => this.coinCount, this.scoreSystem, this.roomCameraSystem, () => this.attackBoosted);
+    this.hud = new HUD(
+      this,
+      this.inventory,
+      this.player,
+      () => this.coinCount,
+      this.scoreSystem,
+      this.roomCameraSystem,
+      () => this.attackBoosted,
+      {
+        getSlimes: () => this.slimes,
+        getSkeletons: () => this.skeletons,
+        getCoins: () => this.coins,
+        getChests: () => this.chests,
+        getHealthPotions: () => this.healthPotions,
+        getKeyItem: () => this.keyItem,
+      }
+    );
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);

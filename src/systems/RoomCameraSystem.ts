@@ -49,6 +49,11 @@ export class RoomCameraSystem {
     this.tileScale = tileScale;
   }
 
+  /** Get the dungeon data */
+  getDungeonData(): DungeonData {
+    return this.dungeonData;
+  }
+
   /** Get the current room index */
   getCurrentRoomIndex(): number {
     return this.currentRoomIndex;
