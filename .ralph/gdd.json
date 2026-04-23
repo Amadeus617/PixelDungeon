@@ -35,7 +35,11 @@
     "coinPoints": 10,
     "enemyKillPoints": 50,
     "dungeonRooms": "3-5 random",
-    "roomSize": "10-16 tiles"
+    "roomSize": "10-16 tiles",
+    "dashSpeed": 80,
+    "dashDuration": 150,
+    "dashCooldown": 1500,
+    "corridorPatrolCount": "1-2"
   },
   "designLog": [
     {
@@ -73,6 +77,12 @@
       "author": "agent-review",
       "change": "第四轮设计审查新增 7 个改进 US（US-048~US-054）：通关统计面板、受伤红闪反馈优化、敌人重生机制、宝箱交互提示引导、走廊视觉装饰、得分系统扩展（房间清除+时间奖励）、随机种子支持可复现地牢。",
       "reason": "定期设计审查发现：通关反馈维度不足(缺统计)、受伤视觉反馈不够醒目、地牢清空后无持续挑战、新手引导缺失、走廊视觉单调、得分系统维度单一、地牢不可复现影响调试和分享"
+    },
+    {
+      "date": "2026-04-23",
+      "author": "agent-review",
+      "change": "第五轮设计审查新增5个改进US(US-055~US-059)：走廊Skeleton巡逻兵、玩家冲刺闪避机制、宝箱奖励循环重构、DungeonMap方法名bug修复、AttackBoost buff状态管理重构。更新balanceAnalysis和improvements。",
+      "reason": "定期设计审查发现：走廊无威胁降低了探索决策压力、战斗缺少闪避维度、宝箱开启无奖励形成功能死胡同、代码存在遗留方法名bug、buff状态管理架构不合理"
     }
   ],
   "improvements": {
@@ -110,7 +120,12 @@
       "US-051: 宝箱交互引导 — 无钥匙时显示提示",
       "US-052: 走廊装饰 — 火把/裂纹/碎石氛围增强",
       "US-053: ScoreSystem 扩展 — 房间清除 + 时间奖励",
-      "US-054: 随机种子支持 — 可复现地牢"
+      "US-054: 随机种子支持 — 可复现地牢",
+      "US-055: 走廊Skeleton巡逻兵 -- 走廊中有巡逻敌人增加紧张感",
+      "US-056: 玩家冲刺闪避 -- Shift键短距位移+无敌帧，增加战斗策略深度",
+      "US-057: 宝箱奖励循环重构 -- 宝箱开启掉落金币+概率药水，修复功能死胡同",
+      "US-058: DungeonMap.returnWorldHeight遗留方法删除 -- 代码清理",
+      "US-059: AttackBoost buff状态移入Player类 -- 限时10s buff，配合US-030"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -135,7 +150,12 @@
       "宝箱交互无引导——没有钥匙时靠近宝箱没反馈，新玩家不知道为什么打不开。需添加条件提示文字（US-051）",
       "走廊完全是空白地板，缺少地牢氛围。随机放置装饰 tile（火把、裂纹、碎石）增加视觉丰富度，不影响碰撞（US-052）",
       "ScoreSystem 只有金币(+10)和击杀(+50)两种得分，维度太单一。添加房间清除(+100)和时间奖励分，鼓励高效探索（US-053）",
-      "generateDungeon() 用 Math.random()，无法复现。改为支持 seed 参数 + seeded RNG，便于调试、测试和分享种子挑战（US-054）"
+      "generateDungeon() 用 Math.random()，无法复现。改为支持 seed 参数 + seeded RNG，便于调试、测试和分享种子挑战（US-054）",
+      "走廊3 tiles宽且无敌人，是安全的快速通道。应添加1-2个Skeleton巡逻兵(速度35px/s低于房间的45)，走廊窄+有敌人=遭遇紧张感。这是地牢探索游戏的核心体验元素(US-055)",
+      "战斗系统只有攻击(空格)和逃跑(移动)，缺少闪避/冲刺维度。添加Shift冲刺(80px位移,0.15s,冲刺期间无敌,1.5s冷却)能让玩家主动规避伤害，显著提升战斗策略深度。GDD balance新增参数: dashSpeed=80, dashDuration=150ms, dashCooldown=1500ms (US-056)",
+      "宝箱开启后无任何效果(无奖励、非胜利条件)是功能死胡同。钥匙->宝箱->无结果会挫败探索动力。应改为宝箱掉落3-5金币+30%概率药水，使探索回路完整。同时宝箱交互应显示开启动画(US-057)",
+      "DungeonMap.returnWorldHeight()是遗留bug方法，命名暗示返回但实际无return。应删除统一用getWorldHeight() (US-058)",
+      "attackBoosted状态在GameScene中管理而非Player类，导致buff逻辑分散。应重构：Player类管理buff状态和计时，GameScene只调用player.isAttackBoosted。配合US-030实现限时10s buff而非一次性消耗(US-059)"
     ]
   },
   "balanceAnalysis": {
@@ -225,6 +245,26 @@
         "area": "地牢不可复现",
         "detail": "Math.random() 导致每次生成不同地牢，无法复现 bug、无法分享种子挑战",
         "recommendation": "支持 seed 参数 + seeded PRNG（US-054）"
+      },
+      {
+        "area": "走廊无威胁",
+        "detail": "走廊宽3 tiles且完全无敌人，玩家可以安全穿梭所有房间，降低了探索的决策压力和紧张感",
+        "recommendation": "走廊中添加1-2个Skeleton巡逻兵(速度35px/s)，来回巡逻(US-055)"
+      },
+      {
+        "area": "战斗缺少闪避维度",
+        "detail": "玩家只能攻击(空格)或逃跑(移动)，被包围时无可选操作。缺少动作游戏的核心闪避机制",
+        "recommendation": "Shift键冲刺闪避：80px位移，0.15s无敌，1.5s冷却(US-056)"
+      },
+      {
+        "area": "宝箱功能死胡同",
+        "detail": "钥匙+宝箱系统存在但宝箱开启后无任何效果(不掉落、非胜利条件)，钥匙拾取无实际意义",
+        "recommendation": "宝箱改为奖励型：掉落3-5金币+30%概率药水(US-057)"
+      },
+      {
+        "area": "buff状态架构不合理",
+        "detail": "attackBoosted存在GameScene而非Player中，导致buff逻辑与角色状态分离。一次性消耗模式导致HUD可能永远显示buff指示",
+        "recommendation": "移入Player类，实现限时10s buff(US-059)"
       }
     ]
   }

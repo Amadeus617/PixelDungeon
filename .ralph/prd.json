@@ -909,6 +909,90 @@
             "不传 seed 时保持随机行为",
             "tsc + build 通过"
           ]
+        },
+        {
+          "title": "走廊敌人巡逻 -- 走廊中添加 Skeleton 巡逻兵",
+          "description": "当前走廊完全无敌人，玩家可以安全穿越所有房间。应在连接房间的走廊中随机放置1-2个Skeleton巡逻兵(速度略低于房间内，35px/s)，走廊窄(3 tiles)增加遭遇紧张感。走廊无威胁降低了探索的决策压力，巡逻敌人迫使玩家判断路线。",
+          "type": "code",
+          "priority": 40,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊中生成1-2个Skeleton巡逻兵",
+            "巡逻兵在走廊两端来回移动",
+            "与房间内敌人使用相同的碰撞和战斗逻辑",
+            "tsc + build 通过"
+          ],
+          "id": "US-055"
+        },
+        {
+          "title": "玩家冲刺/闪避机制 -- Shift键短距位移",
+          "description": "当前战斗只有攻击和逃跑，缺少闪避维度。添加Shift键冲刺：向当前方向快速位移80px(0.15s)，冲刺期间无敌，冷却1.5s。增加战斗策略深度，玩家可以冲刺穿过敌人群体或闪避包围。GDD balance应添加dashSpeed/dashCooldown参数。",
+          "type": "code",
+          "priority": 41,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Shift键触发冲刺动画和位移",
+            "冲刺期间无敌(不受伤)",
+            "冲刺有1.5s冷却，HUD显示冷却状态",
+            "冲刺方向与移动方向一致",
+            "冲刺不会穿墙(碰撞检测)",
+            "tsc + build 通过"
+          ],
+          "id": "US-056"
+        },
+        {
+          "title": "宝箱/钥匙奖励循环 -- 宝箱改为奖励型道具",
+          "description": "当前胜利条件是到达楼梯(exit stairs)，但代码中仍保留了钥匙+宝箱系统(KeyItem+Chest)，宝箱开启后无任何效果(既不是胜利条件也不给奖励)，形成功能死胡同。应将宝箱改为奖励型：开启后掉落金币(3-5个)和概率药水，使钥匙到宝箱到奖励形成有意义的探索循环。",
+          "type": "code",
+          "priority": 42,
+          "status": "pending",
+          "dependsOn": [
+            "US-033"
+          ],
+          "acceptanceCriteria": [
+            "宝箱开启后掉落3-5金币",
+            "有30%概率同时掉落生命药水",
+            "移除宝箱与胜利条件的任何耦合",
+            "HUD钥匙拾取提示明确告知可用于开启宝箱",
+            "tsc + build 通过"
+          ],
+          "id": "US-057"
+        },
+        {
+          "title": "getWorldHeight方法名不一致修复",
+          "description": "DungeonMap.ts中存在两个方法：returnWorldHeight()(无意义命名，不返回)和getWorldHeight()(正确实现)。returnWorldHeight是遗留bug，方法名暗示返回但实际无return语句。应删除returnWorldHeight，统一使用getWorldHeight。",
+          "type": "code",
+          "priority": 43,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除returnWorldHeight方法",
+            "全局搜索确认无其他地方调用returnWorldHeight",
+            "getWorldHeight正常工作",
+            "tsc + build 通过"
+          ],
+          "id": "US-058"
+        },
+        {
+          "title": "AttackBoost buff状态管理重构",
+          "description": "attackBoosted状态存储在GameScene而非Player类中，设计不合理。当前逻辑：拾取后true，攻击一次后false(一次性)。这导致如果玩家拾取后不攻击，HUD永远显示ATK x2。应将buff状态移入Player类，配合US-030限时buff设计：拾取后10s内双倍伤害，无论是否攻击过，到时自动恢复。",
+          "type": "code",
+          "priority": 44,
+          "status": "pending",
+          "dependsOn": [
+            "US-030"
+          ],
+          "acceptanceCriteria": [
+            "AttackBoost buff状态移入Player类",
+            "拾取后10s内双倍攻击伤害",
+            "10s后自动恢复原始伤害",
+            "HUD显示buff剩余时间倒计时",
+            "多个AttackBoost拾取刷新(而非叠加)持续时间",
+            "tsc + build 通过"
+          ],
+          "id": "US-059"
         }
       ]
     }
