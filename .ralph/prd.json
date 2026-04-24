@@ -1895,6 +1895,165 @@
             "首次启动和重启后纹理均正确渲染",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-117",
+          "title": "Player takeDamage应返回boolean表示是否实际受伤",
+          "description": "当前Player.takeDamage()返回void，导致调用方无法判断是否实际扣血。GameScene overlap回调无条件播放hurt音效，即使在无敌帧期间。US-101描述了hurt音效问题但未修改takeDamage返回值类型。修改takeDamage返回boolean，overlap回调据此判断是否播放音效和视觉反馈，同时解决US-101和future US中所有依赖伤害结果的逻辑。",
+          "type": "code",
+          "priority": 102,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage返回true(实际受伤)或false(无敌/已死)",
+            "GameScene overlap回调根据返回值播放hurt音效",
+            "overlap回调中移除hp<maxHp的不正确检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-118",
+          "title": "Slime/Skeleton die()延迟销毁 — 使用tween动画替代立即destroy",
+          "description": "当前die()在同一帧内setActive(false)+setVisible(false)+destroy()。US-064提出消散动画但US-082提出延迟销毁时序，两者互相依赖但现有US分别描述。统一方案：die()改为setActive(false)+setVisible(false)+tween(alpha→0, scale→0, 200ms)，onComplete回调中destroy()。消除数组并发修改风险同时实现死亡动画。",
+          "type": "code",
+          "priority": 103,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "die()不再立即调用destroy()",
+            "死亡时播放200ms alpha+scale渐隐动画",
+            "动画结束后调用destroy()",
+            "handlePlayerAttack中active检查防止重复击杀",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-119",
+          "title": "Chest.open()奖励掉落 — 宝箱开启生成掉落物品",
+          "description": "US-057提出宝箱改为奖励型道具但描述偏向设计层面。本US补充具体实现方案：Chest.open()触发后，在宝箱位置随机生成3-5个Coin和30%概率1个HealthPotion。掉落物品需添加短暂弹出动画（y轴上抛20px后落地）。这使钥匙→宝箱回路有实质奖励，是US-057的实现层补充。",
+          "type": "code",
+          "priority": 104,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open()后在宝箱位置生成3-5个Coin sprite",
+            "30%概率额外生成1个HealthPotion",
+            "掉落物品有y轴弹出动画(20px上抛+gravity)",
+            "掉落物品与player的overlap碰撞正常工作",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-120",
+          "title": "玩家攻击命中反馈 — 屏幕轻微震动+命中粒子特效",
+          "description": "当前攻击命中敌人只有setTint闪白和knockback，缺乏屏幕层面的打击感。添加：攻击命中时camera shake(50ms, 0.003)和命中点5粒子爆发(白/黄色,100ms消散)。这独立于US-042(挥剑视觉)和US-022(敌人受击闪白)，是screen-level feedback layer。",
+          "type": "code",
+          "priority": 105,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中时cameras.main.shake(50, 0.003)",
+            "命中点生成5个粒子(circle, white/yellow, 100ms alpha→0)",
+            "miss攻击无shake无粒子",
+            "多敌人同时命中时shake不叠加(单次即可)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-121",
+          "title": "RoomCameraSystem走廊过渡期间冻结玩家移动",
+          "description": "US-115描述了fade期间输入冻结问题但解决方案不完整。当前isTransitioning()在update中调用setVelocity(0,0)阻止移动，但Player.update()在GameScene.update()中调用时序上可能先于RoomCameraSystem.update()。彻底方案：Player类添加frozen属性，GameScene在isTransitioning()为true时设置player.frozen=true，Player.update()检查frozen跳过输入处理。",
+          "type": "code",
+          "priority": 106,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player添加frozen属性和setFrozen/getFrozen方法",
+            "GameScene.update中isTransitioning时setFrozen(true)",
+            "Player.update中frozen为true时跳过所有输入处理",
+            "过渡结束后恢复frozen=false",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-122",
+          "title": "Minimap未显示走廊连接 — corridor数据不准确导致L型渲染为直线",
+          "description": "US-093提出corridor元数据修复但未涉及Minimap渲染。当前paintCorridors()为L型走廊只生成1条corridor记录，Minimap用它画直线连线两个房间中心。修复方案：paintCorridors()分别记录水平段和垂直段corridor，Minimap遍历所有corridor分段渲染。这是US-093在渲染层的具体实现。",
+          "type": "code",
+          "priority": 107,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "paintCorridors为L型走廊生成2条corridor记录(水平段+垂直段)",
+            "Minimap遍历所有corridor分段独立渲染",
+            "L型走廊在小地图上正确显示为折线",
+            "不影响走廊碰撞和行走",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-123",
+          "title": "Slime/Skeleton攻击无伤害冷却 — overlap每帧触发",
+          "description": "当前Slime/Skeleton与player的overlap回调每帧触发，player.takeDamage()内部有1000ms无敌帧保护所以实际不重复扣血。但这依赖player的无敌帧机制，enemy自身没有接触伤害冷却。如果无敌帧被缩短或取消(如US-056冲刺无敌)，将导致帧级伤害。Enemy应维护自己的contactDamageCooldown(500ms)，配合player无敌帧形成双层保护。",
+          "type": "code",
+          "priority": 108,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime/Skeleton添加lastContactDamageTime属性",
+            "overlap回调中检查500ms冷却",
+            "冷却期内不调用player.takeDamage",
+            "与player无敌帧保护互补而非替代",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-124",
+          "title": "玩家受伤无knockback — 被击中后不后退",
+          "description": "US-029提出玩家knockback但尚未实现。当前player被敌人接触只扣血无位移，站在敌人身上会持续扣血(由无敌帧限制频率)。实现方案：Player.takeDamage()中添加击退逻辑，根据敌人位置计算击退方向，击退速度150px/s，持续时间200ms，击退期间玩家输入被覆盖。这显著提升战斗手感。",
+          "type": "code",
+          "priority": 109,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player.takeDamage接受可选攻击者位置参数(sourceX/sourceY)",
+            "受伤时计算击退方向(远离攻击者)",
+            "击退速度150px/s，持续200ms",
+            "击退期间输入被覆盖(玩家不可主动移动)",
+            "GameScene overlap回调传入敌人位置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-125",
+          "title": "DungeonMap.returnWorldHeight()遗留方法 — 命名错误需删除",
+          "description": "US-058提出此问题但描述为\"遗留方法删除\"。实际上returnWorldHeight()不是无return的方法(它有正确return)，而是方法名用了return前缀违反命名规范。如果有代码调用returnWorldHeight()会因typo-style混淆而出错。应删除此方法，所有调用改为getWorldHeight()。检查确认无外部调用后直接删除。",
+          "type": "code",
+          "priority": 110,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "DungeonMap.returnWorldHeight()方法已删除",
+            "grep确认无代码引用returnWorldHeight",
+            "getWorldHeight()正常工作",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-126",
+          "title": "玩家攻击isAttacking状态未正确影响动画 — 攻击期间walk动画覆盖",
+          "description": "Player.update()中移动时播放walk动画，isAttacking为true时跳过play walk。但攻击时play的是idle-{direction}而非attack动画(当前无attack动画)。更关键的是：200ms isAttacking窗口内如果玩家停止移动，play idle在isMoving=false分支中也被isAttacking跳过，导致动画状态异常。应重构：攻击期间锁定当前动画不变，200ms后恢复。",
+          "type": "code",
+          "priority": 111,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击期间(isAttacking=true)不播放任何新动画",
+            "200ms攻击窗口结束后恢复正常动画逻辑",
+            "攻击中移动不触发walk动画",
+            "攻击中停止不触发idle动画",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

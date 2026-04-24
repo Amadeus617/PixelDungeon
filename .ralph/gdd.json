@@ -137,6 +137,12 @@
       "author": "agent-review",
       "change": "第十四轮设计审查新增8个改进US(US-109~US-116)：AttackBoost限时buff实际代码与设计不一致(handlePlayerAttack中单次消耗)、Chest JustDown竞态根因确认(GameScene.update与Player.update时序)、ResultScene独立ScoreSystem实例与GameScene脱节、overlap闭包失效引用风险、玩家斜向攻击方向偏差(vx==vy时direction总取vy轴)、SoundManager AudioNode高频创建无池化、房间切换fade期间玩家输入未冻结、TitleScene→BootScene重复纹理生成。更新 improvements 和 balanceAnalysis。",
       "reason": "第十四轮设计审查深入分析代码执行流，发现8个之前审查未覆盖的新问题：(1)AttackBoost在handlePlayerAttack中立即重置attackBoosted=false，与限时buff设计矛盾;(2)GameScene.update的chest JustDown检测虽然代码上在player.update之后，但注释说是修复US-061，实际仍有时序问题;(3)ResultScene new ScoreSystem()与GameScene的scoreSystem完全独立，高分保存逻辑重复且不统一;(4)overlap闭包可能持有旧scene对象引用;(5)对角线移动时abs(vx)==abs(vy)，direction总取vy轴导致永远不朝左右攻击;(6)SoundManager每帧可能创建10+AudioNode无节流;(7)房间fade过渡450ms内玩家可自由移动;(8)重启时BootScene重复生成所有纹理"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十五轮设计审查新增10个改进US(US-117~US-126)：takeDamage返回值修复、die()延迟销毁+tween动画、宝箱奖励掉落实现、攻击命中屏幕shake+粒子、走廊过渡Player.frozen属性、Minimap走廊分段渲染、敌人接触伤害500ms冷却、玩家受伤knockback实现、returnWorldHeight遗留方法删除、攻击动画状态锁定。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十五轮设计审查深入分析代码执行流和游戏体验，发现10个之前审查未覆盖的新问题：(1)Player.takeDamage返回void导致调用方无法判断是否实际受伤，hurt音效逻辑与伤害逻辑耦合不正确;(2)die()立即destroy与US-064消散动画和US-082延迟销毁冲突，需统一为tween方案;(3)US-057宝箱奖励只描述设计层，缺少Chest.open()生成掉落物品的实现方案;(4)攻击命中缺乏screen-level反馈(camera shake/粒子)，独立于挥剑视觉(US-042)和敌人受击闪白(US-022);(5)US-115只描述问题未给出Player.frozen属性的具体实现;(6)US-093 corridor数据修复需要Minimap渲染层的具体实现;(7)敌人接触伤害完全依赖player无敌帧，缺少enemy端冷却形成单点故障;(8)US-029描述玩家knockback但缺少具体实现参数;(9)US-058描述遗留方法但未明确return前缀命名错误的细节;(10)Player isAttacking状态管理不正确导致攻击期间动画状态异常"
     }
   ],
   "improvements": {
@@ -236,7 +242,17 @@
       "US-113: 斜向攻击方向修正 — vx归一化后|vx|==|vy|，direction判定需改为基于最后按键方向",
       "US-114: SoundManager节流优化 — 同类型音效100ms内不重复，预分配buffer",
       "US-115: 房间切换输入冻结 — fade过渡期间setVelocity(0,0)禁止移动",
-      "US-116: BootScene纹理缓存 — textures.exists()检查避免重复生成"
+      "US-116: BootScene纹理缓存 — textures.exists()检查避免重复生成",
+      "US-117: takeDamage返回boolean — Player.takeDamage()返回是否实际受伤，overlap回调据此播放hurt音效",
+      "US-118: die()延迟销毁+tween动画 — 统一die()方案：setActive(false)+tween(200ms)+onComplete destroy()",
+      "US-119: Chest.open()奖励掉落 — 宝箱开启生成3-5 Coin + 30%概率HealthPotion，带y轴弹出动画",
+      "US-120: 攻击命中屏幕反馈 — camera shake(50ms,0.003) + 命中点5粒子爆发(white/yellow,100ms)",
+      "US-121: 走廊过渡Player.frozen — Player添加frozen属性，isTransitioning期间冻结输入处理",
+      "US-122: Minimap走廊分段渲染 — paintCorridors为L型生成2条corridor，Minimap分段渲染折线",
+      "US-123: 敌人接触伤害500ms冷却 — enemy端contactDamageCooldown独立于player无敌帧",
+      "US-124: 玩家受伤knockback实现 — 击退速度150px/s，持续200ms，方向远离攻击者，输入被覆盖",
+      "US-125: returnWorldHeight遗留方法删除 — 确认无引用后删除DungeonMap.returnWorldHeight()",
+      "US-126: 攻击动画状态锁定 — isAttacking期间不播放新动画，200ms后恢复正常动画逻辑"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -625,6 +641,46 @@
         "area": "场景过渡输入泄漏",
         "detail": "RoomCameraSystem fade过渡450ms内GameScene.update()继续执行，玩家可移动但相机bounds未切换。移动到走廊区域时相机不跟随=玩家消失在屏幕外",
         "recommendation": "isTransitioning()为true时冻结玩家setVelocity(0,0)(US-115)"
+      },
+      {
+        "area": "takeDamage返回值类型",
+        "detail": "Player.takeDamage()返回void，Slime/Skeleton.takeDamage()也无返回值。GameScene overlap回调无法判断是否实际扣血，导致hurt音效在无敌帧期间误播(US-101)。更广泛的影响：所有依赖伤害结果的后续逻辑都缺少判断依据",
+        "recommendation": "所有entity的takeDamage()统一返回boolean(US-117)"
+      },
+      {
+        "area": "die()时序与动画矛盾",
+        "detail": "US-064要求消散动画(200ms alpha渐隐)，US-082要求延迟销毁防止数组并发修改。但当前die()立即destroy()。两个US的实现必须统一为一个方案，否则会产生冲突",
+        "recommendation": "统一为tween方案：setActive(false)+setVisible(true)+tween→onComplete destroy(US-118)"
+      },
+      {
+        "area": "宝箱奖励缺少实现层设计",
+        "detail": "US-057提出宝箱改为奖励型道具(设计层)，但Chest.open()具体如何生成掉落物品、掉落动画、物理碰撞等实现细节缺失。设计已批准但实现方案为空",
+        "recommendation": "Chest.open()后GameScene在宝箱位置spawn Coin/HealthPotion sprites(US-119)"
+      },
+      {
+        "area": "攻击打击感不足 — screen feedback缺失",
+        "detail": "当前攻击反馈只有enemy层面的setTint闪白+knockback。缺少screen-level反馈(camera shake, hit particles, hitstop)。动作游戏的打击感三层：角色层(挥剑动画)、敌人层(闪白+击退)、屏幕层(shake+粒子)。前两层已有US覆盖，屏幕层缺失",
+        "recommendation": "命中时camera shake(50ms,0.003)+命中点粒子爆发(US-120)"
+      },
+      {
+        "area": "走廊过渡输入冻结不彻底",
+        "detail": "US-115在GameScene.update中调用setVelocity(0,0)冻结移动。但Player.update()在同一帧可能已经处理了输入并设置了velocity，之后被setVelocity(0,0)覆盖。这导致：玩家按键→velocity被设→又被清零，下一帧如果过渡结束velocity=0导致瞬间停顿感",
+        "recommendation": "Player添加frozen属性，从源头阻止输入处理而非事后清velocity(US-121)"
+      },
+      {
+        "area": "敌人接触伤害单点故障",
+        "detail": "敌人与player的overlap伤害完全依赖Player.isInvincible保护。如果未来某个改动(如US-056冲刺无敌)缩短或临时禁用无敌帧，敌人接触将造成帧级连续伤害。单一保护层是设计隐患",
+        "recommendation": "敌人端添加独立的500ms contactDamageCooldown形成双层保护(US-123)"
+      },
+      {
+        "area": "玩家缺少被击退反馈",
+        "detail": "Slime/Skeleton被攻击有knockback(300px/s, 150ms)，但玩家被敌人接触只扣血无位移。站在敌人身上靠无敌帧限制每秒只扣1HP，体验是\"卡在敌人里\"而非\"被击退\"。这显著影响战斗手感",
+        "recommendation": "玩家受伤knockback: 150px/s, 200ms, 方向远离攻击者(US-124)"
+      },
+      {
+        "area": "攻击动画状态管理缺陷",
+        "detail": "Player.isAttacking=true时，update()中isMoving分支检查!isAttacking跳过walk播放，!isMoving分支也检查!isAttacking跳过idle播放。但攻击时显式play(idle-{direction})——200ms窗口内如果持续按键，update循环中isAttacking检查会阻止所有动画更新，可能导致动画卡在attack时的idle帧",
+        "recommendation": "攻击期间锁定所有动画更新，200ms后统一恢复(US-126)"
       }
     ]
   }
