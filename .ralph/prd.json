@@ -993,6 +993,100 @@
             "tsc + build 通过"
           ],
           "id": "US-059"
+        },
+        {
+          "id": "US-060",
+          "title": "药水满血时拾取保护 — 满HP不可拾取HealthPotion",
+          "description": "当前玩家满血时仍可拾取药水导致浪费。应在 GameScene 中检查 player.hp < player.maxHp 后才允许 collect()。HUD 可在靠近药水时显示提示文字。",
+          "type": "code",
+          "priority": 45,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家满HP时无法拾取HealthPotion",
+            "满HP时靠近药水显示\"HP Full\"浮动提示",
+            "HP不满时药水正常拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-061",
+          "title": "空间键交互优先级修复 — 宝箱交互优先于攻击",
+          "description": "当前 player.update() 和 GameScene.update() 都用 JustDown(spaceKey) 检测空格键，导致靠近宝箱时可能同时触发攻击和开箱。应重构：GameScene.update() 中先检查宝箱交互，若成功则标记跳过攻击，或将宝箱交互移到 player-attack 事件前。",
+          "type": "code",
+          "priority": 46,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "靠近宝箱+有钥匙时，空格键只开箱不攻击",
+            "靠近宝箱+无钥匙时，空格键正常攻击",
+            "不在宝箱旁时，空格键正常攻击",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-062",
+          "title": "ResultScene 数据扩展基础 — 传递击杀数和金币数",
+          "description": "当前 endGame() 只传递 { result, score } 到 ResultScene。应扩展 scene data 传递 coins、killCount、roomsVisited 等统计，为 US-048 通关统计面板做数据准备。这步只改数据传递，不改 ResultScene UI。",
+          "type": "code",
+          "priority": 47,
+          "status": "pending",
+          "dependsOn": [
+            "US-048"
+          ],
+          "acceptanceCriteria": [
+            "endGame() 传递 coins、killCount、roomsVisited、elapsedTime 到 ResultScene",
+            "ResultScene 接收数据但不显示（留给 US-048）",
+            "现有 score 显示不受影响",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-063",
+          "title": "宝箱开启动画 — 缩放+闪光反馈",
+          "description": "当前 Chest.open() 只切换纹理，无任何动画反馈。应添加：开启瞬间 scale 弹跳(1.0→1.3→1.0)，短暂金色闪光(setTint + clearTint)，持续约 300ms。提升探索奖励的正反馈感。",
+          "type": "code",
+          "priority": 48,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱开启时播放缩放弹跳动画(300ms)",
+            "开启瞬间金色闪光效果",
+            "动画结束后保持 chest_open 纹理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-064",
+          "title": "敌人死亡消散动画 — 爆散粒子效果",
+          "description": "当前 Slime/Skeleton 死亡直接 setVisible(false) + destroy()，无任何视觉反馈。应添加：死亡时播放 200ms 缩放+透明度消散动画，配合简单位移（向上浮起）。让击杀有打击感。",
+          "type": "code",
+          "priority": 49,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 死亡播放 200ms 缩放+alpha 消散动画",
+            "Skeleton 死亡播放 200ms 缩放+alpha 消散动画",
+            "动画期间禁止再次受伤（防止重复触发）",
+            "动画结束后才 destroy",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-065",
+          "title": "GameScene 战斗统计追踪 — killCount/coins/rooms 计数器",
+          "description": "为支持 US-048 通关统计面板和 US-053 扩展得分系统，GameScene 需要追踪：敌人击杀数(killCount)、金币收集数(coinCount已有)、访问房间数(roomCameraSystem.visitedRooms.size)、游戏开始时间(startTime)。这些数据在 endGame() 中传递给 ResultScene。",
+          "type": "code",
+          "priority": 50,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 维护 killCount 计数器，每次击杀敌人+1",
+            "记录游戏开始时间 startTime = scene.time.now",
+            "endGame() 计算 elapsedTime = scene.time.now - startTime",
+            "killCount, coinCount, roomsVisited, elapsedTime 传递给 ResultScene",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

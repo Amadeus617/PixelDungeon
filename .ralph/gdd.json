@@ -83,6 +83,12 @@
       "author": "agent-review",
       "change": "第五轮设计审查新增5个改进US(US-055~US-059)：走廊Skeleton巡逻兵、玩家冲刺闪避机制、宝箱奖励循环重构、DungeonMap方法名bug修复、AttackBoost buff状态管理重构。更新balanceAnalysis和improvements。",
       "reason": "定期设计审查发现：走廊无威胁降低了探索决策压力、战斗缺少闪避维度、宝箱开启无奖励形成功能死胡同、代码存在遗留方法名bug、buff状态管理架构不合理"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第六轮设计审查新增6个改进US(US-060~US-065)：药水满血拾取保护、空格键交互优先级修复、ResultScene数据传递扩展、宝箱开启动画反馈、敌人死亡消散动画、GameScene战斗统计追踪。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)满血拾取药水浪费资源且无反馈，违背roguelike资源管理核心；(2)空格键同时用于攻击和宝箱交互存在竞态条件，导致UX混乱；(3)endGame只传score不传统计数据，US-048依赖的数据基础设施缺失；(4)宝箱开启无任何动画反馈，探索奖励正反馈断裂；(5)敌人死亡无消散动画，打击感弱；(6)GameScene缺少击杀/金币/房间访问计数器，通关统计无法实现"
     }
   ],
   "improvements": {
@@ -125,7 +131,13 @@
       "US-056: 玩家冲刺闪避 -- Shift键短距位移+无敌帧，增加战斗策略深度",
       "US-057: 宝箱奖励循环重构 -- 宝箱开启掉落金币+概率药水，修复功能死胡同",
       "US-058: DungeonMap.returnWorldHeight遗留方法删除 -- 代码清理",
-      "US-059: AttackBoost buff状态移入Player类 -- 限时10s buff，配合US-030"
+      "US-059: AttackBoost buff状态移入Player类 -- 限时10s buff，配合US-030",
+      "US-060: 药水满血拾取保护 -- 满HP时不可拾取HealthPotion，靠近显示\"HP Full\"提示",
+      "US-061: 空格键交互优先级修复 -- 宝箱交互优先于攻击，防止竞态条件",
+      "US-062: ResultScene数据扩展 -- 传递killCount/coins/roomsVisited/elapsedTime",
+      "US-063: 宝箱开启动画 -- scale弹跳+金色闪光，300ms反馈",
+      "US-064: 敌人死亡消散动画 -- 缩放+alpha渐隐200ms，提升打击感",
+      "US-065: GameScene战斗统计追踪 -- killCount/startTime/elapsedTime基础数据收集"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -265,6 +277,36 @@
         "area": "buff状态架构不合理",
         "detail": "attackBoosted存在GameScene而非Player中，导致buff逻辑与角色状态分离。一次性消耗模式导致HUD可能永远显示buff指示",
         "recommendation": "移入Player类，实现限时10s buff(US-059)"
+      },
+      {
+        "area": "资源管理漏洞",
+        "detail": "满HP时拾取HealthPotion会消耗道具但实际回复量为0（heal()内部clamped），浪费稀缺资源。Roguelike核心是资源管理，这种无意识浪费违背设计哲学",
+        "recommendation": "满HP时阻止拾取，并显示\"HP Full\"提示（US-060）"
+      },
+      {
+        "area": "空格键输入冲突",
+        "detail": "player.update()和GameScene.update()都用JustDown(spaceKey)检测，但player.update()先执行。靠近宝箱时按空格可能同时触发攻击和开箱，或者只触发攻击而忽略宝箱",
+        "recommendation": "重构输入优先级：宝箱交互应优先判断并拦截，或使用独立交互键E（US-061）"
+      },
+      {
+        "area": "通关数据基础设施缺失",
+        "detail": "endGame()只传递{result, score}到ResultScene，缺少killCount、coinCount、roomsVisited、elapsedTime。US-048(通关统计面板)依赖这些数据但传递通道不存在",
+        "recommendation": "先实现US-065战斗统计追踪，再通过US-062传递数据（US-062→US-048）"
+      },
+      {
+        "area": "宝箱开启无反馈",
+        "detail": "Chest.open()仅切换纹理(closed→open)，无缩放弹跳、闪光或粒子效果。探索→钥匙→宝箱是核心回路，开箱瞬间应有强烈正反馈",
+        "recommendation": "添加300ms缩放弹跳+金色闪光动画（US-063）"
+      },
+      {
+        "area": "敌人死亡缺少消散效果",
+        "detail": "Slime/Skeleton死亡直接setVisible(false)+destroy()，消失突兀。在像素风游戏中，敌人死亡应有短暂的缩放+透明度消散动画，强化击杀反馈",
+        "recommendation": "200ms缩放+alpha渐隐动画，动画结束后再destroy（US-064）"
+      },
+      {
+        "area": "GameScene缺少统计基础设施",
+        "detail": "GameScene没有killCount计数器和startTime时间戳，无法计算通关用时和击杀统计。这些是US-048和US-053的基础依赖",
+        "recommendation": "添加killCount计数器和startTime记录（US-065）"
       }
     ]
   }
