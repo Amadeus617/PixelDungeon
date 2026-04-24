@@ -149,6 +149,12 @@
       "author": "agent-review",
       "change": "第十六轮设计审查新增8个改进US(US-127~US-134)：ResultScene重启流程应返回TitleScene、HUD房间标签硬编码修复、Minimap renderTexture未使用清理、敌人构造时动画与US-107对齐、slime/skeleton overlap hurt音效条件错误修复(hp<maxHp不等价于本次受伤)、Player Direction类型移除idle值、高分保存应在GameScene而非ResultScene执行、Inventory道具数量计数支持(为US-095多钥匙铺路)。更新 improvements 和 balanceAnalysis。",
       "reason": "第十六轮设计审查深入分析游戏流程闭环、资源管理和类型安全，发现8个之前审查未覆盖的新问题：(1)ResultScene→GameScene直接重启跳过TitleScene，违背完整游戏流程设计;(2)HUD getRoomLabel硬编码5个房间名不适配可变房间数;(3)Minimap RenderTexture创建但从未使用浪费GPU内存;(4)敌人构造时硬编码move动画与US-107 idle行为设计矛盾;(5)slime/skeleton overlap回调中hp<maxHp音效条件在有先前伤害时无敌帧期间仍误播，US-101描述了症状但未指出具体错误条件;(6)Direction类型包含idle值导致攻击方向fallback硬编码down，US-071修复后idle不应再出现;(7)高分保存在ResultScene独立ScoreSystem中执行而非GameScene，与US-111相关但关注不同层面;(8)Inventory基于字符串键不支持数量计数，是US-095多宝箱的前置依赖"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十七轮设计审查新增8个改进US(US-135~US-142)：TitleScene→BootScene多余跳转、Skeleton追踪模式HP条不跟随、overlap回调防御性active检查、buildCorridor死代码删除、GameResultData interface统一跨场景数据、Player body bounds与camera bounds一致性审查、HUD update每帧字符串GC优化、Slime/Skeleton双重边界设置碰墙双重触发。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十七轮设计审查深入分析游戏启动流程、敌人生命周期细节、代码死路径、跨场景数据架构、性能和边界设置，发现8个之前审查未覆盖的新问题：(1)TitleScene跳转BootScene再跳GameScene的多余中间环节导致重复纹理生成;(2)Skeleton.update追踪模式early return跳过HP bar follow导致血条位置脱离;(3)overlap回调缺少active防御检查;(4)buildCorridor()约30行完全死代码增加维护负担;(5)跨场景数据传递缺少统一interface;(6)Player body bounds与camera bounds架构不一致隐患;(7)HUD每帧创建字符串对象造成不必要GC压力;(8)enemy双重边界设置可能导致碰墙双重方向切换"
     }
   ],
   "improvements": {
@@ -266,7 +272,15 @@
       "US-131: overlap hurt 音效条件修复 — hp<maxHp 不等价于本次受伤，改为依赖 takeDamage 返回值(US-117)",
       "US-132: Direction 类型移除 idle — 玩家始终有有效朝向，消除攻击方向 fallback 到 down 的风险",
       "US-133: 高分保存移至 GameScene.endGame — 在实际 scoreSystem 实例上保存而非 ResultScene 独立实例",
-      "US-134: Inventory 道具数量计数 — 支持 has/add/remove 数量操作，为 US-095 多钥匙多宝箱铺路"
+      "US-134: Inventory 道具数量计数 — 支持 has/add/remove 数量操作，为 US-095 多钥匙多宝箱铺路",
+      "US-135: TitleScene.startGame()直接跳转GameScene — 移除BootScene中间环节，避免重复纹理生成和动画注册",
+      "US-136: Skeleton追踪模式HP条跟随修复 — return前更新hpBar位置，防止血条原地不动",
+      "US-137: overlap回调active防御检查 — 所有overlap handler前置active检查，防止Phaser延迟清理导致的重复触发",
+      "US-138: buildCorridor()死代码删除 — 约30行从未被调用的函数，与US-093 corridor数据修复一并清理",
+      "US-139: GameResultData interface统一 — 定义包含所有统计字段的interface，替代零散data传递",
+      "US-140: Player body bounds与camera bounds一致性审查 — 确保房间切换时bounds不冲突",
+      "US-141: HUD update缓存优化 — 只在值变化时调用setText，减少每帧字符串创建和bitmap重绘",
+      "US-142: Slime/Skeleton双重边界设置审查 — setCollideWorldBounds+setBoundsRectangle可能导致碰墙双重方向切换"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -720,6 +734,26 @@
         "area": "Inventory 无数量计数",
         "detail": "Inventory 使用字符串键（如 'key'），连续 add('key') 两次的行为取决于实现。如果底层是 Set，第二次 add 无效果；如果是 Map+boolean，也不支持计数。US-095 多钥匙多宝箱的基础是 Inventory 支持数量",
         "recommendation": "改为 Map<string, number>，add 递增、remove 递减、has 检查 >0（US-134）"
+      },
+      {
+        "area": "游戏启动流程多余环节",
+        "detail": "TitleScene→BootScene→GameScene链路中BootScene是多余的中间环节。每次重新开始游戏都经过BootScene重新生成纹理和注册动画（虽然有textures.exists缓存但仍需遍历检查）。造成短暂黑屏闪烁和无意义的资源消耗",
+        "recommendation": "TitleScene直接跳转GameScene，BootScene只在首次启动时执行一次（US-135）"
+      },
+      {
+        "area": "Skeleton追踪模式血条脱离",
+        "detail": "Skeleton.update()追踪模式中直接return跳过了hpBar.follow(this)。追踪时HP条留在原地不跟随Skeleton移动，玩家看到的是分离的血条，影响战斗信息读取",
+        "recommendation": "追踪模式return前添加hpBar位置更新（US-136）"
+      },
+      {
+        "area": "HUD性能浪费",
+        "detail": "HUD.update()每帧调用setText创建新字符串+触发bitmap重绘，即使值未变化。60fps下每秒120+次无效渲染。在低端设备（未来移动端适配）可能造成micro-stutter",
+        "recommendation": "缓存上次值，只在变化时更新setText（US-141）"
+      },
+      {
+        "area": "敌人碰墙双重方向切换",
+        "detail": "Slime/Skeleton同时设置了setCollideWorldBounds(true)和body.setBoundsRectangle()。碰墙时可能同时触发world bounds反弹和wall collider onHitWall回调，导致方向连续切换两次，表现为碰墙后瞬间又转向",
+        "recommendation": "审查双重边界设置的交互，移除不必要的重复（US-142）"
       }
     ]
   }

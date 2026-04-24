@@ -2186,6 +2186,126 @@
             "has() 检查数量>0",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-135",
+          "title": "TitleScene startGame 跳转 BootScene 而非 GameScene — 多余的中间环节",
+          "description": "TitleScene.startGame() 调用 this.scene.start(\"BootScene\")，但 BootScene.create() 末尾直接 scene.start(\"GameScene\")。每次从标题开始游戏都会经历 BootScene（重复生成纹理+注册动画），然后才到 GameScene。正确流程应该是 TitleScene → GameScene，资源加载应在游戏初始化时完成一次（已在 TitleScene 之前由 Phaser 自动调用 BootScene）。当前流程导致：(1)每次重新开始都重新生成所有程序化纹理（虽然 textures.exists() 有缓存检查但仍需遍历）；(2)动画被重复注册（无去重检查）；(3)一个无意义的短暂黑屏闪烁（BootScene create→start 瞬间）。",
+          "type": "code",
+          "priority": 120,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TitleScene.startGame() 直接跳转 GameScene",
+            "BootScene 只在游戏首次启动时执行一次",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-136",
+          "title": "Skeleton.update 追踪模式跳过 HP bar follow — 追踪期间血条不跟随",
+          "description": "Skeleton.update() 中，当 Skeleton 进入追踪模式（playerRef 在 TRACK_RANGE 内），直接 return 跳过了后续的 hpBar.follow(this) 调用。这意味着 Skeleton 追踪玩家时，HP 条留在原地不动，与 Skeleton 位置分离。修复：在 return 前添加 hpBar 位置更新。",
+          "type": "code",
+          "priority": 121,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式下 HP 条跟随 Sprite 移动",
+            "非追踪模式下 HP 条行为不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-137",
+          "title": "GameScene overlap 回调闭包捕获循环变量 — 后续创建的回调可能引用错误对象",
+          "description": "GameScene.create() 中 HealthPotion/Coin/AttackBoost 的 overlap 回调使用 for...of 循环内的箭头函数。虽然 for...of 配合 const 声明每次迭代创建新绑定（不同于 var），当前实现功能正确。但 overlap(this.player, potion, () => {...}) 中的 potion 回调在 destroy() 后仍可能被 Phaser 触发一帧（Phaser 在下一帧清理 overlap 列表）。如果 collect() 的 collected 标志未及时生效，可能导致重复。建议在回调中添加 active 检查作为防御性编程。",
+          "type": "code",
+          "priority": 122,
+          "status": "pending",
+          "dependsOn": [
+            "US-091"
+          ],
+          "acceptanceCriteria": [
+            "所有 overlap 回调前置 active 检查",
+            "即使 Phaser 延迟清理 overlap 也不会重复触发效果",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-138",
+          "title": "dungeonData buildCorridor 死代码 — 函数已定义但从未被调用",
+          "description": "dungeonData.ts 中 buildCorridor() 函数（约30行）生成了 CorridorDef 数组，但 generateDungeon() 调用的是 paintCorridors()。buildCorridor() 是完全的死代码，增加了维护负担且与 US-093 的 corridor 数据修复混淆。应直接删除 buildCorridor() 函数及其相关的 CorridorDef[] 返回值。",
+          "type": "code",
+          "priority": 123,
+          "status": "pending",
+          "dependsOn": [
+            "US-093"
+          ],
+          "acceptanceCriteria": [
+            "buildCorridor() 函数被删除",
+            "paintCorridors() 行为不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-139",
+          "title": "GameScene 不传递 gameData 给 ResultScene — 跨场景数据传递依赖 Phaser 内部机制",
+          "description": "GameScene.endGame() 通过 this.scene.start(\"ResultScene\", { result, score }) 传递数据。Phaser scene data passing 是通过 scene.sys.settings.data 实现的，生命周期安全。但 ResultScene 直接 new ScoreSystem() 创建独立实例处理高分，而非从 GameScene 接收 scoreSystem 引用（US-133 提出但未解决根因）。当前设计的实际问题是：如果未来需要在 ResultScene 显示更多信息（击杀数、金币数、用时），每次都要在 endGame 的 data 对象中添加字段，容易遗漏。应定义 GameResultData interface 集中管理。",
+          "type": "code",
+          "priority": 124,
+          "status": "pending",
+          "dependsOn": [
+            "US-062"
+          ],
+          "acceptanceCriteria": [
+            "定义 GameResultData interface 包含所有统计字段",
+            "endGame 传递完整数据",
+            "ResultScene 使用 interface 而非零散字段",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-140",
+          "title": "Player setWorldBounds 使用 physics.world.bounds — 可能被 DungeonMap 尺寸覆盖",
+          "description": "Player.setWorldBounds() 调用 body.setBoundsRectangle(scene.physics.world.bounds)。但 GameScene.create() 中 physics.world.setBounds(0, 0, dungeonMap.getWorldWidth(), dungeonMap.getWorldHeight()) 设置了全局物理边界。Player 的 setBoundsRectangle 进一步限制了单个 body 的边界。两者一致时无问题，但如果房间切换时相机边界变化（RoomCameraSystem），而 physics.world.bounds 未同步更新，Player body 的 bounds 可能比相机更宽导致走到视野外。这不是当前 bug（因为 world bounds = 全地图大小），但架构上 body bounds 和 camera bounds 应保持一致。",
+          "type": "code",
+          "priority": 125,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "审查 Player body bounds 与 physics world bounds 的关系",
+            "确保 room transition 不导致 bounds 不一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-141",
+          "title": "HUD update() 每帧创建新字符串对象 — 频繁 GC 压力",
+          "description": "HUD.update() 每帧调用 this.coinLabel.setText() 和 this.scoreLabel.setText()。即使数值未变化，模板字符串也会创建新的字符串对象，Phaser Text 内部会重新渲染 bitmap。在 60fps 下每秒创建 120+ 个短命字符串对象。虽然 V8 GC 能处理，但在低端设备（移动端）可能造成 micro-stutter。解决方案：缓存上次值，只在变化时更新 setText。",
+          "type": "code",
+          "priority": 126,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD update 只在值变化时调用 setText",
+            "每帧不创建新的字符串对象",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-142",
+          "title": "Slime/Skeleton setCollideWorldBounds + body.setBoundsRectangle 双重边界设置",
+          "description": "Slime 和 Skeleton 构造函数中同时调用 this.setCollideWorldBounds(true) 和 body.setBoundsRectangle(scene.physics.world.bounds)。setCollideWorldBounds(true) 让 Arcade Physics 在 body 碰到 world bounds 时反弹，setBoundsRectangle 进一步限制 body 活动范围。如果两者不一致（例如 physics.world.setBounds 已被设为全地图大小），enemy 的 setBoundsRectangle 会覆盖 world bounds 对该 body 的效果。但更重要的是：setCollideWorldBounds 添加了 onWorldBounds 回调，这与 wall collider 的 onHitWall 共同作用，可能导致同一个碰墙事件触发两次方向切换（一次 world bounds 反弹，一次 onHitWall），表现为敌人碰墙后方向连续切换两次。",
+          "type": "code",
+          "priority": 127,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "审查 setCollideWorldBounds 与 wall collider 的交互",
+            "确认碰墙不触发两次方向切换",
+            "移除不必要的双重边界设置",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
