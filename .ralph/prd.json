@@ -382,7 +382,7 @@
           "description": "Slime 被攻击时无受击反馈（Skeleton 有白色闪烁）。为 Slime 添加与 Skeleton 一致的受击白色闪烁效果，并为所有敌人添加短暂击退（knockback）效果：受击时沿攻击反方向被推开一小段距离。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime 受击时产生白色闪烁 tint 效果",
