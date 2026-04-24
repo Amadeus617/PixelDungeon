@@ -414,7 +414,7 @@
           "description": "游戏启动后直接进入 GameScene，缺少标题画面。添加 BootScene 之后、GameScene 之前的 TitleScene：显示游戏名称 PixelDungeon、像素风标题美术、按空格开始提示、可选的简单动画。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "游戏启动后先显示 TitleScene",

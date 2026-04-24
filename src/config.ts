@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { TitleScene } from "./scenes/TitleScene";
 import { BootScene } from "./scenes/BootScene";
 import { GameScene } from "./scenes/GameScene";
 import { ResultScene } from "./scenes/ResultScene";
@@ -18,6 +19,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
       gravity: { x: 0, y: 0 },
     },
   },
-  scene: [BootScene, GameScene, ResultScene],
+  scene: [TitleScene, BootScene, GameScene, ResultScene],
   pixelArt: true,
 };
