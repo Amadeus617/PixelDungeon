@@ -14,7 +14,15 @@ import { HUD } from "@/ui/HUD";
 import { RoomCameraSystem } from "@/systems/RoomCameraSystem";
 import { SoundManager } from "@/systems/SoundManager";
 
-const SLIME_COUNT = 4;
+// --- Difficulty scaling (US-028) ---
+const RUN_COUNT_KEY = "pixeldungeon_run_count";
+const BASE_SLIME_COUNT = 4;
+const SLIME_COUNT_CAP = 8;
+const BASE_SKELETON_SPEED = 45;
+const SPEED_INCREASE_PER_RUN = 0.1; // +10% per run
+const SPEED_CAP_MULTIPLIER = 2.0;   // max 200%
+// --- End difficulty scaling ---
+
 const SKELETON_COUNT = 3;
 const COIN_COUNT = 5;
 const HEALTH_POTION_COUNT = 3;
@@ -47,6 +55,11 @@ export class GameScene extends Phaser.Scene {
   private roomCameraSystem!: RoomCameraSystem;
   private soundManager!: SoundManager;
 
+  // Difficulty scaling state (US-028)
+  private runCount = 1;
+  private slimeCount = BASE_SLIME_COUNT;
+  private skeletonSpeedMultiplier = 1.0;
+
   constructor() {
     super({ key: "GameScene" });
   }
@@ -55,6 +68,15 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.scoreSystem.reset();
     this.soundManager = new SoundManager(this);
+
+    // --- Difficulty scaling (US-028) ---
+    this.runCount = this.loadRunCount();
+    this.slimeCount = Math.min(BASE_SLIME_COUNT + (this.runCount - 1), SLIME_COUNT_CAP);
+    this.skeletonSpeedMultiplier = Math.min(
+      1.0 + (this.runCount - 1) * SPEED_INCREASE_PER_RUN,
+      SPEED_CAP_MULTIPLIER
+    );
+    // --- End difficulty scaling ---
 
     this.dungeonMap = new DungeonMap(this);
 
@@ -91,7 +113,7 @@ export class GameScene extends Phaser.Scene {
     // Spawn slimes in rooms other than the entrance
     const wallLayer = this.dungeonMap.getWallLayer();
     const dungeonData = this.dungeonMap.getDungeonData();
-    for (let i = 0; i < SLIME_COUNT; i++) {
+    for (let i = 0; i < this.slimeCount; i++) {
       // Distribute slimes across non-entrance rooms
       const roomIdx = 1 + (i % (dungeonData.rooms.length - 1)); // rooms 1..N-1
       const room = dungeonData.rooms[roomIdx];
@@ -126,7 +148,7 @@ export class GameScene extends Phaser.Scene {
       const actualIdx = Math.min(roomIdx, dungeonData.rooms.length - 1);
       const room = dungeonData.rooms[actualIdx];
       const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
-      const skeleton = new Skeleton(this, spos.x, spos.y);
+      const skeleton = new Skeleton(this, spos.x, spos.y, this.skeletonSpeedMultiplier);
       skeleton.setPlayerRef(this.player);
       this.physics.add.collider(skeleton, wallLayer, () => {
         skeleton.onHitWall();
@@ -248,7 +270,8 @@ export class GameScene extends Phaser.Scene {
         getChests: () => this.chests,
         getHealthPotions: () => this.healthPotions,
         getKeyItem: () => this.keyItem,
-      }
+      },
+      this.runCount
     );
 
     // Listen for player attack events
@@ -342,6 +365,15 @@ export class GameScene extends Phaser.Scene {
 
   private checkLoseCondition(): boolean {
     return !this.player.alive;
+  }
+
+  /** Load run count from localStorage for difficulty scaling (US-028) */
+  private loadRunCount(): number {
+    try {
+      return parseInt(localStorage.getItem(RUN_COUNT_KEY) || "1", 10);
+    } catch {
+      return 1;
+    }
   }
 
   private endGame(result: GameResult): void {

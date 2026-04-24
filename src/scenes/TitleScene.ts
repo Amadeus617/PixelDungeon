@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 
+const RUN_COUNT_KEY = "pixeldungeon_run_count";
+
 export class TitleScene extends Phaser.Scene {
   private titleText!: Phaser.GameObjects.Text;
   private subtitleText!: Phaser.GameObjects.Text;
@@ -143,6 +145,13 @@ export class TitleScene extends Phaser.Scene {
   private startGame(): void {
     // Guard against double-trigger
     if (this.scene.isActive("TitleScene")) {
+      // Increment run count for difficulty scaling (US-028)
+      try {
+        const current = parseInt(localStorage.getItem(RUN_COUNT_KEY) || "0", 10);
+        localStorage.setItem(RUN_COUNT_KEY, String(current + 1));
+      } catch {
+        // localStorage unavailable — treat as run 1
+      }
       this.scene.start("BootScene");
     }
   }

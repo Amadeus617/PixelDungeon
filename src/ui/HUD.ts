@@ -40,6 +40,11 @@ export class HUD extends Phaser.GameObjects.Container {
   private roomNameBg!: Phaser.GameObjects.Rectangle;
   private roomNameTimer: Phaser.Time.TimerEvent | null = null;
 
+  // Difficulty level (US-028)
+  private difficultyLevel: number;
+  private difficultyLabel!: Phaser.GameObjects.Text;
+  private difficultyBg!: Phaser.GameObjects.Rectangle;
+
   private player: Player;
   private inventory: Inventory;
   private getCoinCount: () => number;
@@ -70,7 +75,8 @@ export class HUD extends Phaser.GameObjects.Container {
       getChests: () => Phaser.GameObjects.Sprite[];
       getHealthPotions: () => Phaser.GameObjects.Sprite[];
       getKeyItem: () => Phaser.GameObjects.Sprite | null;
-    }
+    },
+    difficultyLevel: number = 1
   ) {
     super(scene, 10, 10);
     scene.add.existing(this);
@@ -82,6 +88,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.roomCameraSystem = roomCameraSystem;
 
     this.getAttackBoosted = getAttackBoosted;
+    this.difficultyLevel = difficultyLevel;
 
     // Store minimap entity getters
     this.minimapGetSlimes = minimapEntityGetters?.getSlimes ?? (() => []);
@@ -194,6 +201,22 @@ export class HUD extends Phaser.GameObjects.Container {
     });
     this.attackBoostLabel.setVisible(false);
     this.add(this.attackBoostLabel);
+
+    // --- Difficulty level section (US-028) ---
+    const diffY = boostY + 44;
+    this.difficultyBg = scene.add.rectangle(0, diffY, 160, 36, 0x000000, 0.6);
+    this.difficultyBg.setOrigin(0);
+    this.add(this.difficultyBg);
+
+    const diffColor = difficultyLevel <= 2 ? '#44ff44' : difficultyLevel <= 4 ? '#ffff44' : '#ff4444';
+    this.difficultyLabel = scene.add.text(12, diffY + 8, `Difficulty: Lv.${difficultyLevel}`, {
+      fontSize: "14px",
+      color: diffColor,
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 2,
+    });
+    this.add(this.difficultyLabel);
 
     // --- Room name overlay (centered, shown briefly on room change) ---
     const gameWidth = (scene.game.config.width as number) || 800;

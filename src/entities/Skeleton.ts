@@ -19,6 +19,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
   private hpBar!: EnemyHpBar;
+  private speedMultiplier: number = 1.0;
 
   get hp(): number {
     return this._hp;
@@ -32,8 +33,9 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     return this._hp <= 0;
   }
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, speedMultiplier: number = 1.0) {
     super(scene, x, y, "skeleton");
+    this.speedMultiplier = speedMultiplier;
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
@@ -129,9 +131,10 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist <= TRACK_RANGE && dist > 0) {
-        // Chase player
-        vx = (dx / dist) * SKELETON_SPEED;
-        vy = (dy / dist) * SKELETON_SPEED;
+        // Chase player (speed scaled by difficulty multiplier)
+        const speed = SKELETON_SPEED * this.speedMultiplier;
+        vx = (dx / dist) * speed;
+        vy = (dy / dist) * speed;
         this.setVelocity(vx, vy);
         return;
       }
@@ -149,8 +152,8 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     }
 
     this.setVelocity(
-      this.wanderVx * SKELETON_SPEED,
-      this.wanderVy * SKELETON_SPEED
+      this.wanderVx * SKELETON_SPEED * this.speedMultiplier,
+      this.wanderVy * SKELETON_SPEED * this.speedMultiplier
     );
   }
 }

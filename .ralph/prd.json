@@ -475,7 +475,7 @@
           "description": "每次运行游戏（从 TitleScene 重新开始）时，基于运行次数逐步提升敌人数量和速度。首次 4 slime + 3 skeleton，之后每次 +1 slime（上限 8）和 +10% 速度（上限 200%），增加重玩价值。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "第 N 次游戏时敌人数量和速度按公式缩放",
