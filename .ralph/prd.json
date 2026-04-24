@@ -459,7 +459,7 @@
           "description": "敌人被攻击后玩家无法判断剩余血量。为 Slime 和 Skeleton 添加小型 HP 条（显示在精灵上方），仅在受伤后可见，满血时隐藏。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "敌人受击后头顶显示 HP 条",
