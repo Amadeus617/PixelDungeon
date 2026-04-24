@@ -113,6 +113,18 @@
       "author": "agent-review",
       "change": "第十轮设计审查新增5个改进US(US-086~US-090)：getRandomFloorInRoom fallback墙壁校验、走廊入口门框标记、Skeleton playerRef类型修正、走廊视觉氛围增强(暗地板+阴影)、ResultScene scene.start重启状态管理。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：(1)getRandomFloorInRoom的fallback路径返回room center可能是墙壁tile，导致道具/敌人生成在不可达位置;(2)走廊carve函数覆盖房间边界墙壁无门框标记，视觉不自然且无房间分隔感;(3)Skeleton.playerRef类型为Sprite而非Player，语义不精确限制未来扩展;(4)走廊与房间地板视觉无差异，缺少走廊特有氛围;(5)ResultScene scene.start重启可能残留旧scene状态，需系统化清理方案"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十一轮设计审查新增8个改进US(US-091~US-098)：overlap回调重复触发验证、ScoreSystem类属性初始化器残留、corridor元数据重复生成bug、entranceRoom DECOR_STONE标记与spawn不一致、KeyItem/Chest单实例架构限制、HUD硬编码布局不适配缩放、Skeleton跨房间追踪体验差、BootScene缺失TitleScene引导。更新improvements和balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)overlap回调collect()后destroy存在一帧延迟可能重复触发;(2)ScoreSystem类属性初始化器跨scene复用可能残留;(3)buildCorridor()生成未使用的corridor数据且与paintCorridors()逻辑重复;(4)DECOR_STONE入口标记未被spawn逻辑使用造成混淆;(5)单KeyItem/Chest架构限制未来扩展;(6)HUD硬编码坐标不适配窗口缩放;(7)Skeleton TRACK_RANGE导致跨房间追踪走廊卡住;(8)缺少标题画面是游戏体验基础缺失"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十二轮设计审查新增5个改进US(US-099~US-103)：Slime/Skeleton knockback碰墙覆盖击退速度bug、无敌帧期间hurt音效误播、Space JustDown时序导致宝箱交互失效(US-061根因)、BootScene资源加载失败处理。本轮发现3个runtime bug和2个代码质量问题。",
+      "reason": "深入审查敌人knockback+wallCollider交互发现击退效果被onHitWall覆盖；overlap回调音效逻辑与takeDamage返回值不一致；JustDown单次消费机制导致Player攻击和宝箱交互时序冲突；BootScene缺少健壮性处理"
     }
   ],
   "improvements": {
@@ -186,7 +198,20 @@
       "US-087: 走廊入口门框标记 -- carve交汇处使用T.DOOR替代pickFloor",
       "US-088: Skeleton playerRef类型修正 -- Sprite改为Player类型引用",
       "US-089: 走廊视觉氛围增强 -- 走廊地板用FLOOR_DARK+边缘阴影增强纵深",
-      "US-090: ResultScene scene.start重启状态管理 -- 确保旧scene完全销毁无泄漏"
+      "US-090: ResultScene scene.start重启状态管理 -- 确保旧scene完全销毁无泄漏",
+      "US-091: overlap回调重复触发验证 -- HealthPotion/Coin/AttackBoost的collect()后destroy时序确认",
+      "US-092: ScoreSystem移入create() -- 每次重启创建新实例而非依赖类属性初始化器",
+      "US-093: corridor元数据修复 -- buildCorridor()与paintCorridors()合并，生成精确两段corridor",
+      "US-094: entranceRoom DECOR_STONE标记 -- 与spawn逻辑对齐或移除无用标记",
+      "US-095: KeyItem/Chest多实例支持 -- 道具数量从配置读取，支持N keys + M chests",
+      "US-096: HUD响应式布局 -- 元素位置基于GAME_WIDTH/GAME_HEIGHT动态计算",
+      "US-097: Skeleton房间级追踪限制 -- 追踪前检测是否在同一房间/走廊，防止追进走廊卡住",
+      "US-098: TitleScene标题画面 -- 游戏启动引导，整合US-038/US-067/US-054",
+      "US-099: Slime knockback碰墙保护 — onHitWall()检查isKnockedBack跳过方向切换",
+      "US-100: Skeleton knockback碰墙保护 — 同US-099逻辑",
+      "US-101: hurt音效条件修复 — takeDamage返回boolean，只在实际受伤时播放",
+      "US-102: Space JustDown时序修复 — 宝箱检测移到player.update()之前(US-061根因)",
+      "US-103: BootScene loaderror处理 — 加载失败显示错误或生成fallback纹理"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -233,7 +258,19 @@
       "走廊 carve 函数（carveHorizontal/carveVertical）在覆盖 tile 时不区分走廊区域和房间边界。当走廊经过房间墙壁时，墙壁被替换为普通 floor tile，导致房间墙壁出现缺口。交汇处应使用 T.DOOR(35) 标记门框，既保持视觉连贯又可被 isWall() 识别为可碰撞（当前 T.DOOR 已在 isWall 中）。注意这与 US-081 不同：US-081 是走廊覆盖房间边界 tile 的位置修复，US-087 是走廊与房间交界处应有门框标记（US-087）",
       "Skeleton.setPlayerRef(player) 接收 Player 实例但存储为 Phaser.GameObjects.Sprite 类型。当前只访问 .x/.y/.active 属性所以功能无问题，但类型过宽会在 US-078（追踪穿墙修复需要检查 player 房间位置）和未来功能中需要类型断言。改为 Player 类型是零风险类型修正（US-088）",
       "走廊区域视觉上与房间地板无差异——都使用 FLOOR_1~FLOOR_4 随机 tile。走廊应有更暗的色调增加压抑感。可：(1)走廊 tile 使用 FLOOR_DARK(33) 或 FLOOR_MOSS(32)替代普通 floor;(2)走廊边缘(紧邻墙壁的 tile)使用 WALL_SHADOW(10)增强深度感。这些 tile 已存在于 tileset 中无需新增资源（US-089）",
-      "ResultScene 通过 this.scene.start(\"GameScene\") 重启。Phaser scene.start 的行为是 shutdown 当前 scene → 启动目标 scene。如果目标 scene 之前已在运行（首次游戏后），scene.start 会先 shutdown 它再重新 create。但 shutdown 是否完全清理 tweens/events/children 取决于 Phaser 版本和 scene 配置。建议：(1)添加 GameScene.shutdown() 显式清理;(2)或改用 this.scene.get(\"GameScene\").scene.restart()（US-090）"
+      "ResultScene 通过 this.scene.start(\"GameScene\") 重启。Phaser scene.start 的行为是 shutdown 当前 scene → 启动目标 scene。如果目标 scene 之前已在运行（首次游戏后），scene.start 会先 shutdown 它再重新 create。但 shutdown 是否完全清理 tweens/events/children 取决于 Phaser 版本和 scene 配置。建议：(1)添加 GameScene.shutdown() 显式清理;(2)或改用 this.scene.get(\"GameScene\").scene.restart()（US-090）",
+      "HealthPotion/Coin/AttackBoost的overlap回调中collect()返回true后调用destroy()。Phaser overlap在每帧检测，如果destroy()在同一帧生效则不会重复触发。但Phaser Arcade Physics的overlap检测基于active状态，destroy()后active=false应立即生效。需验证：如果destroy()是延迟执行的（如标记为待销毁），同一帧内可能重复触发（US-091）",
+      "GameScene类属性 private scoreSystem = new ScoreSystem() 在TypeScript编译后变成构造函数中的赋值。Phaser scene通过scene.start重启时，如果复用scene实例（取决于Phaser版本），构造函数不会重新调用。虽然create()中reset()重置了score，但如果ScoreSystem未来添加了更复杂的状态（如历史记录），reset可能不完整。应统一移入create()（US-092）",
+      "dungeonData.ts中buildCorridor()函数生成了corridor数组但从未被调用。实际走廊绘制由paintCorridors()处理，它内部调用carveHorizontal/carveVertical直接修改tiles数组，同时创建一条corridor记录（但L型走廊实际有两段）。小地图使用corridor元数据渲染连线，单条记录导致L型走廊只画一条直线。应paintCorridors()中为水平段和垂直段分别创建corridor记录（US-093）",
+      "entranceRoom中心被设置为T.DECOR_STONE(27)作为入口标记，但Player.getPlayerSpawnPos()调用getRandomFloorPosInRoom()返回随机位置而非DECOR_STONE位置。入口标记和spawn点脱节。DECOR_STONE在视觉上不同于普通floor，可能给玩家错误暗示。要么让spawn点对齐DECOR_STONE，要么用普通floor替代（US-094）",
+      "当前架构只支持1个KeyItem和1个Chest，数量硬编码在GameScene中。当房间数增加到6+（可从gdd.json配置），单钥匙宝箱的探索回路不够丰富。应改为数组配置：keys数量和chests数量从balance参数读取，每个宝箱需要1把钥匙开启，奖励从奖励表随机（US-095）",
+      "HUD元素位置全部硬编码像素值（如HP bar从(0,0)开始，key section从(0, keyY)开始）。虽然setScrollFactor(0)确保HUD不随相机移动，但如果GAME_WIDTH/GAME_HEIGHT改变（或未来支持resize），HUD不会自动调整。Minimap已使用game.config.width动态计算位置，HUD应统一（US-096）",
+      "Skeleton TRACK_RANGE=200px，一个tile=16*3=48px，200px≈4.2 tiles。这意味着Skeleton可以在约4个tile距离内感知并追踪玩家。如果Skeleton在房间边缘而玩家在走廊中（距Skeleton约3-4 tiles），Skeleton会直线追踪进入走廊。走廊3 tiles宽且有墙壁collider，Skeleton会被卡在走廊入口处反复撞墙。US-078处理了穿墙问题，但本US(US-097)关注的是追踪范围不应跨房间",
+      "当前游戏启动流程：BootScene加载资源→scene.start(GameScene)。没有标题画面、操作说明、难度选择。US-024和US-038提出标题画面但未实现。应在US-068(参数化)和US-054(种子)完成后，创建TitleScene作为游戏入口，整合：标题+开始按钮+操作提示+种子输入+难度选择（US-098）",
+      "Slime/Skeleton knockback + wall collider交互bug：被击退的敌人撞墙时触发physics collider回调→onHitWall()→随机新方向覆盖knockback速度。虽然update()中knockbackTimer继续倒计时，但速度已在onHitWall中被改变，击退视觉效果瞬间消失。修复简单：onHitWall()开头检查if(this.isKnockedBack) return;（US-099, US-100）",
+      "Space键JustDown消费时序问题：Phaser JustDown()在第一次调用后清除标记，同一帧内第二次调用返回false。Player.update()先调用JustDown触发攻击事件，GameScene.update()后调用JustDown检查宝箱——后者永远返回false。这是US-061(宝箱交互优先级)的真正根因。修复方案：(1)将宝箱检测移到player.update()之前；(2)或改用isDown+状态机替代JustDown（US-102）",
+      "hurt音效误播问题：overlap回调中takeDamage()后无条件调用playHurt()。takeDamage()在无敌帧期间return不扣血，但音效照播。方案：takeDamage()返回boolean表示是否实际受伤，overlap回调据此决定是否播放音效。同时也解决了不正确的hp<maxHp检查（US-101）",
+      "BootScene健壮性：当前preload加载3个外部资源文件无错误处理。缺失文件会导致游戏卡死。应添加loaderror事件监听，生成fallback纹理或显示错误信息后继续（US-103）"
     ]
   },
   "balanceAnalysis": {
@@ -468,6 +505,51 @@
         "area": "重启状态管理不系统",
         "detail": "ResultScene scene.start 重启依赖 Phaser 默认 shutdown 行为，缺少显式清理保证。与 US-075/US-083 部分重叠但关注不同层面",
         "recommendation": "添加 GameScene shutdown 方法 + 考虑 scene.restart（US-090）"
+      },
+      {
+        "area": "overlap回调时序安全",
+        "detail": "HealthPotion/Coin/AttackBoost/KeyItem的overlap回调调用collect()后无额外active检查。collect()设置collected=true+destroy()，但如果Phaser在一帧内多次触发overlap回调，可能在destroy生效前重复执行heal/addCoinPoints",
+        "recommendation": "overlap handler添加if(!potion.active) return;前置检查，或在collect()中同步设置active=false（US-091）"
+      },
+      {
+        "area": "ScoreSystem实例管理",
+        "detail": "new ScoreSystem()在类属性初始化器中，Phaser scene.start可能复用scene实例导致构造函数不重新执行。create()中reset()只重置_score，如果ScoreSystem未来扩展状态可能不完整",
+        "recommendation": "将new ScoreSystem()移入create()确保每次都是新实例（US-092）"
+      },
+      {
+        "area": "corridor数据不准确",
+        "detail": "paintCorridors()为每个L型走廊只创建一条corridor记录（fromRoom→toRoom的端点），但实际绘制了两段（水平+垂直）。小地图用corridor元数据画连线，单条记录导致L型走廊渲染为直线",
+        "recommendation": "水平段和垂直段分别创建corridor记录，小地图渲染更精确（US-093）"
+      },
+      {
+        "area": "道具架构单薄",
+        "detail": "硬编码1个KeyItem+1个Chest，数量不可配置。3-5房间勉强够用，扩展后探索回路太简单",
+        "recommendation": "改为数组+配置驱动，N keys M chests从balance读取（US-095）"
+      },
+      {
+        "area": "HUD布局硬编码",
+        "detail": "HUD元素位置使用固定像素值，依赖GAME_WIDTH=800。窗口缩放或分辨率改变后布局错位",
+        "recommendation": "基于game.config.width/height动态计算所有HUD元素位置（US-096）"
+      },
+      {
+        "area": "Skeleton跨房间追踪",
+        "detail": "TRACK_RANGE=200px(约4 tiles)允许Skeleton在房间边缘追踪走廊中的玩家。Skeleton直线追踪进入走廊后被墙壁collider卡住，反复撞墙不自然",
+        "recommendation": "追踪前检测是否在同一房间，跨房间时切换wander（US-097）"
+      },
+      {
+        "area": "knockback碰墙覆盖",
+        "detail": "Slime/Skeleton被击退撞墙时onHitWall()覆盖knockback速度，击退效果碰墙即消失。玩家体验：打墙边的敌人看不出击退效果",
+        "recommendation": "onHitWall()中检查isKnockedBack跳过方向切换（US-099, US-100）"
+      },
+      {
+        "area": "hurt音效逻辑与伤害逻辑脱耦",
+        "detail": "overlap回调无条件播放hurt音效，但takeDamage()内部有无敌帧保护。音效在未实际受伤时也播放",
+        "recommendation": "takeDamage()返回是否受伤，音效基于返回值播放（US-101）"
+      },
+      {
+        "area": "Space键交互优先级时序",
+        "detail": "JustDown单次消费机制导致Player攻击先消费按键，宝箱交互永远收不到Space事件。US-061描述了症状但未指出根因",
+        "recommendation": "宝箱检测移到player.update()之前（US-102，同时解决US-061）"
       }
     ]
   }

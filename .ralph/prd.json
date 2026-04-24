@@ -1482,6 +1482,204 @@
             "连续重启 5 次无异常",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-091",
+          "title": "HealthPotion overlap回调可重复触发 — collect保护需确认",
+          "description": "HealthPotion/Coin/AttackBoost的overlap回调中collect()返回true后destroy，但Phaser overlap可能在同一帧内多次触发回调。如果collect()内部collected标志设置和destroy之间存在一帧延迟，可能导致重复heal/score。应验证collect()的同步性，或在overlap handler中添加active检查。",
+          "type": "code",
+          "priority": 76,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "overlap回调在collect()返回true后不会再被触发",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-092",
+          "title": "ScoreSystem类属性初始化器跨scene重启残留",
+          "description": "ScoreSystem在GameScene类属性中以 new ScoreSystem() 初始化。当Phaser scene.start重启GameScene时，类属性初始化器可能不重新执行（取决于Phaser是否复用scene实例）。虽然create()中调用了scoreSystem.reset()，但ScoreSystem对象本身可能是旧实例。应将new ScoreSystem()移入create()中确保每次都是新实例。",
+          "type": "code",
+          "priority": 77,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem在create()中重新创建而非依赖类属性初始化器",
+            "多次重启后score从0开始",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-093",
+          "title": "走廊carveHorizontal/carveVertical生成重复corridor元数据",
+          "description": "buildCorridor()函数内部在循环中创建了corridor对象但没有使用（被push到数组后又在循环中创建新的），而实际只push了一个corridor。同时paintCorridors()中创建的corridor和buildCorridor()的是两套独立逻辑，buildCorridor()从未被调用。paintCorridors()创建的corridor元数据只有一条（代表L型走线的端点），但实际绘制了水平+垂直两段。corridor数据不精确影响小地图渲染。",
+          "type": "code",
+          "priority": 78,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "corridor元数据精确反映实际绘制的两段（水平+垂直）",
+            "小地图corridor渲染与实际地形一致",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-094",
+          "title": "entranceRoom放置DECOR_STONE覆盖floor tile可能影响spawn",
+          "description": "generateDungeon()中在entranceRoom中心放置T.DECOR_STONE(27)作为入口标记。DECOR_STONE不在isWall()列表中（碰撞安全），但getRandomFloorInRoom()选择随机位置时也会避开非wall tile，所以不影响spawn。但DECOR_STONE未被用做任何功能性标记（无spawn点指向它），纯粹是装饰。考虑：(1)如果只是装饰，应使用已存在的floor tile避免混淆;(2)如果要标记spawn点，Player.getPlayerSpawnPos()应指向DECOR_STONE位置而非随机位置。",
+          "type": "design",
+          "priority": 79,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "入口装饰tile用途明确",
+            "spawn位置与入口标记一致",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-095",
+          "title": "KeyItem/Chest单实例设计限制了多房间道具分布",
+          "description": "当前只有1个KeyItem和1个Chest，放在固定索引房间。3-5个房间的小地牢中这勉强够用，但扩展到更大地牢后单钥匙单宝箱的探索回路太单薄。Chest.open()只切换纹理无奖励，与US-057(宝箱奖励循环)部分重叠，但本US关注的是架构层面：应支持道具数组配置（N keys, M chests），从gdd.json或balance.ts读取数量。",
+          "type": "design",
+          "priority": 80,
+          "status": "pending",
+          "dependsOn": [
+            "US-057",
+            "US-068"
+          ],
+          "acceptanceCriteria": [
+            "KeyItem和Chest数量可配置",
+            "多个宝箱可独立开关",
+            "多钥匙多宝箱交互逻辑正确",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-096",
+          "title": "HUD __construct中创建大量固定位置元素 — 不适配窗口缩放",
+          "description": "HUD和Minimap使用硬编码的像素坐标（如gameWidth=800），在GAME_WIDTH/GAME_HEIGHT改变或未来支持窗口缩放时会错位。HUD元素应基于game.config.width动态计算位置，或使用相对布局。Minimap已做了部分（getOffset中使用game.config.width），但HUD尚未。",
+          "type": "code",
+          "priority": 81,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD元素位置基于GAME_WIDTH/GAME_HEIGHT动态计算",
+            "修改config尺寸后HUD不错位",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-097",
+          "title": "Skeleton追踪模式不考虑玩家房间位置 — 跨房间追踪体验差",
+          "description": "与US-078(穿墙修复)相关但不完全相同。当前Skeleton只要玩家在200px TRACK_RANGE内就开始追踪。TRACK_RANGE(200px)约等于4个tile(16*3*4=192px)，接近一个房间大小。但问题是：Skeleton在房间A，玩家进入走廊后刚离开房间A时，Skeleton可能仍能追踪（200px内），导致Skeleton跟着玩家进入走廊，然后在走廊中卡住（走廊墙壁collider）。应在追踪前检测Skeleton自身是否与玩家在同一房间或走廊中。",
+          "type": "design",
+          "priority": 82,
+          "status": "pending",
+          "dependsOn": [
+            "US-078"
+          ],
+          "acceptanceCriteria": [
+            "Skeleton只在同一房间或走廊中追踪玩家",
+            "不会追进另一个房间后卡住",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-098",
+          "title": "BootScene缺失 — 无TitleScene引导直接进入GameScene",
+          "description": "US-024和US-038都提到了标题画面但未实现。当前场景启动链是BootScene→GameScene（BootScene在create末尾直接scene.start GameScene）。没有标题画面意味着玩家无法选择难度、查看操作说明、或选择种子(US-054)。这是游戏体验的基础缺失，应在完成US-068(参数化)和US-054(种子)后作为整合US实现。",
+          "type": "design",
+          "priority": 83,
+          "status": "pending",
+          "dependsOn": [
+            "US-038",
+            "US-067",
+            "US-054"
+          ],
+          "acceptanceCriteria": [
+            "游戏启动显示标题画面",
+            "标题画面有开始游戏按钮/按键",
+            "可选种子和难度",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-099",
+          "title": "Slime onHitWall在knockback期间覆盖击退速度",
+          "description": "Slime被击退(knockback)撞墙时，wallCollider回调触发onHitWall()→pickDirection()，立即覆盖了knockback速度。虽然knockbackTimer仍在计时，但速度已被随机方向替代，击退效果在碰墙时瞬间消失，体验不自然。",
+          "type": "bug",
+          "priority": 84,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "onHitWall()中检查isKnockedBack，是则跳过pickDirection()",
+            "击退碰墙后速度保持knockback方向直到计时结束",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-100",
+          "title": "Skeleton onHitWall在knockback期间覆盖击退速度",
+          "description": "与Slime完全相同的bug。Skeleton被击退撞墙时onHitWall()→pickWanderDirection()覆盖knockback速度，击退效果提前终止。",
+          "type": "bug",
+          "priority": 85,
+          "status": "pending",
+          "dependsOn": [
+            "US-099"
+          ],
+          "acceptanceCriteria": [
+            "onHitWall()中检查isKnockedBack，是则跳过pickWanderDirection()",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-101",
+          "title": "玩家无敌帧期间仍播放受伤音效",
+          "description": "GameScene中Slime和Skeleton的overlap回调调用player.takeDamage()后无条件调用soundManager.playHurt()。但takeDamage()在无敌帧(isInvincible=true)期间直接return不扣血，音效却照常播放。同理，hp检查条件(player.hp < player.maxHp)不正确——受伤时HP本来就小于maxHp，但无敌帧期间HP并未变化，音效不该播放。",
+          "type": "bug",
+          "priority": 86,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "只有实际受到伤害时才播放hurt音效",
+            "无敌帧期间不播放hurt音效",
+            "方案：takeDamage()返回boolean表示是否受伤",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-102",
+          "title": "Space键JustDown被攻击消费导致宝箱交互永远无法触发",
+          "description": "Player.update()中spaceKey.JustDown()先触发攻击，消耗了JustDown标记。随后GameScene.update()中同一spaceKey的JustDown()返回false（JustDown只能返回一次true），导致nearChest分支永远不走。这是US-061(宝箱交互优先级)的真正根因。当前GameScene.update()中宝箱检测在player.update()之后，时序决定了攻击永远优先。注意：US-061描述的是\"优先级\"问题但未指出JustDown时序根因，本US修复底层bug后US-061自然解决。",
+          "type": "bug",
+          "priority": 87,
+          "status": "pending",
+          "dependsOn": [
+            "US-061"
+          ],
+          "acceptanceCriteria": [
+            "靠近宝箱按Space能正确触发开箱而非攻击",
+            "不在宝箱旁按Space正常攻击",
+            "方案：宝箱检测移到player.update()之前，或用isDown替代JustDown",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-103",
+          "title": "BootScene缺少资源加载失败处理",
+          "description": "BootScene.preload()加载knight.png、slime.png、dungeon_tiles.png三个外部资源，但无加载错误处理。如果文件缺失或路径错误，游戏卡在加载界面无任何提示，用户无法知道发生了什么。",
+          "type": "code",
+          "priority": 88,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "添加this.load.on(\"loaderror\")回调",
+            "加载失败时显示错误信息或生成fallback纹理",
+            "不阻塞游戏启动",
+            "tsc + build通过"
+          ]
         }
       ]
     }
