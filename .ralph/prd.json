@@ -446,7 +446,7 @@
           "description": "胜利条件为到达楼梯（stairs），但 ResultScene 胜利文案写的是 \"You defeated all enemies and claimed the treasure!\"。修改为与实际胜利条件匹配的文案，如 \"You found the exit and escaped the dungeon!\"",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "胜利文案描述到达出口/楼梯而非消灭所有敌人",

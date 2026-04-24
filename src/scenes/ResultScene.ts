@@ -39,7 +39,7 @@ export class ResultScene extends Phaser.Scene {
 
     // Subtitle
     const subtitleText = isWin
-      ? "You defeated all enemies and claimed the treasure!"
+      ? "You found the exit and escaped the dungeon!"
       : "You have fallen in the dungeon...";
     const subtitle = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 25, subtitleText, {
       fontSize: "16px",
