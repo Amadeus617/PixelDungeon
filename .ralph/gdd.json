@@ -101,6 +101,12 @@
       "author": "agent-review",
       "change": "第八轮设计审查新增8个改进US(US-070~US-077)：AttackBoost重复拾取buff计时重置、玩家idle朝向保留、Slime斜向移动走廊优化、Skeleton纹理spritesheet注册确认、overlap回调重复伤害防护、ResultScene重启状态清理、攻击冷却视觉指示、enemy数组inactive清理时序。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：(1)AttackBoost拾取后buffed=true，二次拾取浪费道具无反馈；(2)Player停止移动始终idle-down丢失朝向信息影响攻击方向判断；(3)Slime 8方向含斜向在3tile走廊中频繁撞墙抖动；(4)Skeleton程序化纹理可能未正确注册为spritesheet导致动画帧异常；(5)敌人overlap回调需确认invincible在overlap路径生效；(6)ResultScene重启后scene lifecycle需验证无残留状态；(7)攻击冷却无视觉反馈玩家无操作确认感；(8)enemy die后数组清理时序可能造成遍历已销毁对象"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第九轮设计审查新增8个改进US(US-078~US-085)：Skeleton追踪穿墙修复(line-of-sight)、楼梯出口视觉引导、钥匙可及性保证、走廊绘制覆盖墙壁修复、die()延迟销毁时序、ScoreSystem/可变状态移入create()重置、游戏结束后输入禁用、跨局难度递增meta progression。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)Skeleton直线追踪不考虑墙壁遮挡导致穿墙追踪；(2)stairs tile无任何视觉提示，玩家找不到出口；(3)钥匙可能在非必经路径房间生成，导致可及性不保证；(4)走廊绘制pickFloor覆盖房间边界墙壁导致结构缺口；(5)die()在takeDamage调用栈中立即destroy导致数组并发修改风险；(6)类属性初始化器在scene复用时可能不重新执行；(7)endGame后Player输入未显式禁用；(8)缺少跨局meta progression，每次重启难度完全相同"
     }
   ],
   "improvements": {
@@ -161,7 +167,15 @@
       "US-074: overlap重复伤害防护 -- 确认invincible检查在overlap路径生效",
       "US-075: ResultScene重启状态清理 -- 验证scene.start正确重置physics/world/HUD",
       "US-076: 攻击冷却视觉指示 -- 攻击时角色短暂放大回弹，冷却期HUD图标灰化",
-      "US-077: enemy数组inactive清理时序 -- die后及时移除避免遍历已销毁对象"
+      "US-077: enemy数组inactive清理时序 -- die后及时移除避免遍历已销毁对象",
+      "US-078: Skeleton 追踪穿墙修复 -- 添加墙壁遮挡 raycast 检测，被遮挡时切换 wander",
+      "US-079: 楼梯出口接近提示 -- 金色脉冲光晕 + Exit 文字引导",
+      "US-080: 钥匙可及性保证 -- 钥匙生成在最短路径房间中，确保必可达",
+      "US-081: 走廊绘制覆盖墙壁修复 -- 不覆盖房间边界，交汇处使用T.DOOR",
+      "US-082: die()延迟销毁时序 -- 改为标记删除+统一destroy，防止数组并发修改",
+      "US-083: 可变状态移入create() -- scoreSystem/attackBoosted等在create中重置，不依赖类属性初始化器",
+      "US-084: 游戏结束后输入禁用 -- endGame显式禁用player keyboard输入",
+      "US-085: 跨局难度递增 -- localStorage记录通关次数，逐步增加敌人数量/HP"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -207,7 +221,7 @@
     ]
   },
   "balanceAnalysis": {
-    "date": "2026-04-23",
+    "date": "2026-04-24",
     "issues": [
       {
         "area": "敌人强度倒挂",
@@ -383,6 +397,46 @@
         "area": "攻击反馈不足",
         "detail": "400ms 攻击冷却期间无视觉反馈，玩家无法判断攻击是否就绪。加上攻击无挥剑动画(US-042)，攻击操作整体缺乏确认感",
         "recommendation": "攻击时角色短暂放大回弹 + 冷却期 HUD 刀图标灰化（US-076）"
+      },
+      {
+        "area": "Skeleton穿墙追踪",
+        "detail": "Skeleton.update()追踪模式直接计算到玩家的直线向量setVelocity，不检查路径上是否有墙壁。当玩家在另一个房间时Skeleton可能\"穿过\"墙壁追踪，看起来不自然且削弱了房间分隔的意义",
+        "recommendation": "添加简单射线检测：沿追踪方向每隔16像素采样一次tile，如果遇到墙壁则切换wander(US-078)"
+      },
+      {
+        "area": "出口无视觉引导",
+        "detail": "胜利条件是到达stairs tile(距离<40px)，但stairs tile是静态的，在暗色地牢中不显眼。玩家可能反复在出口房间搜索找不到出口",
+        "recommendation": "stairs tile上添加金色脉冲光晕tween + 接近时显示Exit文字(US-079)"
+      },
+      {
+        "area": "钥匙可及性不保证",
+        "detail": "KeyItem只在中位数索引房间生成，Chest只在倒数第二房间。3-5房间地牢中，最短路径可能跳过钥匙所在房间。随机位置fallback可能落在墙壁tile上",
+        "recommendation": "钥匙生成在最短路径上的房间中，getRandomFloorPosInRoom的fallback检查是否为墙壁(US-080)"
+      },
+      {
+        "area": "走廊挖穿房间边界",
+        "detail": "paintCorridors中carveHorizontal/carveVertical用pickFloor()覆盖所有经过的tile，不区分走廊区域和房间边界。走廊经过房间角/墙壁时会形成缺口，视觉和碰撞都不正确",
+        "recommendation": "走廊绘制时保留房间边界tile，交汇处用T.DOOR标记(US-081)"
+      },
+      {
+        "area": "die()立即销毁时序风险",
+        "detail": "Slime/Skeleton.takeDamage→die()→destroy()在同一调用栈中。handlePlayerAttack遍历slime数组时，如果takeDamage导致die+destroy，后续代码和filter在同一帧操作已修改的数组",
+        "recommendation": "die()只标记isDead+setVisible(false)，在update末尾统一destroy已标记的敌人(US-082)"
+      },
+      {
+        "area": "类属性初始化器不可靠",
+        "detail": "attackBoosted=false和coinCount=0在类属性初始化器中。Phaser scene.start()可能复用scene实例，此时类属性初始化器不重新执行。虽然当前create()中手动reset了部分状态，但不够系统化",
+        "recommendation": "所有可变状态移入create()中重置，类属性只声明类型(US-083)"
+      },
+      {
+        "area": "游戏结束输入未禁用",
+        "detail": "endGame()只做physics.pause+setVelocity(0,0)，Player的keyboard监听仍活跃。如果endGame和player.update在同一帧执行，可能出现最后一帧的攻击事件泄漏",
+        "recommendation": "endGame中显式this.input.keyboard.enabled=false或移除player的key listeners(US-084)"
+      },
+      {
+        "area": "缺少跨局难度递增",
+        "detail": "US-028和US-044处理单局内难度，但每次restart游戏完全一样。Roguelike需要meta progression让重复游玩有意义",
+        "recommendation": "localStorage记录通关次数，每次+1敌人或+1HP，配合US-025最高分形成循环(US-085)"
       }
     ]
   }

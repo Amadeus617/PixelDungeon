@@ -1274,6 +1274,138 @@
             "无 TypeError 调用已销毁对象",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-078",
+          "title": "Skeleton 追踪穿墙修复 — 添加墙壁遮挡检测",
+          "description": "Skeleton.update() 直接计算到玩家的直线距离追踪，不考虑中间是否有墙壁。当玩家在另一个房间或走廊拐角处时，Skeleton 仍能\"穿墙\"追踪，导致不自然的追踪行为。应添加简单的射线检测(raycasting)：沿追踪路径每隔若干像素采样一次，如果采样点所在的 tile 是墙壁，则取消追踪切换为 wander 模式。",
+          "type": "code",
+          "priority": 63,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪前检查到玩家路径上是否有墙壁 tile",
+            "路径被墙壁遮挡时切换为 wander 模式",
+            "玩家在同一房间且无遮挡时正常追踪",
+            "tsc + build 通过",
+            "现有 Skeleton 相关测试通过"
+          ]
+        },
+        {
+          "id": "US-079",
+          "title": "楼梯出口接近提示 — 接近出口时显示视觉引导",
+          "description": "stairs tile(T.STAIRS=34)是胜利条件触发点，但没有任何接近提示。玩家可能在地牢中反复搜索找不到出口。应在楼梯 tile 上添加周期性光晕动画(金色脉冲)，以及在接近时显示 \"Exit\" 浮动文字提示，引导玩家到达出口。",
+          "type": "code",
+          "priority": 64,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "楼梯 tile 上显示金色脉冲光晕动画(周期1-2秒)",
+            "玩家进入出口房间时显示 \"Exit\" 文字提示",
+            "视觉反馈不遮挡游戏玩法",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-080",
+          "title": "钥匙-宝箱可及性保证 — 确保钥匙和宝箱在必经路径上",
+          "description": "当前 KeyItem 只在中位数房间生成一个，Chest 只在倒数第二个房间生成一个。在 3-5 房间的随机地牢中，如果玩家走最短路径到出口，可能完全跳过钥匙所在的房间。宝箱作为可选奖励没问题，但钥匙应在玩家通往出口的必经走廊上或必经房间中生成，而不是随机房间内的随机位置。应改为在入口房间和出口房间之间的最短路径上的房间中生成钥匙。",
+          "type": "code",
+          "priority": 65,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "钥匙生成在入口→出口最短路径上的某个房间中",
+            "每次生成的地牢中钥匙一定可被玩家获取",
+            "宝箱位置仍然在非入口房间中(可保持当前逻辑)",
+            "getRandomFloorPosInRoom 的 fallback 不是墙壁 tile",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-081",
+          "title": "走廊绘制覆盖房间边界修复 — 走廊挖穿墙壁问题",
+          "description": "dungeonData.ts 中 paintCorridors 使用 pickFloor() 直接覆盖所有经过的 tile，包括房间边界墙壁。这可能在走廊与房间交汇处形成\"缺口\"——房间的角落或墙壁 tile 被替换为地板，导致房间结构不完整。应在走廊绘制时跳过已经是房间边界(tile index 属于墙/角类别)的位置，或者在交汇处额外绘制门框 tile(T.DOOR=35)。",
+          "type": "code",
+          "priority": 66,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊绘制不覆盖房间内部边界墙壁 tile",
+            "走廊与房间交汇处正确连接(无缺口或悬空墙)",
+            "使用 T.DOOR tile 标记走廊入口",
+            "所有房间边界结构保持完整",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-082",
+          "title": "handlePlayerAttack 中 dead filter 时序 — filter在遍历中执行但数组在变化",
+          "description": "handlePlayerAttack 开头 filter(this.slimes.filter(s => s.active)) 清理 dead slime，但如果上一帧有 slime 刚 die() 并 destroy()，此时 s.active 为 false 已被移除。问题是 takeDamage 中调用 die() → destroy() 后 slime.active 变为 false，但 slime 的 physics body 可能已被销毁，后续代码访问 slime.x/slime.y 虽然 active check 会跳过，但 filter 遍历本身可能在并发修改中出问题。应将 die() 改为延迟销毁(下一帧 destroy)或使用标记删除模式。",
+          "type": "code",
+          "priority": 67,
+          "status": "pending",
+          "dependsOn": [
+            "US-077"
+          ],
+          "acceptanceCriteria": [
+            "Slime/Skeleton die() 不在 takeDamage 调用栈中立即 destroy()",
+            "改为标记 isDead + 延迟到 update 循环末尾统一 destroy",
+            "handlePlayerAttack 遍历过程中数组不被并发修改",
+            "tsc + build 通过",
+            "现有战斗测试通过"
+          ]
+        },
+        {
+          "id": "US-083",
+          "title": "ResultScene 重启后 ScoreSystem 状态残留 — new ScoreSystem() 在类属性初始化而非 create()",
+          "description": "GameScene 中 scoreSystem = new ScoreSystem() 在类属性初始化器中，而非 create() 中。虽然 GameScene.create() 调用了 scoreSystem.reset()，但如果 ScoreSystem 未来添加了需要重新初始化的状态(如统计数组、回调)，reset() 可能不够。更关键的是，Inventory 也是在 create() 中 new 的，但 attackBoosted 字段在类属性初始化器中默认为 false。当 scene.start(\"GameScene\") 重启时，Phaser 会创建新 scene 实例还是复用？如果复用，类属性初始化器不会重新执行。应将所有可变状态移入 create() 中重置。",
+          "type": "code",
+          "priority": 68,
+          "status": "pending",
+          "dependsOn": [
+            "US-075"
+          ],
+          "acceptanceCriteria": [
+            "所有可变实例状态(scoreSystem, attackBoosted, coinCount, gameOver 等)在 create() 中重置",
+            "scene.restart() 或 scene.start() 后状态完全干净",
+            "不依赖类属性初始化器作为重置机制",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-084",
+          "title": "游戏结束后玩家输入未禁用 — player.update 仍在执行",
+          "description": "endGame() 调用 physics.pause() 和 player.setVelocity(0,0)，但 Player.update() 在 gameOver check 之前仍然执行移动和攻击逻辑。因为 Player.update 不检查 gameOver 状态(GameScene.update 的 gameOver check 在调用 player.update 之后才判断)。实际上 GameScene.update 开头 if(this.gameOver) return，所以 player.update 不会被调用。但 Player 自身的 spaceKey JustDown 检测在 player.update 中，如果 physics.pause 后仍有最后一帧 update 调用，攻击事件可能触发。建议在 endGame 中显式禁用 player 的键盘输入。",
+          "type": "code",
+          "priority": 69,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame() 中显式禁用玩家输入(keyboard.enabled = false 或类似)",
+            "物理暂停后不再触发攻击事件",
+            "重启游戏时重新启用输入",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-085",
+          "title": "跨局难度递增 — 多次通关后地牢难度逐步提升",
+          "description": "US-028(随机难度缩放)和 US-044(房间深度难度递增)处理的是单局内难度。但游戏没有跨局(cross-run)难度递增机制——每次重新开始都完全一样。Roguelike 的核心驱动力之一是 \"runs get harder as you get better\"。可在 localStorage 中记录通关次数，每次新游戏增加敌人数量/HP/speed，或减少道具数量。配合 US-025(最高分持久化)形成 meta progression 循环。",
+          "type": "code",
+          "priority": 70,
+          "status": "pending",
+          "dependsOn": [
+            "US-025",
+            "US-028"
+          ],
+          "acceptanceCriteria": [
+            "localStorage 记录通关次数",
+            "每次通关后下次游戏敌人数量+1或HP+1",
+            "难度递增有上限(防止不可通关)",
+            "HUD 显示当前难度等级(可选)",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
