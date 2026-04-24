@@ -95,6 +95,12 @@
       "author": "agent-review",
       "change": "第七轮设计审查新增4个改进US(US-066~US-069)：敌人间碰撞检测防止堆叠、游戏开始操作提示覆盖层、GameScene硬编码常量参数化(balance.ts)、攻击锥形角度从165°收窄至120°。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：(1)多个敌人可重叠在同一位置，视觉混乱且削弱策略性；(2)无按键操作提示，新手引导缺失；(3)GameScene硬编码常量与gdd.json脱节，改平衡需手动同步多处；(4)攻击锥形165°过宽，几乎背后都能打到，削弱攻击方向选择的意义"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第八轮设计审查新增8个改进US(US-070~US-077)：AttackBoost重复拾取buff计时重置、玩家idle朝向保留、Slime斜向移动走廊优化、Skeleton纹理spritesheet注册确认、overlap回调重复伤害防护、ResultScene重启状态清理、攻击冷却视觉指示、enemy数组inactive清理时序。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)AttackBoost拾取后buffed=true，二次拾取浪费道具无反馈；(2)Player停止移动始终idle-down丢失朝向信息影响攻击方向判断；(3)Slime 8方向含斜向在3tile走廊中频繁撞墙抖动；(4)Skeleton程序化纹理可能未正确注册为spritesheet导致动画帧异常；(5)敌人overlap回调需确认invincible在overlap路径生效；(6)ResultScene重启后scene lifecycle需验证无残留状态；(7)攻击冷却无视觉反馈玩家无操作确认感；(8)enemy die后数组清理时序可能造成遍历已销毁对象"
     }
   ],
   "improvements": {
@@ -147,7 +153,15 @@
       "US-066: 敌人碰撞检测 -- slimeGroup/skeletonGroup内部+之间collider，防止堆叠",
       "US-067: 操作提示覆盖层 -- GameScene开始时显示WASD/Space/ESC键位说明，3秒或按键后消失",
       "US-068: 平衡参数集中管理 -- 创建balance.ts导出所有数值常量，消除GameScene/Player/Enemy硬编码",
-      "US-069: 攻击锥形收窄 -- dot阈值从0.25调至0.5，120°锥形让方向选择有意义"
+      "US-069: 攻击锥形收窄 -- dot阈值从0.25调至0.5，120°锥形让方向选择有意义",
+      "US-070: AttackBoost重复拾取buff计时重置 -- 已buffed时刷新计时而非浪费道具",
+      "US-071: 玩家idle朝向保留 -- 停止移动后保持最后方向，play(idle-{direction})",
+      "US-072: Slime走廊斜向优化 -- 80%概率4方向+20%斜向，减少走廊撞墙抖动",
+      "US-073: Skeleton spritesheet纹理注册 -- 确认程序化纹理与generateFrameNumbers兼容",
+      "US-074: overlap重复伤害防护 -- 确认invincible检查在overlap路径生效",
+      "US-075: ResultScene重启状态清理 -- 验证scene.start正确重置physics/world/HUD",
+      "US-076: 攻击冷却视觉指示 -- 攻击时角色短暂放大回弹，冷却期HUD图标灰化",
+      "US-077: enemy数组inactive清理时序 -- die后及时移除避免遍历已销毁对象"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -181,7 +195,15 @@
       "敌人之间无碰撞检测：slimeGroup 和 skeletonGroup 内部没有 collider，导致多个敌人可以完美重叠在同一像素位置。视觉上看起来只有1个敌人，实际有3个，玩家走近突然被打3下。这不公平且不直观。添加组内+组间 collider 是低成本高收益的改进(US-066)",
       "缺少基础操作引导：虽然 US-051 覆盖了宝箱交互引导，但没有覆盖最基础的按键说明。WASD移动+空格攻击+ESC暂停是核心操作，应在新游戏开始时短暂显示(US-067)",
       "GameScene 硬编码常量是维护隐患：SLIME_COUNT=4、SKELETON_COUNT=3、HEALTH_POTION_HEAL=1 等全部硬编码在文件顶部。gdd.json 有 balance 参数但代码不从配置读取，导致每次平衡调整需手动同步 3-4 个文件。应创建 balance.ts 集中管理(US-068)",
-      "攻击锥形过宽：Player.isEnemyInAttackRange() 的 dot < 0.25 阈值对应 arccos(0.25) ≈ 75.5°，即锥形半角，总锥形约 151°。这意味着玩家背后约 30° 范围外就能打到敌人，接近全方向攻击。收窄至 dot < 0.5（120° 锥形）让战斗需要面朝敌人方向(US-069)"
+      "攻击锥形过宽：Player.isEnemyInAttackRange() 的 dot < 0.25 阈值对应 arccos(0.25) ≈ 75.5°，即锥形半角，总锥形约 151°。这意味着玩家背后约 30° 范围外就能打到敌人，接近全方向攻击。收窄至 dot < 0.5（120° 锥形）让战斗需要面朝敌人方向(US-069)",
+      "AttackBoost 拾取后 attackBoosted=true，再拾取第二个时 collect() 返回 true 销毁道具，但 attackBoosted 已经是 true 没有变化。道具被消耗但无额外效果。待 US-030 限时 buff 实现后，二次拾取应重置 10s 计时器（US-070）",
+      "Player.update() 停止移动时硬编码 play(\"idle-down\")，丢失最后朝向。这直接影响攻击方向判定——玩家向右移动后停止，角色却面朝下，攻击锥形方向错误。改为 play(f\"idle-{this._direction}\") 是一行 fix（US-071）",
+      "Slime DIRECTIONS 8 个方向含 4 个斜向 (±1, ±1)。3 tiles 宽走廊中斜向移动几乎立刻撞墙触发 onHitWall→pickDirection→可能又斜向→再撞墙。表现为走廊中 Slime 抖动不走。改为 4 方向为主可显著改善（US-072）",
+      "Skeleton 纹理在 BootScene.create() 中通过 generateTexture(\"skeleton\", 64, 16) 生成。但 skeleton-move 动画用 generateFrameNumbers(\"skeleton\", {start: 2, end: 3}) 需要纹理注册为 spritesheet。generateTexture 生成的是普通纹理，generateFrameNumbers 可能无法正确切帧。需验证运行时行为或改用 this.textures.addSpriteSheet（US-073）",
+      "GameScene 中 slime/skeleton overlap 回调直接调用 player.takeDamage()。Player.takeDamage() 内部检查 isInvincible 并在受伤后设置 1000ms 无敌。这意味着 overlap 多次触发时，后续触发会被 invincible 保护拦截。逻辑正确但应添加测试验证（US-074）",
+      "ResultScene 通过 this.scene.start(\"GameScene\") 重启。Phaser scene.start 会 shutdown 当前 scene 并启动目标 scene。GameScene.create() 中所有对象重新创建（new ScoreSystem, new Inventory, new DungeonMap 等）。但需确认：(1) physics.world 正确重置，(2) 旧 scene 的 tweens/time events 清理，(3) 事件监听器解绑（US-075）",
+      "攻击冷却 400ms 期间按空格静默忽略，无任何视觉/听觉反馈。在动作游戏中，操作无反馈=操作无确认=操控感差。低成本方案：攻击时 setScale(3.2) → 100ms → setScale(3)（US-076）",
+      "Slime/Skeleton die() 后调用 destroy()，但 handlePlayerAttack() 先遍历所有 slime 执行攻击逻辑，末尾才 filter + remove dead。如果 slime 在 die() 中 destroy 了但还没 filter，后续代码访问 slime.x/slime.y 可能报错。实际运行中因为有 active 检查和 isDead 检查，暂不出错，但时序不够健壮（US-077）"
     ]
   },
   "balanceAnalysis": {
@@ -341,6 +363,26 @@
         "area": "平衡参数硬编码分散",
         "detail": "SLIME_COUNT/SKELETON_COUNT/HEALTH_POTION_HEAL 等硬编码在 GameScene 顶部，Player HP/Skeleton HP/Slime HP 分散在各实体类中。修改平衡参数需手动同步 4+ 文件",
         "recommendation": "创建 balance.ts 集中管理所有数值常量，所有模块从中导入（US-068）"
+      },
+      {
+        "area": "玩家朝向丢失",
+        "detail": "Player 停止移动时硬编码 play(\"idle-down\")，导致角色始终面朝下而非保持最后移动方向。这直接影响攻击锥形方向判定",
+        "recommendation": "改为 play(f\"idle-{this._direction}\")，一行 fix（US-071）"
+      },
+      {
+        "area": "Slime 走廊行为",
+        "detail": "Slime 8 方向移动中斜向占比 50%，在 3 tiles 宽走廊中斜向几乎立刻撞墙导致抖动",
+        "recommendation": "改为 4 方向 80% + 斜向 20%，或走廊中限制为走廊方向（US-072）"
+      },
+      {
+        "area": "AttackBoost 资源浪费",
+        "detail": "已有 buff 时拾取第二个 AttackBoost 消耗道具但无效果，roguelike 中资源浪费应有策略意义",
+        "recommendation": "待 US-030 实现后改为重置 buff 计时器（US-070）"
+      },
+      {
+        "area": "攻击反馈不足",
+        "detail": "400ms 攻击冷却期间无视觉反馈，玩家无法判断攻击是否就绪。加上攻击无挥剑动画(US-042)，攻击操作整体缺乏确认感",
+        "recommendation": "攻击时角色短暂放大回弹 + 冷却期 HUD 刀图标灰化（US-076）"
       }
     ]
   }

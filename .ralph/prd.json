@@ -1154,6 +1154,126 @@
             "更新 gdd.json balance 添加 attackConeAngle 参数",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-070",
+          "title": "重复拾取 AttackBoost 不叠加 — 二次拾取应重置 buff 计时而非无效果",
+          "description": "当前 attackBoosted=true 后再拾取 AttackBoost 无效果（collect 销毁道具但 attackBoosted 已为 true）。应改为：如果已有 buff，刷新 buff 持续时间（待 US-030 限时 buff 实现后重置 10s 计时器）。即使 US-030 未完成，当前也应给反馈（如粒子效果）表示重复拾取。",
+          "type": "code",
+          "priority": 55,
+          "status": "pending",
+          "dependsOn": [
+            "US-059"
+          ],
+          "acceptanceCriteria": [
+            "拾取第二个 AttackBoost 时 buff 计时重置为满",
+            "无 buff 时正常激活 buff",
+            "HUD 正确反映刷新后的倒计时"
+          ]
+        },
+        {
+          "id": "US-071",
+          "title": "玩家朝向缺失 idle 动画 — 站立时始终显示向下朝向",
+          "description": "Player.update() 根据移动方向设置 _direction 并播放对应 walk 动画，但停止移动后直接 play(\"idle-down\")，丢失了最后朝向。应改为 play(f\"idle-{this._direction}\")，确保玩家停止后面朝最后移动的方向。这影响攻击方向的判定准确性。",
+          "type": "code",
+          "priority": 56,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "向上移动后停止，角色面朝上",
+            "向左移动后停止，角色面朝左",
+            "攻击方向与面朝方向一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-072",
+          "title": "Slime 随机 8 方向移动包含斜向 — 走廊中斜向卡墙",
+          "description": "Slime 的 DIRECTIONS 包含 4 个斜向 (vx/vy 各 ±1)。在 3 tiles 宽走廊中斜向移动会立刻撞墙触发 onHitWall，导致频繁变向抖动。应改为 4 方向为主（80% 概率）+ 斜向（20% 概率），或在走廊中检测并限制为走廊方向。",
+          "type": "code",
+          "priority": 57,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 在走廊中不频繁撞墙抖动",
+            "房间中仍可斜向移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-073",
+          "title": "BootScene 缺少 skeleton spritesheet 加载 — 纹理由程序生成但缺少 spritesheet 注册",
+          "description": "BootScene.create() 程序化生成了 skeleton 纹理(64x16, 4帧)，但没有调用 this.load.spritesheet(\"skeleton\", ...) — 这是因为纹理是在 create 中生成的而非 preload 加载。但 BootScene.preload() 也缺少 skeleton 的加载。需确认：程序化纹理是否与 skeleton-move 动画的 generateFrameNumbers 兼容。如果 generateFrameNumbers 需要纹理注册为 spritesheet，则需要用 this.textures.addSpriteSheet() 而非 generateTexture。",
+          "type": "code",
+          "priority": 58,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "skeleton 动画帧正确播放",
+            "无控制台纹理相关警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-074",
+          "title": "overlap 回调未做单次收集保护 — 可能重复触发治疗/得分",
+          "description": "HealthPotion/Coin 的 overlap 回调中调用 collect() 做了保护，但 player.heal() 和 scoreSystem.addCoinPoints() 在 collect() 返回 true 时才执行，这个逻辑目前是正确的。但 slime/skeleton 的 overlap 回调直接调用 player.takeDamage()，没有任何冷却保护。如果物理引擎在多帧中触发 overlap，玩家可能在一帧内被同一敌人打多次。应添加 takeDamage 内部冷却（已有 isInvincible 保护，需确认 invincible 检查在 overlap 路径生效）。",
+          "type": "code",
+          "priority": 59,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "确认 isInvincible 在 overlap 回调路径生效",
+            "单次接触不会造成多次伤害",
+            "添加测试验证"
+          ]
+        },
+        {
+          "id": "US-075",
+          "title": "ResultScene 重启不清理全局状态 — 残留 Inventory/ScoreSystem",
+          "description": "ResultScene 输入 SPACE/ENTER 后直接 this.scene.start(\"GameScene\")，但没有 stop 当前 GameScene。Phaser scene.start 会 shutdown 当前 active scene 并启动目标 scene。GameScene.create() 中 new ScoreSystem() 和 new Inventory() 重新创建了实例，但如果 GameScene 未正确 shutdown，旧 scene 的 update 和 physics 可能继续运行。需确认 scene lifecycle：scene.start 会 stop 旧 scene 吗？答案：是的，scene.start 会自动 shutdown 当前 running scene。但需验证 physics world 是否正确重置。",
+          "type": "code",
+          "priority": 60,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "重启后无残留物理碰撞体",
+            "分数重置为 0",
+            "HP 恢复满",
+            "无敌状态重置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-076",
+          "title": "玩家攻击无冷却视觉指示 — 连续按键无法区分攻击是否就绪",
+          "description": "攻击冷却 400ms 期间按空格不会有任何反馈（静默忽略）。应添加简单的视觉提示：(1) 攻击时角色短暂放大 1.1x 并回弹，(2) 冷却期间空格键按下时播放微弱抖动或 HUD 刀图标变灰。低优先级但提升操作手感。",
+          "type": "code",
+          "priority": 61,
+          "status": "pending",
+          "dependsOn": [
+            "US-042"
+          ],
+          "acceptanceCriteria": [
+            "攻击时角色有短暂放大回弹效果",
+            "冷却期内有视觉区分",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-077",
+          "title": "Slime 和 Skeleton 未过滤 inactive — die() 后仍留在数组中被遍历",
+          "description": "Slime.die() 调用 destroy()，但 GameScene.update() 每帧遍历 this.slimes 调用 slime.update(delta)。destroy() 后 active=false，slime.update() 首行检查 if(!this.active) return 不会出错。但 handlePlayerAttack() 中过滤 inactive 的逻辑在攻击之后才清理。应确保：攻击处理前先过滤 dead enemies（当前代码已有 filter，但时序可能不对：先遍历攻击，再 filter dead）。当前实现在 handlePlayerAttack 末尾清理，可接受但不够优雅。",
+          "type": "code",
+          "priority": 62,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "die() 后从 slimes/skeletons 数组移除",
+            "攻击遍历不包含已死亡敌人",
+            "无 TypeError 调用已销毁对象",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
