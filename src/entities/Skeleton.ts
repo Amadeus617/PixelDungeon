@@ -3,6 +3,8 @@ import Phaser from "phaser";
 const SKELETON_SPEED = 45;
 const SKELETON_MAX_HP = 2;
 const TRACK_RANGE = 200;
+const KNOCKBACK_SPEED = 300;
+const KNOCKBACK_DURATION = 150;
 
 export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private _hp: number = SKELETON_MAX_HP;
@@ -12,6 +14,8 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private dirInterval: number = 2000;
   private wanderVx: number = 0;
   private wanderVy: number = 0;
+  private isKnockedBack: boolean = false;
+  private knockbackTimer: number = 0;
 
   get hp(): number {
     return this._hp;
@@ -61,13 +65,25 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     this.pickWanderDirection();
   }
 
-  takeDamage(amount: number): void {
+  takeDamage(amount: number, attackDirX?: number, attackDirY?: number): void {
     this._hp = Math.max(0, this._hp - amount);
     // Flash white on hit
     this.setTint(0xffffff);
     this.scene.time.delayedCall(100, () => {
       if (this.active) this.clearTint();
     });
+
+    // Knockback: push away from attack direction
+    if (attackDirX !== undefined && attackDirY !== undefined) {
+      const len = Math.sqrt(attackDirX * attackDirX + attackDirY * attackDirY) || 1;
+      this.setVelocity(
+        (attackDirX / len) * KNOCKBACK_SPEED,
+        (attackDirY / len) * KNOCKBACK_SPEED
+      );
+      this.isKnockedBack = true;
+      this.knockbackTimer = KNOCKBACK_DURATION;
+    }
+
     if (this._hp <= 0) {
       this.die();
     }
@@ -82,6 +98,16 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
 
   update(delta: number): void {
     if (!this.active) return;
+
+    // During knockback, count down and resume normal movement after
+    if (this.isKnockedBack) {
+      this.knockbackTimer -= delta;
+      if (this.knockbackTimer <= 0) {
+        this.isKnockedBack = false;
+        this.pickWanderDirection();
+      }
+      return;
+    }
 
     let vx: number;
     let vy: number;

@@ -256,8 +256,11 @@ export class GameScene extends Phaser.Scene {
     for (const slime of this.slimes) {
       if (!slime.active) continue;
       if (this.player.isEnemyInAttackRange(slime.x, slime.y)) {
+        // Calculate knockback direction (away from player)
+        const dx = slime.x - this.player.x;
+        const dy = slime.y - this.player.y;
         const wasDead = slime.isDead;
-        slime.takeDamage(damage);
+        slime.takeDamage(damage, dx, dy);
         // Award score only on the kill blow
         if (!wasDead && slime.isDead) {
           this.scoreSystem.addEnemyPoints();
@@ -278,8 +281,11 @@ export class GameScene extends Phaser.Scene {
     for (const skeleton of this.skeletons) {
       if (!skeleton.active) continue;
       if (this.player.isEnemyInAttackRange(skeleton.x, skeleton.y)) {
+        // Calculate knockback direction (away from player)
+        const dx = skeleton.x - this.player.x;
+        const dy = skeleton.y - this.player.y;
         const wasDead = skeleton.isDead;
-        skeleton.takeDamage(damage);
+        skeleton.takeDamage(damage, dx, dy);
         if (!wasDead && skeleton.isDead) {
           this.scoreSystem.addEnemyPoints();
         }

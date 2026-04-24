@@ -4,6 +4,8 @@ const SLIME_SPEED = 60;
 const DIR_CHANGE_MIN = 1500;
 const DIR_CHANGE_MAX = 3500;
 const SLIME_MAX_HP = 3;
+const KNOCKBACK_SPEED = 300;
+const KNOCKBACK_DURATION = 150;
 
 const DIRECTIONS: Array<{ vx: number; vy: number }> = [
   { vx: 1, vy: 0 },
@@ -21,6 +23,8 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private dirInterval: number = 2000;
   private _hp: number = SLIME_MAX_HP;
   private _maxHp: number = SLIME_MAX_HP;
+  private isKnockedBack: boolean = false;
+  private knockbackTimer: number = 0;
 
   get hp(): number {
     return this._hp;
@@ -67,8 +71,26 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     this.pickDirection();
   }
 
-  takeDamage(amount: number): void {
+  takeDamage(amount: number, attackDirX?: number, attackDirY?: number): void {
     this._hp = Math.max(0, this._hp - amount);
+
+    // Flash white on hit
+    this.setTint(0xffffff);
+    this.scene.time.delayedCall(100, () => {
+      if (this.active) this.clearTint();
+    });
+
+    // Knockback: push away from attack direction
+    if (attackDirX !== undefined && attackDirY !== undefined) {
+      const len = Math.sqrt(attackDirX * attackDirX + attackDirY * attackDirY) || 1;
+      this.setVelocity(
+        (attackDirX / len) * KNOCKBACK_SPEED,
+        (attackDirY / len) * KNOCKBACK_SPEED
+      );
+      this.isKnockedBack = true;
+      this.knockbackTimer = KNOCKBACK_DURATION;
+    }
+
     if (this._hp <= 0) {
       this.die();
     }
@@ -83,6 +105,17 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
 
   update(delta: number): void {
     if (!this.active) return;
+
+    // During knockback, count down and resume normal movement after
+    if (this.isKnockedBack) {
+      this.knockbackTimer -= delta;
+      if (this.knockbackTimer <= 0) {
+        this.isKnockedBack = false;
+        this.pickDirection();
+      }
+      return;
+    }
+
     this.dirTimer += delta;
     if (this.dirTimer >= this.dirInterval) {
       this.pickDirection();
