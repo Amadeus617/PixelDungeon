@@ -12,6 +12,7 @@ import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
 import { RoomCameraSystem } from "@/systems/RoomCameraSystem";
+import { SoundManager } from "@/systems/SoundManager";
 
 const SLIME_COUNT = 4;
 const SKELETON_COUNT = 3;
@@ -44,6 +45,7 @@ export class GameScene extends Phaser.Scene {
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private gameOver = false;
   private roomCameraSystem!: RoomCameraSystem;
+  private soundManager!: SoundManager;
 
   constructor() {
     super({ key: "GameScene" });
@@ -52,6 +54,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.gameOver = false;
     this.scoreSystem.reset();
+    this.soundManager = new SoundManager(this);
 
     this.dungeonMap = new DungeonMap(this);
 
@@ -106,7 +109,11 @@ export class GameScene extends Phaser.Scene {
       this.player,
       this.slimeGroup,
       (_playerObj, _slimeObj) => {
+        const wasHurt = this.player.alive;
         this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
+        if (this.player.hp < this.player.maxHp) {
+          this.soundManager.playHurt();
+        }
       }
     );
 
@@ -134,6 +141,9 @@ export class GameScene extends Phaser.Scene {
       this.skeletonGroup,
       () => {
         this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
+        if (this.player.hp < this.player.maxHp) {
+          this.soundManager.playHurt();
+        }
       }
     );
 
@@ -181,6 +191,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.overlap(this.player, potion, () => {
         if (potion.collect()) {
           this.player.heal(HEALTH_POTION_HEAL);
+          this.soundManager.playPickup();
         }
       });
     }
@@ -190,6 +201,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.overlap(this.player, boost, () => {
         if (boost.collect()) {
           this.attackBoosted = true;
+          this.soundManager.playPickup();
         }
       });
     }
@@ -200,6 +212,7 @@ export class GameScene extends Phaser.Scene {
         if (coin.collect()) {
           this.coinCount++;
           this.scoreSystem.addCoinPoints();
+          this.soundManager.playPickup();
         }
       });
     }
@@ -208,6 +221,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.keyItem, () => {
       if (this.keyItem.collect()) {
         this.inventory.add("key");
+        this.soundManager.playPickup();
       }
     });
 
@@ -244,6 +258,9 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerAttack(): void {
     if (this.gameOver) return;
 
+    // Play attack swoosh sound
+    this.soundManager.playAttack();
+
     const damage = this.attackBoosted ? Player.ATTACK_DAMAGE * 2 : Player.ATTACK_DAMAGE;
     // Consume the boost after one attack
     if (this.attackBoosted) {
@@ -264,6 +281,7 @@ export class GameScene extends Phaser.Scene {
         // Award score only on the kill blow
         if (!wasDead && slime.isDead) {
           this.scoreSystem.addEnemyPoints();
+          this.soundManager.playEnemyDeath();
         }
       }
     }
@@ -288,6 +306,7 @@ export class GameScene extends Phaser.Scene {
         skeleton.takeDamage(damage, dx, dy);
         if (!wasDead && skeleton.isDead) {
           this.scoreSystem.addEnemyPoints();
+          this.soundManager.playEnemyDeath();
         }
       }
     }
@@ -307,6 +326,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.inventory.has("key")) continue;
       this.inventory.remove("key");
       chest.open();
+      this.soundManager.playChestOpen();
       return; // Only open one chest per press
     }
   }

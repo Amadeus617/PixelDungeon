@@ -397,7 +397,7 @@
           "description": "游戏当前完全静音，体验感差。使用 Phaser 内置 Web Audio API 生成程序化音效（无需外部音频文件）：攻击挥砍声、敌人死亡声、拾取道具声、受伤声、开门/宝箱声。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Player 攻击时播放挥砍音效",
