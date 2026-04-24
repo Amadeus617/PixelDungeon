@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import { GAME_WIDTH, GAME_HEIGHT } from "@/config";
 import type { GameResult } from "./GameScene";
+import { ScoreSystem } from "@/systems/ScoreSystem";
+
+const HIGH_SCORE_KEY = "dungeon_roguelike_high_score";
 
 export class ResultScene extends Phaser.Scene {
   constructor() {
@@ -25,7 +28,7 @@ export class ResultScene extends Phaser.Scene {
     const titleText = isWin ? "VICTORY!" : "GAME OVER";
     const titleColor = isWin ? "#00ff00" : "#ff0000";
 
-    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, titleText, {
+    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, titleText, {
       fontSize: "48px",
       color: titleColor,
       fontFamily: "monospace",
@@ -38,7 +41,7 @@ export class ResultScene extends Phaser.Scene {
     const subtitleText = isWin
       ? "You defeated all enemies and claimed the treasure!"
       : "You have fallen in the dungeon...";
-    const subtitle = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, subtitleText, {
+    const subtitle = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 25, subtitleText, {
       fontSize: "16px",
       color: "#ffffff",
       fontFamily: "monospace",
@@ -49,9 +52,24 @@ export class ResultScene extends Phaser.Scene {
     });
     subtitle.setOrigin(0.5);
 
-    // Score display
+    // Score display with high score comparison
+    const scoreSystem = new ScoreSystem();
+
     if (score !== undefined) {
-      const scoreText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, `Final Score: ${score}`, {
+      const prevHigh = scoreSystem.getHighScore();
+      const isNewRecord = score > prevHigh;
+
+      // Save new high score to localStorage
+      if (isNewRecord) {
+        try {
+          localStorage.setItem(HIGH_SCORE_KEY, String(score));
+        } catch {
+          // localStorage unavailable
+        }
+      }
+
+      const finalScoreY = GAME_HEIGHT / 2 + 15;
+      const scoreText = this.add.text(GAME_WIDTH / 2, finalScoreY, `Final Score: ${score}`, {
         fontSize: "24px",
         color: "#ffd700",
         fontFamily: "monospace",
@@ -59,6 +77,42 @@ export class ResultScene extends Phaser.Scene {
         strokeThickness: 3,
       });
       scoreText.setOrigin(0.5);
+
+      // High score display
+      const highScoreY = finalScoreY + 35;
+
+      if (isNewRecord) {
+        // New record highlight
+        const newRecordText = this.add.text(GAME_WIDTH / 2, highScoreY, `★ NEW RECORD! ★`, {
+          fontSize: "22px",
+          color: "#ff4500",
+          fontFamily: "monospace",
+          stroke: "#000000",
+          strokeThickness: 3,
+        });
+        newRecordText.setOrigin(0.5);
+
+        // Pulse animation for new record
+        this.tweens.add({
+          targets: newRecordText,
+          scaleX: 1.15,
+          scaleY: 1.15,
+          duration: 500,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      } else if (prevHigh > 0) {
+        // Show existing high score (only when there is a history)
+        const highScoreText = this.add.text(GAME_WIDTH / 2, highScoreY, `Best: ${prevHigh}`, {
+          fontSize: "18px",
+          color: "#888888",
+          fontFamily: "monospace",
+          stroke: "#000000",
+          strokeThickness: 2,
+        });
+        highScoreText.setOrigin(0.5);
+      }
     }
 
     // Restart prompt

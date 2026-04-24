@@ -430,7 +430,7 @@
           "description": "游戏重启后所有得分记录丢失。使用 localStorage 保存最高分，在 ResultScene 显示当前得分与历史最高分对比。",
           "type": "code",
           "priority": 6,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "每次游戏结束时将得分存入 localStorage",
