@@ -107,6 +107,12 @@
       "author": "agent-review",
       "change": "第九轮设计审查新增8个改进US(US-078~US-085)：Skeleton追踪穿墙修复(line-of-sight)、楼梯出口视觉引导、钥匙可及性保证、走廊绘制覆盖墙壁修复、die()延迟销毁时序、ScoreSystem/可变状态移入create()重置、游戏结束后输入禁用、跨局难度递增meta progression。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：(1)Skeleton直线追踪不考虑墙壁遮挡导致穿墙追踪；(2)stairs tile无任何视觉提示，玩家找不到出口；(3)钥匙可能在非必经路径房间生成，导致可及性不保证；(4)走廊绘制pickFloor覆盖房间边界墙壁导致结构缺口；(5)die()在takeDamage调用栈中立即destroy导致数组并发修改风险；(6)类属性初始化器在scene复用时可能不重新执行；(7)endGame后Player输入未显式禁用；(8)缺少跨局meta progression，每次重启难度完全相同"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十轮设计审查新增5个改进US(US-086~US-090)：getRandomFloorInRoom fallback墙壁校验、走廊入口门框标记、Skeleton playerRef类型修正、走廊视觉氛围增强(暗地板+阴影)、ResultScene scene.start重启状态管理。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)getRandomFloorInRoom的fallback路径返回room center可能是墙壁tile，导致道具/敌人生成在不可达位置;(2)走廊carve函数覆盖房间边界墙壁无门框标记，视觉不自然且无房间分隔感;(3)Skeleton.playerRef类型为Sprite而非Player，语义不精确限制未来扩展;(4)走廊与房间地板视觉无差异，缺少走廊特有氛围;(5)ResultScene scene.start重启可能残留旧scene状态，需系统化清理方案"
     }
   ],
   "improvements": {
@@ -175,7 +181,12 @@
       "US-082: die()延迟销毁时序 -- 改为标记删除+统一destroy，防止数组并发修改",
       "US-083: 可变状态移入create() -- scoreSystem/attackBoosted等在create中重置，不依赖类属性初始化器",
       "US-084: 游戏结束后输入禁用 -- endGame显式禁用player keyboard输入",
-      "US-085: 跨局难度递增 -- localStorage记录通关次数，逐步增加敌人数量/HP"
+      "US-085: 跨局难度递增 -- localStorage记录通关次数，逐步增加敌人数量/HP",
+      "US-086: getRandomFloorInRoom fallback墙壁校验 -- 防止道具生成在墙壁tile上",
+      "US-087: 走廊入口门框标记 -- carve交汇处使用T.DOOR替代pickFloor",
+      "US-088: Skeleton playerRef类型修正 -- Sprite改为Player类型引用",
+      "US-089: 走廊视觉氛围增强 -- 走廊地板用FLOOR_DARK+边缘阴影增强纵深",
+      "US-090: ResultScene scene.start重启状态管理 -- 确保旧scene完全销毁无泄漏"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -217,7 +228,12 @@
       "GameScene 中 slime/skeleton overlap 回调直接调用 player.takeDamage()。Player.takeDamage() 内部检查 isInvincible 并在受伤后设置 1000ms 无敌。这意味着 overlap 多次触发时，后续触发会被 invincible 保护拦截。逻辑正确但应添加测试验证（US-074）",
       "ResultScene 通过 this.scene.start(\"GameScene\") 重启。Phaser scene.start 会 shutdown 当前 scene 并启动目标 scene。GameScene.create() 中所有对象重新创建（new ScoreSystem, new Inventory, new DungeonMap 等）。但需确认：(1) physics.world 正确重置，(2) 旧 scene 的 tweens/time events 清理，(3) 事件监听器解绑（US-075）",
       "攻击冷却 400ms 期间按空格静默忽略，无任何视觉/听觉反馈。在动作游戏中，操作无反馈=操作无确认=操控感差。低成本方案：攻击时 setScale(3.2) → 100ms → setScale(3)（US-076）",
-      "Slime/Skeleton die() 后调用 destroy()，但 handlePlayerAttack() 先遍历所有 slime 执行攻击逻辑，末尾才 filter + remove dead。如果 slime 在 die() 中 destroy 了但还没 filter，后续代码访问 slime.x/slime.y 可能报错。实际运行中因为有 active 检查和 isDead 检查，暂不出错，但时序不够健壮（US-077）"
+      "Slime/Skeleton die() 后调用 destroy()，但 handlePlayerAttack() 先遍历所有 slime 执行攻击逻辑，末尾才 filter + remove dead。如果 slime 在 die() 中 destroy 了但还没 filter，后续代码访问 slime.x/slime.y 可能报错。实际运行中因为有 active 检查和 isDead 检查，暂不出错，但时序不够健壮（US-077）",
+      "getRandomFloorInRoom() 1000次随机失败后 fallback 返回 room center (col+width/2, row+height/2)。但 paintRoom() 中 r=0/c=0/last row/last col 都是墙壁 tile，room center 恰好在 r=height/2, c=width/2 如果 height/width 是偶数则可能落在边界附近。更重要的是极端情况下（如极小房间或墙壁密集区域），1000次随机全部失败则 fallback 位置可能是墙壁 tile（US-086）",
+      "走廊 carve 函数（carveHorizontal/carveVertical）在覆盖 tile 时不区分走廊区域和房间边界。当走廊经过房间墙壁时，墙壁被替换为普通 floor tile，导致房间墙壁出现缺口。交汇处应使用 T.DOOR(35) 标记门框，既保持视觉连贯又可被 isWall() 识别为可碰撞（当前 T.DOOR 已在 isWall 中）。注意这与 US-081 不同：US-081 是走廊覆盖房间边界 tile 的位置修复，US-087 是走廊与房间交界处应有门框标记（US-087）",
+      "Skeleton.setPlayerRef(player) 接收 Player 实例但存储为 Phaser.GameObjects.Sprite 类型。当前只访问 .x/.y/.active 属性所以功能无问题，但类型过宽会在 US-078（追踪穿墙修复需要检查 player 房间位置）和未来功能中需要类型断言。改为 Player 类型是零风险类型修正（US-088）",
+      "走廊区域视觉上与房间地板无差异——都使用 FLOOR_1~FLOOR_4 随机 tile。走廊应有更暗的色调增加压抑感。可：(1)走廊 tile 使用 FLOOR_DARK(33) 或 FLOOR_MOSS(32)替代普通 floor;(2)走廊边缘(紧邻墙壁的 tile)使用 WALL_SHADOW(10)增强深度感。这些 tile 已存在于 tileset 中无需新增资源（US-089）",
+      "ResultScene 通过 this.scene.start(\"GameScene\") 重启。Phaser scene.start 的行为是 shutdown 当前 scene → 启动目标 scene。如果目标 scene 之前已在运行（首次游戏后），scene.start 会先 shutdown 它再重新 create。但 shutdown 是否完全清理 tweens/events/children 取决于 Phaser 版本和 scene 配置。建议：(1)添加 GameScene.shutdown() 显式清理;(2)或改用 this.scene.get(\"GameScene\").scene.restart()（US-090）"
     ]
   },
   "balanceAnalysis": {
@@ -437,6 +453,21 @@
         "area": "缺少跨局难度递增",
         "detail": "US-028和US-044处理单局内难度，但每次restart游戏完全一样。Roguelike需要meta progression让重复游玩有意义",
         "recommendation": "localStorage记录通关次数，每次+1敌人或+1HP，配合US-025最高分形成循环(US-085)"
+      },
+      {
+        "area": "生成位置校验缺失",
+        "detail": "getRandomFloorInRoom fallback 返回 room center，可能是墙壁 tile。敌人/道具生成在墙壁上导致不可见不可达",
+        "recommendation": "fallback 添加 isWall() 检查，或遍历房间所有 tile 找有效 floor（US-086）"
+      },
+      {
+        "area": "走廊视觉单调",
+        "detail": "走廊与房间使用相同 floor tile，走廊无任何视觉特征区分，降低了空间感知",
+        "recommendation": "走廊使用 FLOOR_DARK + 边缘 WALL_SHADOW 增强纵深氛围（US-089）"
+      },
+      {
+        "area": "重启状态管理不系统",
+        "detail": "ResultScene scene.start 重启依赖 Phaser 默认 shutdown 行为，缺少显式清理保证。与 US-075/US-083 部分重叠但关注不同层面",
+        "recommendation": "添加 GameScene shutdown 方法 + 考虑 scene.restart（US-090）"
       }
     ]
   }

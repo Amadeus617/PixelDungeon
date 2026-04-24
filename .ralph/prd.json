@@ -1406,6 +1406,82 @@
             "HUD 显示当前难度等级(可选)",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-086",
+          "title": "getRandomFloorInRoom fallback 无墙壁校验 — 可能返回墙壁 tile",
+          "description": "getRandomFloorInRoom() 1000次随机尝试后 fallback 返回 room center (col + width/2, row + height/2)。room center 是墙壁 tile (WALL_TOP_EDGE 等)，因为 paintRoom() 在 r=0 或 c=0 处放墙壁。如果敌人/道具生成在墙壁 tile 上，物理碰撞会导致它们卡住不可见。应在 fallback 中添加 isWall() 校验或遍历房间内所有 floor tile。",
+          "type": "code",
+          "priority": 71,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "getRandomFloorInRoom fallback 位置不是墙壁 tile",
+            "极端情况（如极小房间）仍返回有效位置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-087",
+          "title": "Carve horizontal/vertical 走廊未保留房间墙壁 — 入口无门框标记",
+          "description": "carveHorizontal/carveVertical 用 pickFloor() 覆盖走廊经过的所有 tile，包括房间边界墙壁。走廊与房间交界处本应是门框(T.DOOR)但实际被覆盖为普通地板。这导致：(1)视觉上房间墙壁有缺口看起来不自然;(2)走廊敌人可直接进入房间。应在走廊与房间边界交汇处保留或替换为 T.DOOR tile。",
+          "type": "code",
+          "priority": 72,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊与房间交界处使用 DOOR tile",
+            "不在房间内部覆盖 floor 以外的 tile",
+            "墙壁连续性视觉正确",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-088",
+          "title": "Skeleton setPlayerRef 类型过宽 — playerRef 为 Sprite 非 Player",
+          "description": "Skeleton.playerRef 类型为 Phaser.GameObjects.Sprite，但传入的是 Player 实例。Player extends Phaser.Physics.Arcade.Sprite extends Sprite，编译通过但语义不精确。如果未来 Skeleton 需要访问 Player 专有属性(如 hp, direction)，需要类型断言。应改为 Player 类型引用。",
+          "type": "code",
+          "priority": 73,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playerRef 类型为 Player",
+            "无需类型断言访问 Player 属性",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-089",
+          "title": "走廊中走廊模式的视觉/体验优化 — 走廊持续暗区域无光照氛围",
+          "description": "走廊区域(tile 被覆盖为 FLOOR 但无房间归属)在视觉上与房间地板无差异，缺少走廊应有的狭窄阴暗氛围。可添加：走廊 tile 使用 FLOOR_DARK(33)替代普通 floor;走廊边缘添加墙壁阴影 tile(WALL_SHADOW)增强深度感。这是纯视觉改进不影响碰撞。",
+          "type": "code",
+          "priority": 74,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊地板使用 FLOOR_DARK tile",
+            "走廊边缘有阴影增强纵深感",
+            "与 US-081 走廊墙壁修复不冲突",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-090",
+          "title": "ResultScene 重启方式问题 — scene.start 不保证旧 scene 完全销毁",
+          "description": "ResultScene 通过 this.scene.start(\"GameScene\") 重启游戏。Phaser 的 scene.start 会先 shutdown 当前 scene 再启动目标 scene。但 GameScene 之前可能没有被 shutdown，导致：(1)旧的 tweens/time events 可能残留;(2)HUD/Minimap 等非 physics 对象可能泄漏。应改用 scene.restart() 或在 create() 中显式清理旧状态。可配合 US-075 和 US-083 一并修复。",
+          "type": "code",
+          "priority": 75,
+          "status": "pending",
+          "dependsOn": [
+            "US-075",
+            "US-083"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene 重启后无内存泄漏",
+            "GameScene 所有状态完全重置",
+            "连续重启 5 次无异常",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
