@@ -125,6 +125,12 @@
       "author": "agent-review",
       "change": "第十二轮设计审查新增5个改进US(US-099~US-103)：Slime/Skeleton knockback碰墙覆盖击退速度bug、无敌帧期间hurt音效误播、Space JustDown时序导致宝箱交互失效(US-061根因)、BootScene资源加载失败处理。本轮发现3个runtime bug和2个代码质量问题。",
       "reason": "深入审查敌人knockback+wallCollider交互发现击退效果被onHitWall覆盖；overlap回调音效逻辑与takeDamage返回值不一致；JustDown单次消费机制导致Player攻击和宝箱交互时序冲突；BootScene缺少健壮性处理"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十三轮设计审查新增5个改进US(US-104~US-108)：3房间地牢Skeleton全部堆积出口房间bug、Player死亡alpha闪烁中断、endGame后敌人update仍在执行、敌人idle动画已注册但从未使用、Coins在entrance房间生成降低探索动力。更新 improvements 和 balanceAnalysis。",
+      "reason": "深度审查敌人spawn分布逻辑发现3房间地牢Skeleton全在出口房间导致难度尖峰；审查Player死亡流程发现无敌帧闪烁被if(!alive)return跳过导致半透明残留；审查endGame生命周期发现physics.pause不阻止enemy update执行；审查BootScene动画注册发现idle动画从未被调用；审查道具spawn发现Coin是唯一可能在entrance生成的道具"
     }
   ],
   "improvements": {
@@ -211,7 +217,12 @@
       "US-100: Skeleton knockback碰墙保护 — 同US-099逻辑",
       "US-101: hurt音效条件修复 — takeDamage返回boolean，只在实际受伤时播放",
       "US-102: Space JustDown时序修复 — 宝箱检测移到player.update()之前(US-061根因)",
-      "US-103: BootScene loaderror处理 — 加载失败显示错误或生成fallback纹理"
+      "US-103: BootScene loaderror处理 — 加载失败显示错误或生成fallback纹理",
+      "US-104: 3房间地牢Skeleton分布修复 — rooms.length=3时所有Skeleton堆积在出口房间(rooms[2])",
+      "US-105: Player死亡alpha恢复 — hp=0时update()直接return跳过无敌帧闪烁，角色可能停在半透明",
+      "US-106: endGame后敌人update冻结 — physics.pause不阻止update()调用，敌人逻辑仍在执行",
+      "US-107: 敌人idle动画启用 — slime-idle/skeleton-idle已注册但从未播放，添加自然idle行为",
+      "US-108: Coin spawn避开entrance — 改为(i+1)%length与其他道具一致"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -270,7 +281,12 @@
       "Slime/Skeleton knockback + wall collider交互bug：被击退的敌人撞墙时触发physics collider回调→onHitWall()→随机新方向覆盖knockback速度。虽然update()中knockbackTimer继续倒计时，但速度已在onHitWall中被改变，击退视觉效果瞬间消失。修复简单：onHitWall()开头检查if(this.isKnockedBack) return;（US-099, US-100）",
       "Space键JustDown消费时序问题：Phaser JustDown()在第一次调用后清除标记，同一帧内第二次调用返回false。Player.update()先调用JustDown触发攻击事件，GameScene.update()后调用JustDown检查宝箱——后者永远返回false。这是US-061(宝箱交互优先级)的真正根因。修复方案：(1)将宝箱检测移到player.update()之前；(2)或改用isDown+状态机替代JustDown（US-102）",
       "hurt音效误播问题：overlap回调中takeDamage()后无条件调用playHurt()。takeDamage()在无敌帧期间return不扣血，但音效照播。方案：takeDamage()返回boolean表示是否实际受伤，overlap回调据此决定是否播放音效。同时也解决了不正确的hp<maxHp检查（US-101）",
-      "BootScene健壮性：当前preload加载3个外部资源文件无错误处理。缺失文件会导致游戏卡死。应添加loaderror事件监听，生成fallback纹理或显示错误信息后继续（US-103）"
+      "BootScene健壮性：当前preload加载3个外部资源文件无错误处理。缺失文件会导致游戏卡死。应添加loaderror事件监听，生成fallback纹理或显示错误信息后继续（US-103）",
+      "3房间地牢Skeleton spawn bug：`2 + (i % Math.max(1, rooms.length - 2))` 当 rooms.length=3 时 `rooms.length - 2 = 1`，`Math.max(1, 1) = 1`，`i % 1 = 0`，所以 `2 + 0 = 2` 恒成立。所有3个Skeleton都在出口房间。这与Slime的spawn逻辑 `1 + (i % (rooms.length - 1))` 形成对比，后者能均匀分配。根因：Skeleton的roomIdx公式设计时假设至少4个房间(US-104)",
+      "Player死亡alpha残留：update()第一行 `if (!this.alive) return` 跳过 updateInvincibility()。如果玩家在 alpha=0.4（无敌帧闪烁低点）时死亡，alpha永远不会恢复。视觉表现为角色幽灵般半透明飘在原地800ms直到转场。简单fix：在 takeDamage 中 hp<=0 时添加 this.setAlpha(1)(US-105)",
+      "endGame后敌人仍在思考：GameScene.endGame()只调用 this.physics.pause()，不停止scene update。每个Slime/Skeleton的update(delta)继续执行——dirTimer递增、pickDirection调用setVelocity（被physics.pause吞掉所以无效果）、knockback timer到期触发pickDirection。虽然不影响视觉，但：(1)CPU浪费在无用计算上；(2)如果未来enemy update添加了副作用（如音效、粒子），会在游戏结束后触发(US-106)",
+      "敌人永远不静止：Slime构造函数调用pickDirection()开始移动，之后每1.5-3.5秒换方向，但从不进入idle。Skeleton在wander模式下同理。BootScene注册了slime-idle(帧0-1,4fps)和skeleton-idle(帧0-1,4fps)但从未使用。自然的敌人行为应包含偶尔停顿——20%概率在换向时进入1-2秒idle，给玩家观察和规划的安全窗口(US-107)",
+      "Coin spawn位置是唯一不跳过entrance的道具：HealthPotion用 `(i+1)%length`，AttackBoost用 `(i+1)%length`，Slime用 `1+(i%(length-1))`，Skeleton用 `2+(i%max(1,length-2))`——只有Coin用 `i%length` 允许i=0时落在entrance。玩家出生就看到金币减弱了探索驱动力(US-108)"
     ]
   },
   "balanceAnalysis": {
@@ -550,6 +566,31 @@
         "area": "Space键交互优先级时序",
         "detail": "JustDown单次消费机制导致Player攻击先消费按键，宝箱交互永远收不到Space事件。US-061描述了症状但未指出根因",
         "recommendation": "宝箱检测移到player.update()之前（US-102，同时解决US-061）"
+      },
+      {
+        "area": "3房间地牢难度尖峰",
+        "detail": "rooms.length=3时所有3个Skeleton堆积在出口房间(rooms[2])，加上2个Slime也在rooms[2]，出口房间共5个敌人。中间房间(rooms[1])只有2个Slime。难度分布极不均匀",
+        "recommendation": "Skeleton spawn公式改为与Slime一致的均匀分配逻辑，跳过entrance但覆盖所有其他房间（US-104）"
+      },
+      {
+        "area": "Player死亡视觉残留",
+        "detail": "无敌帧闪烁(alpha 0.4/1.0交替)在hp=0时被if(!alive)return跳过，角色可能停在alpha=0.4的半透明状态直到800ms后转场",
+        "recommendation": "takeDamage中hp<=0时显式setAlpha(1)（US-105）"
+      },
+      {
+        "area": "endGame后敌人CPU浪费",
+        "detail": "physics.pause()不阻止scene update循环，所有敌人的update(delta)继续执行无意义的逻辑运算",
+        "recommendation": "endGame中设置全局gameOver标志，敌人update开头检查并跳过（US-106）"
+      },
+      {
+        "area": "敌人行为不自然",
+        "detail": "Slime/Skeleton从创建到死亡永远在移动，从不进入idle状态。BootScene注册了idle动画但从未使用。缺少idle让敌人看起来像永动机",
+        "recommendation": "wander间隔到期后20%概率进入1-2秒idle，播放idle动画（US-107）"
+      },
+      {
+        "area": "Coin在出生点生成",
+        "detail": "Coin spawn用 `rooms[i % rooms.length]`，i=0时在entrance room生成。玩家出生就能拾取，零探索成本。其他道具都跳过entrance",
+        "recommendation": "改为 `(i+1) % rooms.length` 与其他道具一致（US-108）"
       }
     ]
   }

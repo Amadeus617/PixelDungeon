@@ -1680,6 +1680,81 @@
             "不阻塞游戏启动",
             "tsc + build通过"
           ]
+        },
+        {
+          "id": "US-104",
+          "title": "3房间地牢Skeleton分布修复 — 所有Skeleton堆积在出口房间",
+          "description": "当rooms.length=3时，Skeleton spawn逻辑 `2 + (i % Math.max(1, rooms.length - 2))` 中 `rooms.length - 2 = 1`，`Math.max(1,1) = 1`，导致 `2 + (i % 1) = 2` 恒成立。所有3个Skeleton都生成在出口房间(rooms[2])，而中间房间(rooms[1])只有2个Slime。出口房间同时有3个追踪Skeleton + 2个Slime = 5个敌人，难度远超其他房间。修复方案：Skeleton spawn应均匀分配到rooms[1]到rooms[N-1]（跳过entrance但不跳过exit之前的房间），与Slime逻辑一致。",
+          "type": "code",
+          "priority": 89,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "3房间地牢中Skeleton分布在rooms[1]和rooms[2]，不全部堆在一个房间",
+            "4+房间地牢中Skeleton均匀分配到非entrance房间",
+            "tsc + build 通过",
+            "每个非entrance房间至少有1个敌人（Slime或Skeleton）"
+          ]
+        },
+        {
+          "id": "US-105",
+          "title": "Player死亡后alpha闪烁中断 — 角色可能停在半透明状态",
+          "description": "Player.update() 第一行 `if (!this.alive) return;` 在hp=0时直接return，跳过了后续的 updateInvincibility() 调用。如果玩家在无敌帧闪烁期间死亡（alpha=0.4时），alpha永远不会恢复到1.0。GameScene.endGame()在800ms后切换到ResultScene，这期间角色以半透明状态显示。修复方案：死亡时显式 setAlpha(1)，或在 takeDamage 中 hp<=0 时重置alpha。",
+          "type": "code",
+          "priority": 90,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家死亡后角色alpha恢复为1.0",
+            "无敌帧闪烁在死亡瞬间正确终止",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-106",
+          "title": "endGame后敌人update()仍在执行 — 浪费CPU且可能导致状态异常",
+          "description": "GameScene.endGame()调用physics.pause()冻结物理但未禁用敌人update。Phaser场景update循环仍调用每个slime/skeleton的update(delta)，它们继续执行dirTimer计数、pickDirection等逻辑。虽然setVelocity在physics pause下无效，但逻辑仍在运行。更严重的是：如果endGame后800ms延迟内有任何事件回调（如knockback timer到期触发的pickDirection），可能产生意外副作用。修复方案：endGame中设置标志，敌人update开头检查gameOver跳过执行，或在Slime/Skeleton中添加setFrozen()方法。",
+          "type": "code",
+          "priority": 91,
+          "status": "pending",
+          "dependsOn": [
+            "US-084"
+          ],
+          "acceptanceCriteria": [
+            "endGame后敌人update()不再执行移动逻辑",
+            "800ms延迟期间无敌人状态变化",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-107",
+          "title": "敌人idle动画已注册但从未使用 — Slime/Skeleton永远不静止",
+          "description": "BootScene中注册了slime-idle和skeleton-idle动画，但Slime和Skeleton的构造函数直接播放move动画且永不切换到idle。Slime从创建开始就不停移动（pickDirection在构造函数中调用），Skeleton在追踪范围外也是持续wander。缺少idle状态意味着：(1)已注册的动画资源被浪费；(2)敌人看起来像永动机，不够自然。修复方案：敌人到达方向切换间隔后，有20%概率进入1-2秒idle状态（停止移动+播放idle动画），然后恢复正常wander。这让敌人行为更自然，也给玩家短暂的安全窗口。",
+          "type": "code",
+          "priority": 92,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime/Skeleton在wander间隔到期后有概率进入idle状态",
+            "idle期间播放对应的idle动画（slime-idle/skeleton-idle）",
+            "idle持续1-2秒后恢复移动",
+            "追踪中的Skeleton不进入idle",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-108",
+          "title": "Coins在entrance房间生成 — 降低探索动力",
+          "description": "GameScene中Coin spawn逻辑 `dungeonData.rooms[i % dungeonData.rooms.length]` 当i=0时使用rooms[0]（entrance room）。玩家出生点就在entrance，一进门就能拾取金币，没有探索成本。其他道具（HealthPotion用`(i+1)%length`、AttackBoost用`(i+1)%length`、Slime跳过entrance）都避免了entrance生成，唯独Coin没有。修复方案：改为 `(i+1) % dungeonData.rooms.length` 与其他道具一致，或从rooms[1]开始分配。",
+          "type": "code",
+          "priority": 93,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin不在entrance房间(rooms[0])生成",
+            "Coin分布在非entrance房间中",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
