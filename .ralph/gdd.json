@@ -89,6 +89,12 @@
       "author": "agent-review",
       "change": "第六轮设计审查新增6个改进US(US-060~US-065)：药水满血拾取保护、空格键交互优先级修复、ResultScene数据传递扩展、宝箱开启动画反馈、敌人死亡消散动画、GameScene战斗统计追踪。更新 improvements 和 balanceAnalysis。",
       "reason": "定期设计审查发现：(1)满血拾取药水浪费资源且无反馈，违背roguelike资源管理核心；(2)空格键同时用于攻击和宝箱交互存在竞态条件，导致UX混乱；(3)endGame只传score不传统计数据，US-048依赖的数据基础设施缺失；(4)宝箱开启无任何动画反馈，探索奖励正反馈断裂；(5)敌人死亡无消散动画，打击感弱；(6)GameScene缺少击杀/金币/房间访问计数器，通关统计无法实现"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第七轮设计审查新增4个改进US(US-066~US-069)：敌人间碰撞检测防止堆叠、游戏开始操作提示覆盖层、GameScene硬编码常量参数化(balance.ts)、攻击锥形角度从165°收窄至120°。更新 improvements 和 balanceAnalysis。",
+      "reason": "定期设计审查发现：(1)多个敌人可重叠在同一位置，视觉混乱且削弱策略性；(2)无按键操作提示，新手引导缺失；(3)GameScene硬编码常量与gdd.json脱节，改平衡需手动同步多处；(4)攻击锥形165°过宽，几乎背后都能打到，削弱攻击方向选择的意义"
     }
   ],
   "improvements": {
@@ -137,7 +143,11 @@
       "US-062: ResultScene数据扩展 -- 传递killCount/coins/roomsVisited/elapsedTime",
       "US-063: 宝箱开启动画 -- scale弹跳+金色闪光，300ms反馈",
       "US-064: 敌人死亡消散动画 -- 缩放+alpha渐隐200ms，提升打击感",
-      "US-065: GameScene战斗统计追踪 -- killCount/startTime/elapsedTime基础数据收集"
+      "US-065: GameScene战斗统计追踪 -- killCount/startTime/elapsedTime基础数据收集",
+      "US-066: 敌人碰撞检测 -- slimeGroup/skeletonGroup内部+之间collider，防止堆叠",
+      "US-067: 操作提示覆盖层 -- GameScene开始时显示WASD/Space/ESC键位说明，3秒或按键后消失",
+      "US-068: 平衡参数集中管理 -- 创建balance.ts导出所有数值常量，消除GameScene/Player/Enemy硬编码",
+      "US-069: 攻击锥形收窄 -- dot阈值从0.25调至0.5，120°锥形让方向选择有意义"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -167,7 +177,11 @@
       "战斗系统只有攻击(空格)和逃跑(移动)，缺少闪避/冲刺维度。添加Shift冲刺(80px位移,0.15s,冲刺期间无敌,1.5s冷却)能让玩家主动规避伤害，显著提升战斗策略深度。GDD balance新增参数: dashSpeed=80, dashDuration=150ms, dashCooldown=1500ms (US-056)",
       "宝箱开启后无任何效果(无奖励、非胜利条件)是功能死胡同。钥匙->宝箱->无结果会挫败探索动力。应改为宝箱掉落3-5金币+30%概率药水，使探索回路完整。同时宝箱交互应显示开启动画(US-057)",
       "DungeonMap.returnWorldHeight()是遗留bug方法，命名暗示返回但实际无return。应删除统一用getWorldHeight() (US-058)",
-      "attackBoosted状态在GameScene中管理而非Player类，导致buff逻辑分散。应重构：Player类管理buff状态和计时，GameScene只调用player.isAttackBoosted。配合US-030实现限时10s buff而非一次性消耗(US-059)"
+      "attackBoosted状态在GameScene中管理而非Player类，导致buff逻辑分散。应重构：Player类管理buff状态和计时，GameScene只调用player.isAttackBoosted。配合US-030实现限时10s buff而非一次性消耗(US-059)",
+      "敌人之间无碰撞检测：slimeGroup 和 skeletonGroup 内部没有 collider，导致多个敌人可以完美重叠在同一像素位置。视觉上看起来只有1个敌人，实际有3个，玩家走近突然被打3下。这不公平且不直观。添加组内+组间 collider 是低成本高收益的改进(US-066)",
+      "缺少基础操作引导：虽然 US-051 覆盖了宝箱交互引导，但没有覆盖最基础的按键说明。WASD移动+空格攻击+ESC暂停是核心操作，应在新游戏开始时短暂显示(US-067)",
+      "GameScene 硬编码常量是维护隐患：SLIME_COUNT=4、SKELETON_COUNT=3、HEALTH_POTION_HEAL=1 等全部硬编码在文件顶部。gdd.json 有 balance 参数但代码不从配置读取，导致每次平衡调整需手动同步 3-4 个文件。应创建 balance.ts 集中管理(US-068)",
+      "攻击锥形过宽：Player.isEnemyInAttackRange() 的 dot < 0.25 阈值对应 arccos(0.25) ≈ 75.5°，即锥形半角，总锥形约 151°。这意味着玩家背后约 30° 范围外就能打到敌人，接近全方向攻击。收窄至 dot < 0.5（120° 锥形）让战斗需要面朝敌人方向(US-069)"
     ]
   },
   "balanceAnalysis": {
@@ -307,6 +321,26 @@
         "area": "GameScene缺少统计基础设施",
         "detail": "GameScene没有killCount计数器和startTime时间戳，无法计算通关用时和击杀统计。这些是US-048和US-053的基础依赖",
         "recommendation": "添加killCount计数器和startTime记录（US-065）"
+      },
+      {
+        "area": "敌人无互碰撞",
+        "detail": "slimeGroup 和 skeletonGroup 内部没有 collider，多个敌人可以重叠在同一像素位置。视觉混乱，策略性降低——玩家无法判断重叠数量",
+        "recommendation": "添加组内 + 组间 collider，碰撞力度轻不影响追踪 AI（US-066）"
+      },
+      {
+        "area": "攻击锥形过宽",
+        "detail": "isEnemyInAttackRange dot < 0.25 对应约 151° 锥形，几乎全方向攻击。背后攻击明显削弱了面朝敌人这个核心动作决策",
+        "recommendation": "收窄至 dot < 0.5（120° 锥形），与动作游戏常见 90-120° 一致（US-069）"
+      },
+      {
+        "area": "新手操作引导缺失",
+        "detail": "玩家进入游戏后没有任何操作提示，WASD/空格/ESC全靠猜测。缺少最基础的 onboarding",
+        "recommendation": "游戏开始时显示半透明操作面板，3秒或按键后消失（US-067）"
+      },
+      {
+        "area": "平衡参数硬编码分散",
+        "detail": "SLIME_COUNT/SKELETON_COUNT/HEALTH_POTION_HEAL 等硬编码在 GameScene 顶部，Player HP/Skeleton HP/Slime HP 分散在各实体类中。修改平衡参数需手动同步 4+ 文件",
+        "recommendation": "创建 balance.ts 集中管理所有数值常量，所有模块从中导入（US-068）"
       }
     ]
   }

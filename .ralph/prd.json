@@ -1087,6 +1087,73 @@
             "killCount, coinCount, roomsVisited, elapsedTime 传递给 ResultScene",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-066",
+          "title": "敌人间添加碰撞检测 — 防止堆叠",
+          "description": "当前 Slime/Skeleton 之间无碰撞检测，多个敌人可以重叠在同一位置。玩家无法分辨重叠的敌人数量，且视觉上不自然。应在 slimeGroup 和 skeletonGroup 之间以及各自内部添加 collider，让敌人互相推开。注意：不应阻止敌人追踪玩家的移动，碰撞力度要轻。",
+          "type": "code",
+          "priority": 51,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "slimeGroup 内部有 collider，Slime 之间互相推开",
+            "skeletonGroup 内部有 collider，Skeleton 之间互相推开",
+            "slimeGroup 和 skeletonGroup 之间有 collider",
+            "碰撞不影响敌人的追踪 AI 逻辑",
+            "敌人不再出现视觉堆叠（同一像素位置重叠）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-067",
+          "title": "游戏开始时显示操作提示覆盖层",
+          "description": "新玩家进入 GameScene 后没有任何按键提示。WASD移动、空格攻击/交互、ESC暂停等操作全靠猜测。应在游戏开始时显示一个半透明覆盖层，列出核心按键操作（WASD=移动, SPACE=攻击/交互, ESC=暂停），玩家按任意键或3秒后自动消失。这与 US-038 TitleScene 配合，作为新手引导的一环。",
+          "type": "code",
+          "priority": 52,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 开始时显示半透明操作提示面板",
+            "面板包含 WASD/方向键=移动, SPACE=攻击/交互, ESC=暂停 的键位说明",
+            "按任意键或 3 秒后自动淡出消失",
+            "提示不阻塞游戏逻辑（显示期间玩家仍可移动）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-068",
+          "title": "GameScene 硬编码常量参数化 — 从 config 模块读取",
+          "description": "GameScene 顶部硬编码了 SLIME_COUNT=4, SKELETON_COUNT=3, COIN_COUNT=5, HEALTH_POTION_COUNT=3, HEALTH_POTION_HEAL=1, ATTACK_BOOST_COUNT=2, ENEMY_CONTACT_DAMAGE=1 等常量。这些值应与 gdd.json balance 参数保持同步，但当前是手动复制。应创建 src/config/balance.ts 导出所有平衡参数，GameScene 从中导入。这样修改平衡参数只需改一个地方。",
+          "type": "code",
+          "priority": 53,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "创建 src/config/balance.ts 导出所有平衡常量",
+            "GameScene 从 balance.ts 导入而非硬编码",
+            "Player.ts 中的 HP/攻击参数也从 balance.ts 导入",
+            "Slime/Skeleton 的速度/HP 参数从 balance.ts 导入",
+            "所有数值与 gdd.json balance 一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-069",
+          "title": "玩家攻击锥形角度收窄 — dot threshold 从 0.25 调整为 0.5",
+          "description": "Player.isEnemyInAttackRange() 中 dot < 0.25 导致攻击范围接近 165° 扇形（几乎背后都能打到），远超正常动作游戏的攻击锥形。这削弱了攻击方向选择的重要性，玩家几乎不需要面朝敌人就能命中。应将阈值从 0.25 调整为 0.5（即 120° 锥形，cos(60°)=0.5），让攻击方向选择有意义。配合 US-042 攻击挥剑视觉，让玩家明确知道攻击范围。",
+          "type": "code",
+          "priority": 54,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "isEnemyInAttackRange dot 阈值从 0.25 改为 0.5",
+            "攻击锥形为 120°（±60°）扇形",
+            "测试：敌人不在面朝方向 ±60° 范围内时攻击不命中",
+            "测试：敌人在面朝方向 ±60° 范围内时正常命中",
+            "更新 gdd.json balance 添加 attackConeAngle 参数",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
