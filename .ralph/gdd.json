@@ -131,6 +131,12 @@
       "author": "agent-review",
       "change": "第十三轮设计审查新增5个改进US(US-104~US-108)：3房间地牢Skeleton全部堆积出口房间bug、Player死亡alpha闪烁中断、endGame后敌人update仍在执行、敌人idle动画已注册但从未使用、Coins在entrance房间生成降低探索动力。更新 improvements 和 balanceAnalysis。",
       "reason": "深度审查敌人spawn分布逻辑发现3房间地牢Skeleton全在出口房间导致难度尖峰；审查Player死亡流程发现无敌帧闪烁被if(!alive)return跳过导致半透明残留；审查endGame生命周期发现physics.pause不阻止enemy update执行；审查BootScene动画注册发现idle动画从未被调用；审查道具spawn发现Coin是唯一可能在entrance生成的道具"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十四轮设计审查新增8个改进US(US-109~US-116)：AttackBoost限时buff实际代码与设计不一致(handlePlayerAttack中单次消耗)、Chest JustDown竞态根因确认(GameScene.update与Player.update时序)、ResultScene独立ScoreSystem实例与GameScene脱节、overlap闭包失效引用风险、玩家斜向攻击方向偏差(vx==vy时direction总取vy轴)、SoundManager AudioNode高频创建无池化、房间切换fade期间玩家输入未冻结、TitleScene→BootScene重复纹理生成。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十四轮设计审查深入分析代码执行流，发现8个之前审查未覆盖的新问题：(1)AttackBoost在handlePlayerAttack中立即重置attackBoosted=false，与限时buff设计矛盾;(2)GameScene.update的chest JustDown检测虽然代码上在player.update之后，但注释说是修复US-061，实际仍有时序问题;(3)ResultScene new ScoreSystem()与GameScene的scoreSystem完全独立，高分保存逻辑重复且不统一;(4)overlap闭包可能持有旧scene对象引用;(5)对角线移动时abs(vx)==abs(vy)，direction总取vy轴导致永远不朝左右攻击;(6)SoundManager每帧可能创建10+AudioNode无节流;(7)房间fade过渡450ms内玩家可自由移动;(8)重启时BootScene重复生成所有纹理"
     }
   ],
   "improvements": {
@@ -222,7 +228,15 @@
       "US-105: Player死亡alpha恢复 — hp=0时update()直接return跳过无敌帧闪烁，角色可能停在半透明",
       "US-106: endGame后敌人update冻结 — physics.pause不阻止update()调用，敌人逻辑仍在执行",
       "US-107: 敌人idle动画启用 — slime-idle/skeleton-idle已注册但从未播放，添加自然idle行为",
-      "US-108: Coin spawn避开entrance — 改为(i+1)%length与其他道具一致"
+      "US-108: Coin spawn避开entrance — 改为(i+1)%length与其他道具一致",
+      "US-109: AttackBoost限时buff代码修复 — handlePlayerAttack中attackBoosted=false应在计时器到期后清除而非单次攻击后",
+      "US-110: Chest交互JustDown时序根因 — GameScene.update中nearChest检测在player.update之后，JustDown已被消费(US-102补充)",
+      "US-111: ResultScene ScoreSystem实例管理 — 高分保存应统一走GameScene.scoreSystem.saveHighScore()",
+      "US-112: overlap闭包引用安全 — 添加GameScene.shutdown()显式清理physics collider",
+      "US-113: 斜向攻击方向修正 — vx归一化后|vx|==|vy|，direction判定需改为基于最后按键方向",
+      "US-114: SoundManager节流优化 — 同类型音效100ms内不重复，预分配buffer",
+      "US-115: 房间切换输入冻结 — fade过渡期间setVelocity(0,0)禁止移动",
+      "US-116: BootScene纹理缓存 — textures.exists()检查避免重复生成"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -591,6 +605,26 @@
         "area": "Coin在出生点生成",
         "detail": "Coin spawn用 `rooms[i % rooms.length]`，i=0时在entrance room生成。玩家出生就能拾取，零探索成本。其他道具都跳过entrance",
         "recommendation": "改为 `(i+1) % rooms.length` 与其他道具一致（US-108）"
+      },
+      {
+        "area": "AttackBoost单次消耗",
+        "detail": "handlePlayerAttack末尾 if(this.attackBoosted){this.attackBoosted=false;} 导致buff只持续一次攻击。GDD设计目标(US-030)是10秒限时buff，但代码实现是一击消耗。这是设计与实现的核心矛盾",
+        "recommendation": "移除handlePlayerAttack中的attackBoosted=false，改为timer-based清除(US-109)"
+      },
+      {
+        "area": "斜向攻击方向丢失",
+        "detail": "Player.update()斜向移动时vx/vy归一化后|vx|≈|vy|，Math.abs(vx)>Math.abs(vy)永远false，direction总取vy方向。玩家向右上方移动时实际朝上攻击而非右，严重削弱战斗操控精度",
+        "recommendation": "引入lastPressedAxis记忆最后按下的轴方向，斜向时优先使用该轴(US-113)"
+      },
+      {
+        "area": "音效资源无节流",
+        "detail": "SoundManager每个play方法创建OscillatorNode+GainNode+Filter。连续攻击3个敌人瞬间创建9+AudioNode(3×playAttack+3×playEnemyDeath)。Web Audio虽然会GC但高频创建可能导致glitch",
+        "recommendation": "添加100ms同类型音效节流+AudioNode池(US-114)"
+      },
+      {
+        "area": "场景过渡输入泄漏",
+        "detail": "RoomCameraSystem fade过渡450ms内GameScene.update()继续执行，玩家可移动但相机bounds未切换。移动到走廊区域时相机不跟随=玩家消失在屏幕外",
+        "recommendation": "isTransitioning()为true时冻结玩家setVelocity(0,0)(US-115)"
       }
     ]
   }

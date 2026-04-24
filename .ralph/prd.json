@@ -1755,6 +1755,146 @@
             "Coin分布在非entrance房间中",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-109",
+          "title": "AttackBoost 一次性消耗改为限时 buff — 修复实际伤害公式",
+          "description": "当前代码中 AttackBoost 拾取后 attackBoosted=true，下次攻击立即消耗(attackBoosted=false)。这意味着「双倍伤害」只在第一次攻击生效，与 GDD 改进计划中 US-030 限时10s buff 的目标矛盾。且 ResultScene 文案 \"defeated all enemies\" 未同步修正。应：(1)attackBoosted 不在单次攻击后清除；(2)添加10秒计时器，到期自动清除；(3)HUD显示倒计时。",
+          "type": "code",
+          "priority": 94,
+          "status": "pending",
+          "dependsOn": [
+            "US-030",
+            "US-059",
+            "US-046"
+          ],
+          "acceptanceCriteria": [
+            "拾取 AttackBoost 后 10 秒内所有攻击均为双倍伤害",
+            "HUD 显示 buff 剩余时间倒计时",
+            "buff 到期后 attackBoosted 自动重置为 false",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-110",
+          "title": "Chest interaction JustDown race condition — Space key consumed by player attack first",
+          "description": "GameScene.update() 调用 JustDown(spaceKey) 检测宝箱交互，但 Player.update() 在同一帧先调用 JustDown(spaceKey) 触发攻击。Phaser JustDown 是单次消费的，Player 先消费后 GameScene 永远检测不到。虽然当前代码在 GameScene.update() 中有 nearChest 前置检查，但 JustDown 在 Player.update() 中已被消费。解决方案：将宝箱检测逻辑移到 Player.update() 之前执行，或改用独立按键（E键）。",
+          "type": "code",
+          "priority": 95,
+          "status": "pending",
+          "dependsOn": [
+            "US-102"
+          ],
+          "acceptanceCriteria": [
+            "靠近宝箱时按 Space 能可靠触发宝箱交互",
+            "不靠近宝箱时 Space 正常触发攻击",
+            "JustDown 不被 player.update() 提前消费",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-111",
+          "title": "ResultScene new ScoreSystem() 创建独立实例 — 与 GameScene ScoreSystem 状态脱节",
+          "description": "ResultScene.create() 中 new ScoreSystem() 创建了一个全新的 ScoreSystem 实例来读取/写入最高分。虽然 getHighScore() 从 localStorage 读取（跨实例可用），但 saveHighScore() 从未被调用（GameScene.endGame 只传 score 数值）。高分保存逻辑在 ResultScene 内部用 localStorage.setItem 手动实现，与 ScoreSystem.saveHighScore() 重复。应统一高分保存路径：GameScene.endGame 中调用 scoreSystem.saveHighScore()，ResultScene 通过 scene data 传递 isNewRecord 标记。",
+          "type": "code",
+          "priority": 96,
+          "status": "pending",
+          "dependsOn": [
+            "US-062"
+          ],
+          "acceptanceCriteria": [
+            "GameScene.endGame 调用 scoreSystem.saveHighScore()",
+            "ResultScene 通过 scene data 接收 isNewRecord 标记",
+            "ResultScene 不再创建独立的 ScoreSystem 实例",
+            "高分记录保存和读取路径统一",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-112",
+          "title": "Overlap 回调闭包引用旧对象 — scene 重启后可能持有失效引用",
+          "description": "GameScene.create() 中 physics.add.overlap() 使用内联箭头函数作为回调，这些闭包捕获了 this.slimes、this.player 等引用。当 scene 通过 scene.start 重启时，如果 Phaser 内部未完全清理 overlap collider，旧回调可能引用已被销毁的对象。虽然 Phaser 通常会在 scene shutdown 时清理所有 collider，但 Slime/Skeleton 的 die()→destroy() 时序（US-082）与 overlap 回调的交互需要验证。应添加 GameScene.shutdown() 显式清理所有 physics collider。",
+          "type": "code",
+          "priority": 97,
+          "status": "pending",
+          "dependsOn": [
+            "US-077",
+            "US-082",
+            "US-090"
+          ],
+          "acceptanceCriteria": [
+            "添加 GameScene.shutdown() 方法显式清理",
+            "验证 scene.start 重启后无残留 overlap 回调",
+            "连续重启游戏 10 次无报错",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-113",
+          "title": "玩家斜向移动时攻击方向判定精度不足 — 对角线攻击偏差",
+          "description": "Player.update() 斜向移动时 direction 取 Math.abs(vx) > Math.abs(vy) 的主轴方向。但斜向移动 vx/vy 归一化后 |vx|=|vy|≈0.707，所以 abs(vx) > abs(vy) 永远为 false，direction 总是取 vy 方向（上下）。这意味着斜向移动时永远朝上或下攻击，永远不会左右攻击。攻击方向判断应改为基于实际输入按键组合：同时按右+上时应取最后按下的方向，或添加专门的朝向记忆。",
+          "type": "code",
+          "priority": 98,
+          "status": "pending",
+          "dependsOn": [
+            "US-071"
+          ],
+          "acceptanceCriteria": [
+            "斜向移动时攻击方向反映实际输入意图",
+            "vx == vy 时使用最后按下的按键方向",
+            "8方向攻击方向判定均可触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-114",
+          "title": "SoundManager 每次播放创建新 AudioNode — 缺少资源池和生命周期管理",
+          "description": "SoundManager 的每个 play 方法（playAttack/playPickup/playHurt/playEnemyDeath/playChestOpen）每次调用都创建新的 BufferSource/Oscillator/GainNode/BiquadFilter。在频繁战斗场景中（连续攻击多个敌人），短时间可能创建大量 AudioNode。虽然 Web Audio GC 会回收已停止的节点，但高频创建可能导致音频毛刺或内存压力。应添加节流（同类型音效 100ms 内不重复播放）或预分配音频 buffer。",
+          "type": "code",
+          "priority": 99,
+          "status": "pending",
+          "dependsOn": [
+            "US-023"
+          ],
+          "acceptanceCriteria": [
+            "同类型音效 100ms 内不重复播放",
+            "连续战斗 30 秒无音频毛刺",
+            "AudioNode 创建频率有上限",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-115",
+          "title": "房间切换 fade 过渡期间玩家仍可移动 — 可能进入无效区域",
+          "description": "RoomCameraSystem.triggerTransition() 执行 200ms fadeOut + 50ms hold + 200ms fadeIn 共约 450ms。期间 GameScene.update() 继续执行（gameOver=false），玩家可以继续移动。由于相机 bounds 在 FADE_OUT_COMPLETE 后才切换到新房间，fadeOut 期间相机仍锁定旧房间，玩家可能走出旧房间边界进入走廊但相机不跟随。应在过渡期间冻结玩家输入（设置 isTransitioning 标志）。",
+          "type": "code",
+          "priority": 100,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "fade 过渡期间玩家移动被冻结",
+            "过渡完成后恢复玩家控制",
+            "不影响相机跟随和 bounds 切换",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-116",
+          "title": "TitleScene → BootScene → GameScene 链路多余 — BootScene 重复创建纹理",
+          "description": "TitleScene.startGame() 调用 this.scene.start(\"BootScene\")。BootScene.create() 会重新生成所有程序化纹理（knight/slime/skeleton/chest 等的 generateTexture）。如果 BootScene 之前已执行过（第一次启动），重启游戏时 TitleScene→BootScene→GameScene 链路会重复创建纹理。应在 BootScene 中检查纹理是否已存在（this.textures.exists()），避免重复生成。",
+          "type": "code",
+          "priority": 101,
+          "status": "pending",
+          "dependsOn": [
+            "US-024",
+            "US-090"
+          ],
+          "acceptanceCriteria": [
+            "BootScene.create() 检查纹理已存在则跳过生成",
+            "重启游戏流程不产生冗余纹理创建",
+            "首次启动和重启后纹理均正确渲染",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
