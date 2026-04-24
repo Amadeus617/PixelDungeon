@@ -1,6 +1,8 @@
 import Phaser from "phaser";
+import { EnemyHpBar } from "@/ui/EnemyHpBar";
 
 const SLIME_SPEED = 60;
+const HP_BAR_Y_OFFSET = -20;
 const DIR_CHANGE_MIN = 1500;
 const DIR_CHANGE_MAX = 3500;
 const SLIME_MAX_HP = 3;
@@ -25,6 +27,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private _maxHp: number = SLIME_MAX_HP;
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
+  private hpBar!: EnemyHpBar;
 
   get hp(): number {
     return this._hp;
@@ -51,6 +54,9 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     body.setBoundsRectangle(
       scene.physics.world.bounds as Phaser.Geom.Rectangle
     );
+
+    // HP bar (above sprite)
+    this.hpBar = new EnemyHpBar(scene, x, y + HP_BAR_Y_OFFSET, SLIME_MAX_HP);
 
     this.pickDirection();
     this.play("slime-move", true);
@@ -91,12 +97,16 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
       this.knockbackTimer = KNOCKBACK_DURATION;
     }
 
+    // Update HP bar
+    this.hpBar.setHp(this._hp, this._maxHp);
+
     if (this._hp <= 0) {
       this.die();
     }
   }
 
   private die(): void {
+    if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
     this.setActive(false);
     this.setVisible(false);
@@ -114,6 +124,11 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
         this.pickDirection();
       }
       return;
+    }
+
+    // Keep HP bar positioned above sprite
+    if (this.hpBar && this.hpBar.active) {
+      this.hpBar.follow(this);
     }
 
     this.dirTimer += delta;

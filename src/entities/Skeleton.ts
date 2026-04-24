@@ -1,8 +1,10 @@
 import Phaser from "phaser";
+import { EnemyHpBar } from "@/ui/EnemyHpBar";
 
 const SKELETON_SPEED = 45;
 const SKELETON_MAX_HP = 2;
 const TRACK_RANGE = 200;
+const HP_BAR_Y_OFFSET = -20;
 const KNOCKBACK_SPEED = 300;
 const KNOCKBACK_DURATION = 150;
 
@@ -16,6 +18,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private wanderVy: number = 0;
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
+  private hpBar!: EnemyHpBar;
 
   get hp(): number {
     return this._hp;
@@ -42,6 +45,9 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     body.setBoundsRectangle(
       scene.physics.world.bounds as Phaser.Geom.Rectangle
     );
+
+    // HP bar (above sprite)
+    this.hpBar = new EnemyHpBar(scene, x, y + HP_BAR_Y_OFFSET, SKELETON_MAX_HP);
 
     this.pickWanderDirection();
     this.play("skeleton-move", true);
@@ -84,12 +90,16 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
       this.knockbackTimer = KNOCKBACK_DURATION;
     }
 
+    // Update HP bar
+    this.hpBar.setHp(this._hp, this._maxHp);
+
     if (this._hp <= 0) {
       this.die();
     }
   }
 
   private die(): void {
+    if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
     this.setActive(false);
     this.setVisible(false);
@@ -128,6 +138,11 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     }
 
     // Wander randomly
+    // Keep HP bar positioned above sprite
+    if (this.hpBar && this.hpBar.active) {
+      this.hpBar.follow(this);
+    }
+
     this.dirTimer += delta;
     if (this.dirTimer >= this.dirInterval) {
       this.pickWanderDirection();
