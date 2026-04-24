@@ -2054,6 +2054,138 @@
             "攻击中停止不触发idle动画",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-127",
+          "title": "ResultScene → TitleScene 重启流程 — 游戏结束后应返回标题画面",
+          "description": "当前 ResultScene 按空格直接 scene.start('GameScene')，跳过 TitleScene。玩家无法回到标题画面选择重新开始、查看操作说明或输入种子。正确流程应为 ResultScene → TitleScene → BootScene → GameScene，或在 ResultScene 提供两个选项：Restart（快速重开）和 Title（回到标题）。同时 ResultScene 当前 scene.start('GameScene') 不经过 BootScene，理论上纹理缓存有效但缺少明确的资源重新校验步骤。",
+          "type": "code",
+          "priority": 112,
+          "status": "pending",
+          "dependsOn": [
+            "US-098"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene 提供返回标题画面选项",
+            "快速重启和返回标题两个选项可区分",
+            "重启流程经过 BootScene 确保资源完整性",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-128",
+          "title": "HUD roomLabel 硬编码5个房间名 — 超出范围显示 Room N+1",
+          "description": "HUD.getRoomLabel() 使用硬编码 labels 数组 ['Entrance Hall', 'Guard Room', 'Dark Chamber', 'Treasure Vault', 'Exit Passage']。当地牢房间数超过5时（gdd.json 允许3-5，但未来扩展可能更多），超出索引的房间显示 'Room N+1'。即使当前3-5房间，最后一间是 'Exit Passage' 而非基于实际房间用途动态生成。应改为基于房间角色（entrance/exit/mid）+ 索引生成语义化标签。",
+          "type": "code",
+          "priority": 113,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "房间标签基于房间角色动态生成",
+            "所有房间数量下标签语义正确（入口/出口/中间房间）",
+            "超出索引时有合理 fallback",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-129",
+          "title": "Minimap renderTexture 创建但从未使用 — 浪费 GPU 内存",
+          "description": "Minimap 构造函数创建了一个 RenderTexture（160×120像素）并添加到容器中，但 update() 方法完全使用 Graphics 对象直接绘制，从未调用 renderTexture.draw() 或 clear()。这个 RenderTexture 每帧被添加到显示列表但不渲染任何内容，浪费 GPU 内存和绘制批次。应删除 renderTexture 相关代码，或改为使用 renderTexture 做离屏渲染以减少每帧 Graphics 绘制的开销。",
+          "type": "code",
+          "priority": 114,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除未使用的 RenderTexture 或改为有效使用",
+            "Minimap 显示效果不变",
+            "减少不必要的 GPU 对象",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-130",
+          "title": "Slime/Skeleton 构造时播放 move 动画 — 不应默认开始移动",
+          "description": "Slime 构造函数末尾调用 this.play('slime-move', true)，Skeleton 调用 this.play('skeleton-move', true)。但这两个实体在构造时 velocity 为 0（pickDirection/pickWanderDirection 在构造函数中调用设置速度），所以动画和速度在构造时是同步的。然而这违背了 US-107 的设计意图（敌人应偶尔 idle）。更重要的是，构造后第一帧 update 就开始 dirTimer 计时，意味着敌人永远不会在初始状态显示 idle 动画。US-107 提出了 idle 行为但未指出构造时硬编码 move 动画的问题。",
+          "type": "code",
+          "priority": 115,
+          "status": "pending",
+          "dependsOn": [
+            "US-107"
+          ],
+          "acceptanceCriteria": [
+            "敌人构造时可以播放 idle 或 move 动画，与初始移动状态一致",
+            "配合 US-107 idle 行为实现自然行为",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-131",
+          "title": "GameScene slime overlap 回调受伤音效条件错误 — hp<maxHp 不等于本次受伤",
+          "description": "slime overlap 回调中 `if (this.player.hp < this.player.maxHp) { this.soundManager.playHurt(); }` 判断 hp<maxHp 来决定是否播放 hurt 音效。这个条件在以下情况下错误：(1) 玩家已受伤（hp=8/maxHp=10），无敌帧期间被 overlap 触发，takeDamage 内部 return 不扣血，但 hp(8)<maxHp(10) 仍为 true，音效误播。(2) 玩家满血但被扣1血后 hp=9<maxHp=10 为 true，音效正确播放。条件应改为检查 takeDamage 是否实际造成伤害（与 US-117 takeDamage 返回 boolean 对齐），而非基于当前血量推断。Skeleton overlap 有相同 bug。",
+          "type": "code",
+          "priority": 116,
+          "status": "pending",
+          "dependsOn": [
+            "US-101",
+            "US-117"
+          ],
+          "acceptanceCriteria": [
+            "hurt 音效只在实际扣血时播放",
+            "无敌帧期间 overlap 不触发 hurt 音效",
+            "slime 和 skeleton overlap 统一逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-132",
+          "title": "Player.getAttackZone direction=idle fallback 硬编码 down — 攻击方向丢失",
+          "description": "Player.getAttackZone() 中 `const dir = this._direction === 'idle' ? 'down' : this._direction;`。但 US-071 将 idle 逻辑改为保留最后朝向后，_direction 不再会是 'idle'（停止移动时改为 idle-{direction} 但 _direction 保留实际方向）。然而 Player 类型定义 Direction 包含 'idle'，构造时 this._direction = 'down'，update 中斜向 vx=0&&vy=0 时不更新 _direction。如果未来某处代码重置 _direction 为 'idle'，getAttackZone fallback 会让攻击方向突变为 down。应移除 Direction 类型的 'idle' 值（玩家总有一个实际朝向），或改为 fallback 到最后有效方向。",
+          "type": "code",
+          "priority": 117,
+          "status": "pending",
+          "dependsOn": [
+            "US-071"
+          ],
+          "acceptanceCriteria": [
+            "Direction 类型不再包含 idle 值",
+            "玩家始终有有效朝向用于攻击判定",
+            "不存在攻击方向突变为 down 的可能",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-133",
+          "title": "GameScene endGame 不保存高分 — saveHighScore 只在 ResultScene 调用",
+          "description": "GameScene.endGame() 通过 scene.start('ResultScene', {result, score}) 传递 score，由 ResultScene 创建新的 ScoreSystem 实例后 saveHighScore。但 ResultScene 中 new ScoreSystem() 创建的是空实例（_score=0），然后用传入的 score 与 getHighScore() 比较。如果 localStorage 不可用（try-catch 被吞掉），高分保存静默失败。更严重的是：ResultScene 创建独立 ScoreSystem 而非使用 GameScene 的实例（US-111 已指出），saveHighScore 应在 GameScene.endGame 中调用（那里 scoreSystem._score 是实际值），而非在 ResultScene 中通过原始 score 参数重新判断。",
+          "type": "code",
+          "priority": 118,
+          "status": "pending",
+          "dependsOn": [
+            "US-111"
+          ],
+          "acceptanceCriteria": [
+            "高分保存在 GameScene.endGame 中执行",
+            "ResultScene 只显示高分结果不负责保存",
+            "localStorage 不可用时有降级处理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-134",
+          "title": "inventory.remove('key') 开箱后钥匙永久丢失 — 多宝箱场景下不可用",
+          "description": "handleChestInteraction 中 inventory.remove('key') 后 chest.open()。如果未来实现多钥匙多宝箱（US-095），每次开箱消耗一把钥匙。但当前 Inventory 的 add/remove 是基于字符串键的，连续 add('key') 两次不会有计数增加（取决于 Inventory 实现）。需确认 Inventory 是否支持数量计数（如2把钥匙），以及 remove 是否正确扣减数量而非直接删除条目。",
+          "type": "code",
+          "priority": 119,
+          "status": "pending",
+          "dependsOn": [
+            "US-095"
+          ],
+          "acceptanceCriteria": [
+            "Inventory 支持同类道具数量计数",
+            "remove 扣减数量而非删除条目",
+            "has() 检查数量>0",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

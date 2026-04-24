@@ -143,6 +143,12 @@
       "author": "agent-review",
       "change": "第十五轮设计审查新增10个改进US(US-117~US-126)：takeDamage返回值修复、die()延迟销毁+tween动画、宝箱奖励掉落实现、攻击命中屏幕shake+粒子、走廊过渡Player.frozen属性、Minimap走廊分段渲染、敌人接触伤害500ms冷却、玩家受伤knockback实现、returnWorldHeight遗留方法删除、攻击动画状态锁定。更新 improvements 和 balanceAnalysis。",
       "reason": "第十五轮设计审查深入分析代码执行流和游戏体验，发现10个之前审查未覆盖的新问题：(1)Player.takeDamage返回void导致调用方无法判断是否实际受伤，hurt音效逻辑与伤害逻辑耦合不正确;(2)die()立即destroy与US-064消散动画和US-082延迟销毁冲突，需统一为tween方案;(3)US-057宝箱奖励只描述设计层，缺少Chest.open()生成掉落物品的实现方案;(4)攻击命中缺乏screen-level反馈(camera shake/粒子)，独立于挥剑视觉(US-042)和敌人受击闪白(US-022);(5)US-115只描述问题未给出Player.frozen属性的具体实现;(6)US-093 corridor数据修复需要Minimap渲染层的具体实现;(7)敌人接触伤害完全依赖player无敌帧，缺少enemy端冷却形成单点故障;(8)US-029描述玩家knockback但缺少具体实现参数;(9)US-058描述遗留方法但未明确return前缀命名错误的细节;(10)Player isAttacking状态管理不正确导致攻击期间动画状态异常"
+    },
+    {
+      "date": "2026-04-24",
+      "author": "agent-review",
+      "change": "第十六轮设计审查新增8个改进US(US-127~US-134)：ResultScene重启流程应返回TitleScene、HUD房间标签硬编码修复、Minimap renderTexture未使用清理、敌人构造时动画与US-107对齐、slime/skeleton overlap hurt音效条件错误修复(hp<maxHp不等价于本次受伤)、Player Direction类型移除idle值、高分保存应在GameScene而非ResultScene执行、Inventory道具数量计数支持(为US-095多钥匙铺路)。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十六轮设计审查深入分析游戏流程闭环、资源管理和类型安全，发现8个之前审查未覆盖的新问题：(1)ResultScene→GameScene直接重启跳过TitleScene，违背完整游戏流程设计;(2)HUD getRoomLabel硬编码5个房间名不适配可变房间数;(3)Minimap RenderTexture创建但从未使用浪费GPU内存;(4)敌人构造时硬编码move动画与US-107 idle行为设计矛盾;(5)slime/skeleton overlap回调中hp<maxHp音效条件在有先前伤害时无敌帧期间仍误播，US-101描述了症状但未指出具体错误条件;(6)Direction类型包含idle值导致攻击方向fallback硬编码down，US-071修复后idle不应再出现;(7)高分保存在ResultScene独立ScoreSystem中执行而非GameScene，与US-111相关但关注不同层面;(8)Inventory基于字符串键不支持数量计数，是US-095多宝箱的前置依赖"
     }
   ],
   "improvements": {
@@ -252,7 +258,15 @@
       "US-123: 敌人接触伤害500ms冷却 — enemy端contactDamageCooldown独立于player无敌帧",
       "US-124: 玩家受伤knockback实现 — 击退速度150px/s，持续200ms，方向远离攻击者，输入被覆盖",
       "US-125: returnWorldHeight遗留方法删除 — 确认无引用后删除DungeonMap.returnWorldHeight()",
-      "US-126: 攻击动画状态锁定 — isAttacking期间不播放新动画，200ms后恢复正常动画逻辑"
+      "US-126: 攻击动画状态锁定 — isAttacking期间不播放新动画，200ms后恢复正常动画逻辑",
+      "US-127: ResultScene → TitleScene 重启流程 — 游戏结束后提供返回标题画面选项，完整流程闭环",
+      "US-128: HUD getRoomLabel 硬编码修复 — 基于房间角色动态生成语义化标签，适配可变房间数",
+      "US-129: Minimap renderTexture 清理 — 删除未使用的 RenderTexture 减少 GPU 内存浪费",
+      "US-130: 敌人构造时动画对齐 — 配合 US-107 idle 行为，构造时可播放 idle 而非硬编码 move",
+      "US-131: overlap hurt 音效条件修复 — hp<maxHp 不等价于本次受伤，改为依赖 takeDamage 返回值(US-117)",
+      "US-132: Direction 类型移除 idle — 玩家始终有有效朝向，消除攻击方向 fallback 到 down 的风险",
+      "US-133: 高分保存移至 GameScene.endGame — 在实际 scoreSystem 实例上保存而非 ResultScene 独立实例",
+      "US-134: Inventory 道具数量计数 — 支持 has/add/remove 数量操作，为 US-095 多钥匙多宝箱铺路"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -681,6 +695,31 @@
         "area": "攻击动画状态管理缺陷",
         "detail": "Player.isAttacking=true时，update()中isMoving分支检查!isAttacking跳过walk播放，!isMoving分支也检查!isAttacking跳过idle播放。但攻击时显式play(idle-{direction})——200ms窗口内如果持续按键，update循环中isAttacking检查会阻止所有动画更新，可能导致动画卡在attack时的idle帧",
         "recommendation": "攻击期间锁定所有动画更新，200ms后统一恢复(US-126)"
+      },
+      {
+        "area": "游戏流程不完整",
+        "detail": "ResultScene 按空格直接重启 GameScene，跳过 TitleScene。玩家无法回到标题画面，无法重新查看操作说明或更改设置。完整游戏流程应支持 Title ↔ Game ↔ Result 的循环",
+        "recommendation": "ResultScene 提供两个选项：快速重启（→GameScene）和返回标题（→TitleScene）（US-127）"
+      },
+      {
+        "area": "overlap 音效逻辑错误",
+        "detail": "slime/skeleton overlap 回调用 hp<maxHp 判断是否播放 hurt 音效。当玩家已有先前伤害时（如 hp=8），无敌帧期间 overlap 触发 takeDamage 但不扣血，hp(8)<maxHp(10) 仍为 true 导致音效误播。这不是 US-101 描述的\"无条件播放\"，而是更隐蔽的条件判断错误",
+        "recommendation": "改为基于 takeDamage 返回值判断（US-131，依赖 US-117）"
+      },
+      {
+        "area": "Direction 类型安全",
+        "detail": "Direction 类型包含 'idle' 值，但玩家停止移动时 _direction 不应变为 'idle'（US-071 修复后保留最后朝向）。Direction.idle 的存在意味着攻击判定 getAttackZone 需要硬编码 fallback（idle→down），这是一个类型系统未能排除的无效状态",
+        "recommendation": "从 Direction 联合类型中移除 'idle'，玩家始终有实际朝向（US-132）"
+      },
+      {
+        "area": "高分保存架构错误",
+        "detail": "ResultScene 创建独立 ScoreSystem 实例（_score=0），用传入的原始 score 参数与 localStorage 高分比较。如果 localStorage 不可用（try-catch 静默吞掉），保存失败无任何反馈。且 GameScene.scoreSystem.saveHighScore() 从未被调用",
+        "recommendation": "高分保存在 GameScene.endGame() 中调用，ResultScene 只负责显示（US-133）"
+      },
+      {
+        "area": "Inventory 无数量计数",
+        "detail": "Inventory 使用字符串键（如 'key'），连续 add('key') 两次的行为取决于实现。如果底层是 Set，第二次 add 无效果；如果是 Map+boolean，也不支持计数。US-095 多钥匙多宝箱的基础是 Inventory 支持数量",
+        "recommendation": "改为 Map<string, number>，add 递增、remove 递减、has 检查 >0（US-134）"
       }
     ]
   }
