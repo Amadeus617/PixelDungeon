@@ -2306,6 +2306,97 @@
             "移除不必要的双重边界设置",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-143",
+          "title": "US-028难度缩放维度不完整 — Skeleton数量和Slime速度不随runCount递增",
+          "description": "当前难度缩放(US-028)只影响: (1)Slime数量从4递增至8上限 (2)Skeleton速度+10%每run至200%上限。但Skeleton数量硬编码SKELETON_COUNT=3不变，Slime速度硬编码SLIME_SPEED=60不变。多次通关后只有\"更多slime+更快skeleton\"，缺少\"更多skeleton\"和\"更快slime\"两个维度。建议: Slime速度从60递增至90上限(+5每run)，Skeleton数量从3递增至5上限(+1每2runs)。",
+          "type": "code",
+          "priority": 128,
+          "status": "pending",
+          "dependsOn": [
+            "US-028"
+          ],
+          "acceptanceCriteria": [
+            "Slime速度随runCount递增(60->90上限)",
+            "Skeleton数量随runCount递增(3->5上限)",
+            "gdd.json balance新增slimeSpeedMultiplier和skeletonCountScaling参数",
+            "难度标签HUD反映实际难度变化"
+          ]
+        },
+        {
+          "id": "US-144",
+          "title": "GameScene.gameOver阻断HUD更新 — endGame后分数/状态不再刷新",
+          "description": "GameScene.update()第一行if(this.gameOver)return;直接return，跳过了this.hud.update()。endGame调用后800ms延迟转场期间，HUD完全冻结。如果endGame触发时有未反映的分数变化(如最后一击击杀得分)，HUD不会更新显示最终分数。虽然转场较快(800ms)影响有限，但作为架构问题应修复: gameOver check应只阻断player/enemy update，HUD应继续更新直到转场。",
+          "type": "code",
+          "priority": 129,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gameOver后HUD.update()仍被调用",
+            "player.update和enemy.update被gameOver阻断但HUD不受影响",
+            "转场前最终得分正确显示"
+          ]
+        },
+        {
+          "id": "US-145",
+          "title": "Slime/Skeleton takeDamage闪白delayedCall在die()后残留引用",
+          "description": "Slime.takeDamage()中: this.scene.time.delayedCall(100, () => { if(this.active) this.clearTint(); }); 如果这次攻击将HP降至0，die()在同一调用栈中执行setActive(false)+destroy()。100ms后delayedCall执行时if(this.active)为false所以有guard保护。但destroy()后对象处于已销毁状态，访问this.scene或this.active可能不安全。更关键的是delayedCall持有对已destroy对象的闭包引用阻碍GC。Skeleton也有同样问题。建议: die()中取消pending delayedCall，或改用tween(destroy时自动清理)。",
+          "type": "code",
+          "priority": 130,
+          "status": "pending",
+          "dependsOn": [
+            "US-118"
+          ],
+          "acceptanceCriteria": [
+            "die()时清理所有pending delayedCall",
+            "destroy后不会有残留timer引用已销毁对象",
+            "Slime和Skeleton统一处理"
+          ]
+        },
+        {
+          "id": "US-146",
+          "title": "buildCorridor()走廊元数据含大量重复条目 — 确认死代码后删除",
+          "description": "dungeonData.ts中buildCorridor()函数在goHorizontalFirst分支中: 外层for循环遍历每个c和dr，循环体内无条件corridors.push()创建corridor条目。3 tiles宽、20+ tiles长的走廊会生成60+条重复corridor记录。US-138标记为死代码是正确的(当前无调用方)，但函数内部的bug(循环内无条件push)说明它从未被正确实现过。直接删除避免未来误用。",
+          "type": "code",
+          "priority": 131,
+          "status": "pending",
+          "dependsOn": [
+            "US-138"
+          ],
+          "acceptanceCriteria": [
+            "buildCorridor确认无调用方后删除",
+            "走廊数据统一由paintCorridors生成"
+          ]
+        },
+        {
+          "id": "US-147",
+          "title": "EnemyHpBar follow使用硬编码偏移 — 不同scale敌人血条位置不一致",
+          "description": "EnemyHpBar.follow(sprite)使用固定y偏移-20像素。当前所有敌人scale=3(sprize约48px)，-20偏移刚好在头顶。但EnemyHpBar构造函数也定义了HP_BAR_Y_OFFSET=-20常量却未使用(follow用的是另一个同名常量)。两处定义不一致: 构造函数HP_BAR_Y_OFFSET=-20和类顶部常量HP_BAR_Y_OFFSET=-20。如果未来添加不同大小敌人，血条位置会错误。建议: 基于sprite.displayHeight自动计算偏移。",
+          "type": "code",
+          "priority": 132,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HP条位置基于sprite.displayHeight动态计算",
+            "移除硬编码-20偏移",
+            "统一HP_BAR_Y_OFFSET常量定义"
+          ]
+        },
+        {
+          "id": "US-148",
+          "title": "paintCorridors走廊direction字段随机赋值而非反映实际carve方向",
+          "description": "dungeonData.ts paintCorridors()末尾: direction: rng() > 0.5 ? \"horizontal\" : \"vertical\"。这个direction是随机生成的，与上方实际执行的carve顺序无关。虽然direction字段当前不影响Minimap渲染(Minimap只用start/end画直线)，但语义错误会在未来被依赖时产生bug。与US-093(走廊数据不准确)相关但关注不同层面: US-093关注缺少分段数据，本US关注direction语义错误。",
+          "type": "code",
+          "priority": 133,
+          "status": "pending",
+          "dependsOn": [
+            "US-093"
+          ],
+          "acceptanceCriteria": [
+            "corridor.direction正确反映实际carve方向",
+            "或删除无用的direction字段"
+          ]
         }
       ]
     }

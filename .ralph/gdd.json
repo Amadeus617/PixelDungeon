@@ -155,6 +155,12 @@
       "author": "agent-review",
       "change": "第十七轮设计审查新增8个改进US(US-135~US-142)：TitleScene→BootScene多余跳转、Skeleton追踪模式HP条不跟随、overlap回调防御性active检查、buildCorridor死代码删除、GameResultData interface统一跨场景数据、Player body bounds与camera bounds一致性审查、HUD update每帧字符串GC优化、Slime/Skeleton双重边界设置碰墙双重触发。更新 improvements 和 balanceAnalysis。",
       "reason": "第十七轮设计审查深入分析游戏启动流程、敌人生命周期细节、代码死路径、跨场景数据架构、性能和边界设置，发现8个之前审查未覆盖的新问题：(1)TitleScene跳转BootScene再跳GameScene的多余中间环节导致重复纹理生成;(2)Skeleton.update追踪模式early return跳过HP bar follow导致血条位置脱离;(3)overlap回调缺少active防御检查;(4)buildCorridor()约30行完全死代码增加维护负担;(5)跨场景数据传递缺少统一interface;(6)Player body bounds与camera bounds架构不一致隐患;(7)HUD每帧创建字符串对象造成不必要GC压力;(8)enemy双重边界设置可能导致碰墙双重方向切换"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第十八轮设计审查新增6个改进US(US-143~US-148)：US-028难度缩放维度补全(Skeleton数量+Slime速度递增)、gameOver后HUD冻结修复、Slime/Skeleton takeDamage闪白delayedCall残留引用清理、buildCorridor死代码确认删除、EnemyHpBar偏移动态计算、paintCorridors direction字段语义修正。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十八轮设计审查深入分析难度缩放完整性、游戏结束生命周期管理、敌人die()后资源清理、死代码确认、HP条布局健壮性、corridor元数据准确性，发现6个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -280,7 +286,13 @@
       "US-139: GameResultData interface统一 — 定义包含所有统计字段的interface，替代零散data传递",
       "US-140: Player body bounds与camera bounds一致性审查 — 确保房间切换时bounds不冲突",
       "US-141: HUD update缓存优化 — 只在值变化时调用setText，减少每帧字符串创建和bitmap重绘",
-      "US-142: Slime/Skeleton双重边界设置审查 — setCollideWorldBounds+setBoundsRectangle可能导致碰墙双重方向切换"
+      "US-142: Slime/Skeleton双重边界设置审查 — setCollideWorldBounds+setBoundsRectangle可能导致碰墙双重方向切换",
+      "US-143: US-028难度缩放补全 — Slime速度递增(60->90)+Skeleton数量递增(3->5)",
+      "US-144: gameOver后HUD继续更新 — 分离gameOver与HUD update",
+      "US-145: takeDamage闪白delayedCall清理 — die()时取消pending timer",
+      "US-146: buildCorridor死代码确认删除 — 与US-138一并清理",
+      "US-147: EnemyHpBar偏移动态化 — 基于sprite.displayHeight计算",
+      "US-148: corridor direction语义修正 — 反映实际carve方向"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -754,6 +766,21 @@
         "area": "敌人碰墙双重方向切换",
         "detail": "Slime/Skeleton同时设置了setCollideWorldBounds(true)和body.setBoundsRectangle()。碰墙时可能同时触发world bounds反弹和wall collider onHitWall回调，导致方向连续切换两次，表现为碰墙后瞬间又转向",
         "recommendation": "审查双重边界设置的交互，移除不必要的重复（US-142）"
+      },
+      {
+        "area": "难度缩放维度不完整",
+        "detail": "US-028只缩放Slime数量(4->8)和Skeleton速度(+10%/run)。Skeleton数量固定3个、Slime速度固定60px/s不变。多次通关后玩家面对的是'更多但同样慢的Slime+同样多但更快的Skeleton'，缺乏多样性递增",
+        "recommendation": "Slime速度从60递增至90(+5/run)，Skeleton数量从3递增至5(+1/2runs)，配合US-028现有缩放"
+      },
+      {
+        "area": "gameOver生命周期管理不完整",
+        "detail": "GameScene.update()在gameOver=true后直接return，跳过hud.update()。800ms转场延迟期间HUD冻结，最后一击的得分可能不会反映在显示上",
+        "recommendation": "gameOver只阻断player/enemy逻辑，HUD继续更新到转场"
+      },
+      {
+        "area": "敌人die()资源泄漏",
+        "detail": "Slime/Skeleton.takeDamage()中闪白效果的delayedCall(100ms)在die()后仍持有闭包引用。die()调用destroy()但Phaser的delayedCall不会自动随destroy取消",
+        "recommendation": "die()中显式取消所有pending timer，或改用tween(US-118统一方案)"
       }
     ]
   }
