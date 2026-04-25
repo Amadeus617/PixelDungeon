@@ -10,8 +10,9 @@ export class ResultScene extends Phaser.Scene {
     super({ key: "ResultScene" });
   }
 
-  create(data: { result: GameResult; score?: number }): void {
-    const { result, score } = data;
+  create(data: { result: GameResult; score?: number; killCount?: number; coinCount?: number }): void {
+    const { result, score, killCount, coinCount } = data;
+    const isWin = result === "win";
 
     // Semi-transparent overlay
     const bg = this.add.rectangle(
@@ -24,11 +25,10 @@ export class ResultScene extends Phaser.Scene {
     );
 
     // Title text
-    const isWin = result === "win";
     const titleText = isWin ? "VICTORY!" : "GAME OVER";
     const titleColor = isWin ? "#00ff00" : "#ff0000";
 
-    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, titleText, {
+    const title = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, titleText, {
       fontSize: "48px",
       color: titleColor,
       fontFamily: "monospace",
@@ -37,11 +37,11 @@ export class ResultScene extends Phaser.Scene {
     });
     title.setOrigin(0.5);
 
-    // Subtitle
+    // Subtitle — win text reflects actual victory condition (find key, reach stairs, escape)
     const subtitleText = isWin
-      ? "You found the exit and escaped the dungeon!"
+      ? "You found the key, reached the stairs, and escaped the dungeon!"
       : "You have fallen in the dungeon...";
-    const subtitle = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 25, subtitleText, {
+    const subtitle = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 65, subtitleText, {
       fontSize: "16px",
       color: "#ffffff",
       fontFamily: "monospace",
@@ -51,6 +51,29 @@ export class ResultScene extends Phaser.Scene {
       align: "center",
     });
     subtitle.setOrigin(0.5);
+
+    // --- Game statistics ---
+    let statsY = GAME_HEIGHT / 2 - 20;
+    const statsStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontSize: "18px",
+      color: "#dddddd",
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 2,
+    };
+
+    if (isWin && killCount !== undefined) {
+      const statsLines = [
+        `Enemies Defeated: ${killCount}`,
+        `Coins Collected: ${coinCount ?? 0}`,
+      ];
+      for (const line of statsLines) {
+        const statText = this.add.text(GAME_WIDTH / 2, statsY, line, statsStyle);
+        statText.setOrigin(0.5);
+        statsY += 28;
+      }
+    }
+    // --- End game statistics ---
 
     // Score display with high score comparison
     const scoreSystem = new ScoreSystem();
@@ -68,7 +91,7 @@ export class ResultScene extends Phaser.Scene {
         }
       }
 
-      const finalScoreY = GAME_HEIGHT / 2 + 15;
+      const finalScoreY = statsY + 10;
       const scoreText = this.add.text(GAME_WIDTH / 2, finalScoreY, `Final Score: ${score}`, {
         fontSize: "24px",
         color: "#ffd700",

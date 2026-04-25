@@ -61,6 +61,7 @@ export class GameScene extends Phaser.Scene {
   private attackBoosts: AttackBoost[] = [];
   private spikeTraps: SpikeTrap[] = [];
   private coinCount = 0;
+  private killCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
@@ -81,6 +82,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.gameOver = false;
+    this.coinCount = 0;
+    this.killCount = 0;
     this.scoreSystem.reset();
     this.soundManager = new SoundManager(this);
 
@@ -354,6 +357,7 @@ export class GameScene extends Phaser.Scene {
         slime.takeDamage(damage, dx, dy);
         // Award score only on the kill blow
         if (!wasDead && slime.isDead) {
+          this.killCount++;
           this.scoreSystem.addEnemyPoints();
           this.soundManager.playEnemyDeath();
         }
@@ -379,6 +383,7 @@ export class GameScene extends Phaser.Scene {
         const wasDead = skeleton.isDead;
         skeleton.takeDamage(damage, dx, dy);
         if (!wasDead && skeleton.isDead) {
+          this.killCount++;
           this.scoreSystem.addEnemyPoints();
           this.soundManager.playEnemyDeath();
         }
@@ -647,7 +652,12 @@ export class GameScene extends Phaser.Scene {
 
     // Transition to result scene after a short delay
     this.time.delayedCall(800, () => {
-      this.scene.start("ResultScene", { result, score: this.scoreSystem.score });
+      this.scene.start("ResultScene", {
+        result,
+        score: this.scoreSystem.score,
+        killCount: this.killCount,
+        coinCount: this.coinCount,
+      });
     });
   }
 
