@@ -2517,6 +2517,263 @@
             "转场时HUD显示的是最终完整分数",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-156",
+          "title": "Slime/Skeleton die() hpBar.destroy()后enemy destroy()仍持有hpBar引用 — die()顺序修复",
+          "description": "Slime/Skeleton.die()中先this.hpBar.destroy()再this.destroy()，但destroy()可能触发scene cleanup访问已销毁的hpBar。应先setActive(false)再destroy hpBar最后destroy self。同时EnemyHpBar的scheduleHide中tween可能在destroy后触发，需在destroy中取消pending tween。",
+          "type": "code",
+          "priority": 141,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "die()调用顺序：setActive(false)→hpBar.destroy()→setVisible(false)→destroy()",
+            "EnemyHpBar.destroy()取消所有pending timer和tween",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-157",
+          "title": "GameScene create()中coinCount=0但类属性coinCount=0初始化器已赋值 — 类属性初始化器统一移入create()",
+          "description": "GameScene类属性coinCount=0和attackBoosted=false在类级别初始化，create()中又重新赋值。与US-083/US-092同一类问题但未覆盖coinCount和attackBoosted。Phaser scene.start可能复用scene实例导致类属性初始化器不重新执行。应统一将所有可变状态移入create()，类属性只声明类型。",
+          "type": "code",
+          "priority": 142,
+          "status": "pending",
+          "dependsOn": [
+            "US-083",
+            "US-092"
+          ],
+          "acceptanceCriteria": [
+            "所有GameScene可变状态(player/slimes/skeletons/coins/attackBoosted/coinCount/gameOver等)在create()中初始化",
+            "类属性只有类型声明无默认值",
+            "scene.restart()后所有状态正确重置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-158",
+          "title": "TitleScene startGame()通过any key 500ms后触发 — 按任意键意外跳过标题画面",
+          "description": "TitleScene.create()中先注册SPACE和ENTER的once监听，然后500ms后又注册了keydown的once监听。如果用户按W/A/S/D等移动键也会触发startGame()。虽然游戏是WASD移动，但玩家可能在标题画面习惯性按WASD测试，导致意外开始游戏。应只保留SPACE和ENTER触发。",
+          "type": "code",
+          "priority": 143,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "移除any key监听器",
+            "只响应SPACE和ENTER键开始游戏",
+            "标题画面不会被WASD/ESC等按键意外跳过",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-159",
+          "title": "RoomCameraSystem走廊检测detectRoom返回-1但无走廊内实体遮挡处理",
+          "description": "当玩家在走廊中(detectRoom返回-1)，inCorridor=true且camera bounds扩展为全地图。但走廊中没有为玩家设置安全区域限制——玩家可以在全地图范围内自由移动到未生成的区域。走廊区域本身只占地图很小比例，但setCameraToWorld给camera设置了64x48 tiles的全地图bounds。如果走廊绘制有bug(US-081)导致墙壁缺口，玩家可能进入纯墙壁区域。",
+          "type": "code",
+          "priority": 144,
+          "status": "pending",
+          "dependsOn": [
+            "US-081"
+          ],
+          "acceptanceCriteria": [
+            "走廊模式下camera bounds合理限制而非全地图",
+            "或在走廊中保持wall collider作为移动限制(当前已存在)",
+            "确认走廊无墙壁缺口时玩家无法进入未探索区域",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-160",
+          "title": "Player.playDeathAnimation与GameScene.endGame时序竞态 — 双重endGame调用风险",
+          "description": "GameScene.update()中checkLoseCondition检测到!alive后调用playDeathAnimation(callback→endGame)，同时立即设置this.gameOver=true。但playDeathAnimation是异步tween(600ms)，期间如果scene.update继续被调用(Phaser不阻止)，gameOver=true会阻止后续update逻辑。然而physics.pause()在endGame(600ms后)才调用，这600ms内enemy继续移动/collide可能触发额外overlap导致player.takeDamage被调用(虽然alive=false会return)。更关键的是：playDeathAnimation检查isDeadAnimating防止重复，但如果死亡和胜利条件在同一帧同时满足(玩家在楼梯上被杀死)，checkLose先于checkWin执行，游戏正确判负。但若帧序反转可能导致问题。",
+          "type": "code",
+          "priority": 145,
+          "status": "pending",
+          "dependsOn": [
+            "US-150"
+          ],
+          "acceptanceCriteria": [
+            "playDeathAnimation期间physics不pause但player input显式禁用",
+            "endGame确保只被调用一次(gameOver守卫已存在，确认充分)",
+            "死亡和胜利条件同时满足时判定逻辑确定(当前优先死亡，确认)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-161",
+          "title": "GameScene runCount加载但restart时不递增 — TitleScene递增GameScene读取不同步",
+          "description": "US-028的runCount在TitleScene.startGame()中递增localStorage，在GameScene.create()中读取。但ResultScene重启到GameScene时走scene.start('GameScene')而非TitleScene，不经过TitleScene.startGame()。所以第一次游戏runCount=1(TitleScene递增为1)，第一次死亡/restart后runCount仍=1(ResultScene→GameScene不递增)。只有通过TitleScene重新开始才会递增。这导致死亡重启的难度不递增，只有完整退出标题再开始才递增。",
+          "type": "code",
+          "priority": 146,
+          "status": "pending",
+          "dependsOn": [
+            "US-028",
+            "US-085"
+          ],
+          "acceptanceCriteria": [
+            "runCount在每次GameScene.create()中递增，不依赖TitleScene",
+            "或ResultScene重启时传递递增信号",
+            "死亡→重启→死亡→重启每次难度递增",
+            "localStorage runCount与实际游玩次数一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-162",
+          "title": "Minimap graphics.clear()每帧重绘全部实体 — 性能优化Dirty Flag机制",
+          "description": "Minimap.update()每帧执行graphics.clear()然后重绘所有房间、走廊、敌人、道具。60fps下每秒60次完整重绘。房间和走廊是静态数据不会变化，visited rooms只在room change时变化一次。只有实体位置(player/enemy)是高频变化的。应分离静态层(room/corridor，只在visited rooms变化时重绘)和动态层(entity，每帧更新)。显著减少draw call。",
+          "type": "code",
+          "priority": 147,
+          "status": "pending",
+          "dependsOn": [
+            "US-122"
+          ],
+          "acceptanceCriteria": [
+            "房间和走廊只在visitedRooms变化时重绘",
+            "实体位置每帧更新但只绘制必要元素",
+            "draw call数量减少50%以上(预估)",
+            "minimap视觉表现不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-163",
+          "title": "EnemyHpBar Y偏移硬编码-20不适合不同尺寸敌人",
+          "description": "Slime和Skeleton都使用HP_BAR_Y_OFFSET=-20作为血条位置。但两个sprite的视觉高度可能不同(Slime偏扁平，Skeleton偏高)。当前两个enemy都setScale(3)，但sprite的原始16x16高度相同，所以-20恰好合理。然而如果未来添加不同尺寸的敌人(如Boss US-未来需求)，硬编码偏移会导致血条遮挡sprite。应在EnemyHpBar.follow()中基于sprite.displayHeight动态计算。",
+          "type": "code",
+          "priority": 148,
+          "status": "pending",
+          "dependsOn": [
+            "US-147"
+          ],
+          "acceptanceCriteria": [
+            "EnemyHpBar.follow()接收sprite参数并基于displayHeight计算Y偏移",
+            "移除HP_BAR_Y_OFFSET硬编码常量",
+            "现有Slime/Skeleton血条位置视觉不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-164",
+          "title": "ResultScene events.on update监听重启 - 场景销毁后监听器可能残留",
+          "description": "ResultScene.create()使用this.events.on('update', callback)轮询键盘输入重启。但scene.start('GameScene')会shutdown ResultScene，如果Phaser shutdown顺序问题导致update在shutdown前触发一次，可能双重scene.start。应改用this.input.keyboard.on('keydown')替代update轮询，或在ResultScene.update()中使用JustDown。",
+          "type": "code",
+          "priority": 149,
+          "status": "pending",
+          "dependsOn": [
+            "US-090"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene重启输入改用keydown事件或scene update方法",
+            "不再使用events.on('update')轮询",
+            "scene切换无残留监听器",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-165",
+          "title": "HUD setOnRoomChanged回调未在shutdown清理 - 持有旧HUD引用",
+          "description": "HUD构造函数中调用roomCameraSystem.setOnRoomChanged(callback)注册房间切换回调。回调闭包持有this(HUD实例)引用。GameScene重启时RoomCameraSystem是新建的，但如果有路径保留旧实例，回调操作已销毁HUD。应在GameScene.shutdown()中清理回调，或RoomCameraSystem.init()重置callback。",
+          "type": "code",
+          "priority": 150,
+          "status": "pending",
+          "dependsOn": [
+            "US-090",
+            "US-112"
+          ],
+          "acceptanceCriteria": [
+            "GameScene添加shutdown()清理RoomCameraSystem回调",
+            "或RoomCameraSystem.init()重置onRoomChangedCallback",
+            "scene重启后无旧回调触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-166",
+          "title": "GameScene player-attack事件监听器未在shutdown时off - 场景重启后事件泄漏",
+          "description": "GameScene.create()中events.on('player-attack', handler)注册攻击事件。Player.update()中events.emit('player-attack')触发。如果Phaser scene.start不自动清理scene events，重启后旧handler可能被新Player的emit触发。应在create()开头显式off('player-attack')或添加shutdown()。",
+          "type": "code",
+          "priority": 151,
+          "status": "pending",
+          "dependsOn": [
+            "US-112",
+            "US-090"
+          ],
+          "acceptanceCriteria": [
+            "GameScene.create()开头或shutdown()中清理player-attack监听器",
+            "scene重启后无旧事件处理器残留",
+            "攻击事件只在当前GameScene实例触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-167",
+          "title": "BootScene动画注册未检查已存在 - 纹理缓存命中时动画重复创建",
+          "description": "BootScene.create()对每个纹理用textures.exists()检查后生成纹理和注册动画。但anims.create()不检查已存在，重启时如果纹理已缓存但动画也已被注册，重复create会报warning或覆盖。应在纹理存在时也检查动画是否存在，统一处理。",
+          "type": "code",
+          "priority": 152,
+          "status": "pending",
+          "dependsOn": [
+            "US-116"
+          ],
+          "acceptanceCriteria": [
+            "BootScene在纹理缓存命中时跳过动画注册",
+            "或统一检查纹理和动画是否都存在",
+            "重启流程无console warning",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-168",
+          "title": "玩家攻击力永远为1无成长感 - 缺少meta progression玩家属性成长",
+          "description": "Player.ATTACK_DAMAGE=1，boosted时为2。Slime 3HP需3次攻击，Skeleton 2HP需2次。整个游戏攻击力不增长。US-028只增加敌人难度不增加玩家能力，导致多局后越来越难但玩家不变强。应在US-085 meta progression中加入攻击力/HP/速度成长选项，让跨局有变强感。",
+          "type": "design",
+          "priority": 153,
+          "status": "pending",
+          "dependsOn": [
+            "US-085",
+            "US-068"
+          ],
+          "acceptanceCriteria": [
+            "GDD balance新增playerGrowth参数(attackDamageGrowth/hpGrowth等)",
+            "US-085 meta progression包含玩家属性成长",
+            "玩家跨局有变强感",
+            "难度递增与玩家成长保持平衡"
+          ]
+        },
+        {
+          "id": "US-169",
+          "title": "collect()的destroy()与Physics overlap一帧延迟 - 高fps下重复拾取风险",
+          "description": "所有可拾取物品overlap回调中collect()设collected=true后调用destroy()。但Phaser Arcade Physics overlap基于body enable状态，destroy()可能延迟到帧末执行。高fps+大body overlap下第二次回调看到active=true+collected=true仍执行部分逻辑。collect()应同步设active=false和body.enable=false。",
+          "type": "code",
+          "priority": 154,
+          "status": "pending",
+          "dependsOn": [
+            "US-074",
+            "US-091",
+            "US-137"
+          ],
+          "acceptanceCriteria": [
+            "collect()中同步设active=false和body.enable=false",
+            "或overlap handler前置collected检查",
+            "高fps下无重复拾取/治疗/得分",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-170",
+          "title": "TitleScene粒子未在startGame时清理 - 场景切换后内存残留",
+          "description": "TitleScene.create()创建30个Circle粒子存入this.particles数组。startGame()调用scene.start('BootScene')。Phaser scene.start会shutdown当前scene，shutdown应清理所有children。但particles是类属性引用，如果shutdown不清理则粒子残留。应在startGame()中显式清理或确认Phaser自动处理。",
+          "type": "code",
+          "priority": 155,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TitleScene.startGame()中清理particles数组",
+            "或确认Phaser scene shutdown自动销毁children",
+            "多次启动游戏无内存泄漏",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

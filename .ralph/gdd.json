@@ -167,6 +167,12 @@
       "author": "agent-review",
       "change": "第十九轮设计审查新增7个改进US(US-149~US-155)：Player knockback墙壁碰撞保护、死亡动画与无敌帧闪烁alpha冲突、Skeleton overlap hurt音效wasHurt保护缺失(与Slime不一致)、knockback与走廊过渡冻结竞态、getStairsPos每帧线性扫描效率优化、takeDamage返回值修复(US-029未一并修复)、死亡动画期间HUD不更新。更新 improvements 和 balanceAnalysis。",
       "reason": "第十九轮设计审查深入分析US-029 knockback实现引入的新问题及既有代码的关联缺陷，发现7个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十轮设计审查新增7个改进US(US-164~US-170)：ResultScene events.on('update')轮询替代为keydown事件、HUD roomChanged回调shutdown清理、player-attack事件监听器泄漏修复、BootScene动画重复注册检查、玩家属性成长meta progression设计、collect()一帧延迟防重复拾取、TitleScene粒子内存清理。更新 improvements 和 balanceAnalysis。",
+      "reason": "第二十轮设计审查深入分析场景生命周期管理、事件监听器清理、玩家成长曲线缺失、物理引擎时序风险，发现7个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -819,6 +825,21 @@
         "area": "死亡动画期间信息显示断裂",
         "detail": "playDeathAnimation(600ms)+endGame delay(800ms)=1400ms内HUD可能冻结。玩家最后一击获得的分数变化在转场前不可见",
         "recommendation": "死亡检测后HUD继续更新直到转场(US-155)"
+      },
+      {
+        "area": "玩家属性零成长",
+        "detail": "Player.ATTACK_DAMAGE固定为1(max 2 with boost)，PLAYER_MAX_HP固定10，playerSpeed固定120。US-028只增加敌人维度(slime数量/skeleton速度)，玩家侧无任何成长。多局后玩家体验是'越来越弱'而非'越来越强'",
+        "recommendation": "在US-085 meta progression中加入玩家属性成长：每通关1次可选+1攻击力/+2最大HP/+10速度"
+      },
+      {
+        "area": "场景生命周期管理缺失",
+        "detail": "GameScene缺少shutdown()方法。player-attack事件监听器、RoomCameraSystem回调、HUD回调在scene重启时可能残留。Phaser scene.start是否自动清理scene events需确认",
+        "recommendation": "添加GameScene.shutdown()统一清理所有事件监听器和回调引用(US-164~US-166)"
+      },
+      {
+        "area": "物理引擎时序风险",
+        "detail": "collect()设置collected=true后调用destroy()，但Phaser Arcade Physics overlap检测基于body.enable状态。destroy()可能延迟到帧末执行，同一帧多次overlap回调可能重复触发heal/addCoinPoints",
+        "recommendation": "collect()中同步设active=false+body.enable=false，确保overlap同一帧不重复触发(US-169)"
       }
     ]
   }
