@@ -161,6 +161,12 @@
       "author": "agent-review",
       "change": "第十八轮设计审查新增6个改进US(US-143~US-148)：US-028难度缩放维度补全(Skeleton数量+Slime速度递增)、gameOver后HUD冻结修复、Slime/Skeleton takeDamage闪白delayedCall残留引用清理、buildCorridor死代码确认删除、EnemyHpBar偏移动态计算、paintCorridors direction字段语义修正。更新 improvements 和 balanceAnalysis。",
       "reason": "第十八轮设计审查深入分析难度缩放完整性、游戏结束生命周期管理、敌人die()后资源清理、死代码确认、HP条布局健壮性、corridor元数据准确性，发现6个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第十九轮设计审查新增7个改进US(US-149~US-155)：Player knockback墙壁碰撞保护、死亡动画与无敌帧闪烁alpha冲突、Skeleton overlap hurt音效wasHurt保护缺失(与Slime不一致)、knockback与走廊过渡冻结竞态、getStairsPos每帧线性扫描效率优化、takeDamage返回值修复(US-029未一并修复)、死亡动画期间HUD不更新。更新 improvements 和 balanceAnalysis。",
+      "reason": "第十九轮设计审查深入分析US-029 knockback实现引入的新问题及既有代码的关联缺陷，发现7个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -292,7 +298,14 @@
       "US-145: takeDamage闪白delayedCall清理 — die()时取消pending timer",
       "US-146: buildCorridor死代码确认删除 — 与US-138一并清理",
       "US-147: EnemyHpBar偏移动态化 — 基于sprite.displayHeight计算",
-      "US-148: corridor direction语义修正 — 反映实际carve方向"
+      "US-148: corridor direction语义修正 — 反映实际carve方向",
+      "US-149: Player knockback墙壁保护 — 击退方向检测墙壁碰撞防止卡墙",
+      "US-150: Player死亡动画alpha冲突 — 无敌帧闪烁与death tween覆盖修复",
+      "US-151: Skeleton overlap hurt音效wasHurt保护 — 与Slime overlap回调统一",
+      "US-152: knockback与走廊过渡冻结竞态 — 两套速度覆盖机制统一管理",
+      "US-153: getStairsPos缓存优化 — create()中缓存楼梯位置消除每帧遍历",
+      "US-154: takeDamage返回boolean — US-029未一并修复，overlap回调音效判断依赖此返回值",
+      "US-155: 死亡动画期间HUD更新 — playDeathAnimation+endGame期间分数应持续刷新"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -360,7 +373,7 @@
     ]
   },
   "balanceAnalysis": {
-    "date": "2026-04-24",
+    "date": "2026-04-25",
     "issues": [
       {
         "area": "敌人强度倒挂",
@@ -781,6 +794,31 @@
         "area": "敌人die()资源泄漏",
         "detail": "Slime/Skeleton.takeDamage()中闪白效果的delayedCall(100ms)在die()后仍持有闭包引用。die()调用destroy()但Phaser的delayedCall不会自动随destroy取消",
         "recommendation": "die()中显式取消所有pending timer，或改用tween(US-118统一方案)"
+      },
+      {
+        "area": "Player knockback墙壁碰撞",
+        "detail": "Player.takeDamage()计算击退速度方向为远离攻击者，但击退方向上如果有墙壁，Phaser physics collider会将玩家推回。如果碰撞处理不够快，可能出现帧级穿墙或抖动",
+        "recommendation": "依赖physics collider处理墙壁反弹(已存在collider)，确保knockback结束时velocity清零(US-149)"
+      },
+      {
+        "area": "死亡动画与无敌帧闪烁冲突",
+        "detail": "playDeathAnimation用tween控制alpha→0(600ms)，但无敌帧闪烁也控制alpha(0.4/1.0交替)。两套alpha控制系统冲突导致死亡动画不连贯",
+        "recommendation": "playDeathAnimation中先停止无敌帧闪烁、重置alpha=1，再开始death tween(US-150)"
+      },
+      {
+        "area": "knockback引入的速度管理复杂度",
+        "detail": "Player现在有3种速度控制：正常输入、knockback覆盖、走廊过渡冻结。三者的优先级和互斥关系不明确，容易产生竞态条件",
+        "recommendation": "统一frozen状态管理：knockback > transition frozen > 正常输入(US-152)"
+      },
+      {
+        "area": "US-029实现遗留的takeDamage返回值",
+        "detail": "US-029添加了knockback参数但未修复takeDamage的返回值类型(void→boolean)。这导致overlap回调中的受伤判断仍使用hp比较hack而非语义清晰的返回值",
+        "recommendation": "takeDamage改为返回boolean，overlap回调统一使用返回值判断(US-154)"
+      },
+      {
+        "area": "死亡动画期间信息显示断裂",
+        "detail": "playDeathAnimation(600ms)+endGame delay(800ms)=1400ms内HUD可能冻结。玩家最后一击获得的分数变化在转场前不可见",
+        "recommendation": "死亡检测后HUD继续更新直到转场(US-155)"
       }
     ]
   }

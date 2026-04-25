@@ -491,7 +491,7 @@
           "description": "玩家受击时添加向后击退位移（knockback），增强战斗打击感。同时在玩家死亡时添加死亡动画（渐隐或闪烁），而非直接冻结。击退方向根据伤害来源计算，距离约 20-30px，持续 200ms。",
           "type": "code",
           "priority": 14,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-022"
           ],
@@ -2396,6 +2396,126 @@
           "acceptanceCriteria": [
             "corridor.direction正确反映实际carve方向",
             "或删除无用的direction字段"
+          ]
+        },
+        {
+          "id": "US-149",
+          "title": "玩家knockback推入墙壁 — 无墙壁碰撞保护",
+          "description": "Player.takeDamage()计算击退速度远离伤害源，但不检查击退方向上是否有墙壁。如果玩家背靠墙壁被攻击，knockback速度会被Phaser physics collider反弹或卡入墙壁内。表现为：玩家被推向墙壁后瞬间停住或微小抖动，击退效果在墙边完全无效。应在计算击退速度后做射线检测或依赖physics collider处理。",
+          "type": "code",
+          "priority": 134,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家被击退时不会卡入墙壁",
+            "墙边被击退时仍有短暂的失控视觉效果",
+            "physics collider正确处理碰撞反弹",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-150",
+          "title": "Player死亡动画与无敌帧闪烁冲突 — alpha被两个系统覆盖",
+          "description": "playDeathAnimation()通过tween将alpha从当前值渐变到0(600ms)。但如果玩家在无敌帧闪烁期间(alpha在0.4/1.0之间交替)死亡，死亡动画开始时alpha可能为0.4。更严重的是：knockback期间updateInvincibility仍在执行(因为update中knockback分支调用了updateInvincibility)，闪烁逻辑可能与death tween的alpha动画冲突。需要在playDeathAnimation中：停止无敌帧闪烁+设置alpha=1+再开始death tween。",
+          "type": "code",
+          "priority": 135,
+          "status": "pending",
+          "dependsOn": [
+            "US-105",
+            "US-029"
+          ],
+          "acceptanceCriteria": [
+            "死亡动画开始时停止无敌帧闪烁",
+            "死亡前alpha重置为1再渐隐到0",
+            "knockback期间的死亡不导致动画冲突",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-151",
+          "title": "Skeleton overlap hurt音效缺少wasHurt保护 — 与Slime overlap不一致",
+          "description": "US-029修复了Slime overlap回调添加了wasHurt检查(只有实际受伤才播放音效)。但Skeleton overlap回调中hurt音效条件仍是if(this.player.hp < this.player.maxHp)——没有wasHurt保护。两处overlap逻辑不一致，Skeleton overlap仍存在US-131描述的音效误播问题。应统一为相同的wasHurt + hp比较逻辑。",
+          "type": "code",
+          "priority": 136,
+          "status": "pending",
+          "dependsOn": [
+            "US-029",
+            "US-131"
+          ],
+          "acceptanceCriteria": [
+            "Skeleton overlap hurt音效条件与Slime overlap一致",
+            "无敌帧期间不播放hurt音效",
+            "两个overlap回调使用统一的受伤判断逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-152",
+          "title": "Player knockback与走廊过渡冻结竞态 — 两套速度覆盖机制",
+          "description": "Player.update()中有两套速度覆盖机制：(1)knockback期间设置击退速度并return跳过输入(2)GameScene.update()中isTransitioning()调用setVelocity(0,0)。如果玩家在走廊过渡期间被攻击触发knockback，Player.update的knockback分支会设置击退速度，然后GameScene.update在isTransitioning中清零速度。时序：Player.update→knockback速度→GameScene.update→清零。结果：走廊过渡期间knockback无效。但反过来的时序也可能导致问题。需要统一frozen状态管理。",
+          "type": "code",
+          "priority": 137,
+          "status": "pending",
+          "dependsOn": [
+            "US-029",
+            "US-121"
+          ],
+          "acceptanceCriteria": [
+            "走廊过渡期间玩家不受击退影响或击退正确暂停",
+            "knockback和transition frozen状态互斥",
+            "过渡结束后如果有残余knockback应正确恢复",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-153",
+          "title": "getStairsPos线性扫描效率 — 每帧checkWinCondition遍历exitRoom",
+          "description": "GameScene.update()每帧调用checkWinCondition()→getStairsPos()，后者嵌套遍历exitRoom的所有tile寻找T.STAIRS(34)。即使找到后return，最坏情况遍历整个room(10-16 tiles宽高)。stairs位置在dungeon生成时就确定了，不会变化。应在create()中缓存stairs位置为实例变量，checkWinCondition直接使用缓存值。节省每帧O(roomArea)的遍历。",
+          "type": "code",
+          "priority": 138,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "stairs位置在create()中缓存",
+            "checkWinCondition使用缓存值而非每帧遍历",
+            "消除每帧的tile遍历开销",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-154",
+          "title": "Player.takeDamage仍未返回boolean — US-029引入knockback但未修复返回值",
+          "description": "US-029给takeDamage添加了sourceX/sourceY参数实现knockback，但返回值仍为void。US-117曾提出takeDamage应返回boolean表示是否实际受伤。US-029是实现knockback的好时机同时修复返回值——因为overlap回调需要知道是否实际受伤来决定是否播放hurt音效(US-101/US-131)。当前代码中Slime overlap用wasHurt+hack判断，Skeleton overlap仍有bug。修复返回值可以同时解决两处问题。",
+          "type": "code",
+          "priority": 139,
+          "status": "pending",
+          "dependsOn": [
+            "US-117",
+            "US-029"
+          ],
+          "acceptanceCriteria": [
+            "takeDamage返回boolean表示是否实际扣血",
+            "Slime和Skeleton overlap回调使用返回值判断音效",
+            "消除wasHurt+hp比较的hack逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-155",
+          "title": "playDeathAnimation期间HUD不更新 — 死亡到转场800ms+600ms内分数冻结",
+          "description": "US-144修复了gameOver后HUD继续更新。但playDeathAnimation引入了新的时间窗口：死亡检测→playDeathAnimation(600ms)→endGame→delayedCall(800ms)→转场。在playDeathAnimation期间gameOver仍为false，但update()已return(因为checkLoseCondition中设置gameOver=true后return)。所以实际上US-144的修复不适用于死亡动画期间——最后一击的得分变化在死亡动画+转场延迟(共约1400ms)内不会反映在HUD上。",
+          "type": "code",
+          "priority": 140,
+          "status": "pending",
+          "dependsOn": [
+            "US-144",
+            "US-043"
+          ],
+          "acceptanceCriteria": [
+            "死亡动画期间HUD持续更新显示最终分数",
+            "最后一击的得分变化在死亡前可见",
+            "转场时HUD显示的是最终完整分数",
+            "tsc + build 通过"
           ]
         }
       ]
