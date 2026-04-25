@@ -179,6 +179,12 @@
       "author": "agent-review",
       "change": "第二十一轮设计审查新增6个改进US(US-171~US-176)：Player.takeDamage()返回boolean基础接口修复、Slime/Skeleton onHitWall() knockback保护、playDeathAnimation与无敌帧alpha冲突、endGame后冻结敌人update、ResultScene重启返回TitleScene完整流程闭环、Skeleton overlap hurt音效条件修复。本轮重点：修复4个runtime bug(knockback碰墙覆盖、alpha冲突、音效误播、敌人update泄漏)和2个架构改进(takeDamage接口、游戏流程闭环)。",
       "reason": "第二十一轮设计审查深入分析代码执行流，发现6个之前审查已识别但代码仍未修复的核心问题。本次聚焦高优先级bug和基础接口修复：takeDamage返回值是多个下游功能(音效、掉落、统计)的前置依赖；knockback碰墙覆盖削弱战斗打击感；alpha冲突导致死亡动画视觉异常；敌人update泄漏浪费CPU且存在副作用风险；游戏流程不完整降低重玩体验"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十二轮设计审查新增8个改进US(US-177~US-184)：SpikeTrap无敌帧期间误触发修复、SpikeTrap死亡后update时序修正、TitleScene runCount递增双重触发防护、宝箱交互knockback距离容差、Slime overlap hurt音效wasHurt逻辑修正、Direction类型idle值彻底移除、knockback期间attack状态重置、HealthPotion heal参数集中管理。更新 improvements 和 balanceAnalysis。",
+      "reason": "第二十二轮设计审查深入分析US-031(SpikeTrap)实现引入的新问题、游戏流程启动时序、knockback与交互系统的级联影响、类型系统健壮性，发现8个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -323,7 +329,15 @@
       "US-173: playDeathAnimation 与无敌帧闪烁 alpha 冲突修复 — 死亡动画先停闪烁再渐隐",
       "US-174: endGame 后冻结敌人 update — 停止无意义的逻辑执行",
       "US-175: ResultScene 重启改为返回 TitleScene — 完整游戏流程闭环",
-      "US-176: Skeleton overlap hurt 音效条件修复 — 移除错误的 hp<maxHp 判断"
+      "US-176: Skeleton overlap hurt 音效条件修复 — 移除错误的 hp<maxHp 判断",
+      "US-177: SpikeTrap无敌帧误触发 — invincible期间trap不应激活进入冷却",
+      "US-178: SpikeTrap死亡后update停止 — 冷却中陷阱视觉状态冻结",
+      "US-179: TitleScene startGame双重触发防护 — once SPACE + once keydown竞态",
+      "US-180: 宝箱交互knockback距离容差 — 击退偏移导致交互失败",
+      "US-181: Slime overlap wasHurt逻辑修正 — 改用takeDamage返回值(US-117依赖)",
+      "US-182: Direction idle值彻底移除 — 消除getAttackZone和attack动画fallback",
+      "US-183: knockback期间attack状态重置 — isAttacking在knockback结束时清理",
+      "US-184: HealthPotion heal参数集中管理 — 随US-068从balance配置读取"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -852,6 +866,26 @@
         "area": "物理引擎时序风险",
         "detail": "collect()设置collected=true后调用destroy()，但Phaser Arcade Physics overlap检测基于body.enable状态。destroy()可能延迟到帧末执行，同一帧多次overlap回调可能重复触发heal/addCoinPoints",
         "recommendation": "collect()中同步设active=false+body.enable=false，确保overlap同一帧不重复触发(US-169)"
+      },
+      {
+        "area": "SpikeTrap无敌帧穿透",
+        "detail": "SpikeTrap.trigger()不检查player.isInvincible，陷阱在无敌帧期间仍激活并进入冷却。同时applySlow也被调用导致减速效果穿透无敌帧保护",
+        "recommendation": "trigger()前检查player invincible状态，invincible期间不触发(US-177)"
+      },
+      {
+        "area": "宝箱交互与knockback冲突",
+        "detail": "玩家在宝箱旁被击中时knockback位移25px(约半个tile)，可能刚好超出isInRange交互距离。knockback期间Space键输入被正常处理但位置已偏移",
+        "recommendation": "增大isInRange阈值或缓存交互意图(US-180)"
+      },
+      {
+        "area": "Slime overlap音效条件表面修复",
+        "detail": "slime overlap使用wasHurt=player.alive + hp<maxHp双重条件。hp<maxHp在非满血时总为true，invincible期间误播hurt音效。与skeleton overlap(无条件播放)为同一问题不同表现",
+        "recommendation": "统一基于takeDamage返回值(US-181，依赖US-117)"
+      },
+      {
+        "area": "HealthPotion回复量参数分散",
+        "detail": "HEALTH_POTION_HEAL=1在GameScene硬编码，gdd.json记录healthPotionHeal:1。US-037要求改为3但尚未实现。参数分散导致gdd与代码脱节风险(US-021问题重现)",
+        "recommendation": "随US-068一并集中到balance配置(US-184)"
       }
     ]
   }

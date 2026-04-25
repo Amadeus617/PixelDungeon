@@ -53,7 +53,10 @@ export class GameScene extends Phaser.Scene {
   private coinCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private escKey!: Phaser.Input.Keyboard.Key;
   private gameOver = false;
+  private isPaused = false;
+  private pauseOverlay!: Phaser.GameObjects.Container;
   private roomCameraSystem!: RoomCameraSystem;
   private soundManager!: SoundManager;
 
@@ -282,7 +285,15 @@ export class GameScene extends Phaser.Scene {
       this.spaceKey = this.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE
       );
+      // ESC key for pause
+      this.escKey = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.ESC
+      );
     }
+
+    // Pause overlay (hidden by default)
+    this.isPaused = false;
+    this.createPauseOverlay();
 
     // HUD (needs both inventory and player for HP display)
     this.hud = new HUD(
@@ -436,6 +447,62 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private createPauseOverlay(): void {
+    const { width, height } = this.scale;
+    this.pauseOverlay = this.add.container(0, 0);
+    this.pauseOverlay.setDepth(1000); // Above everything
+    this.pauseOverlay.setScrollFactor(0); // Fixed on screen
+
+    const bg = this.add.rectangle(
+      width / 2, height / 2,
+      width, height,
+      0x000000, 0.6
+    );
+    this.pauseOverlay.add(bg);
+
+    const pausedText = this.add.text(
+      width / 2, height / 2 - 20,
+      "⏸ PAUSED",
+      {
+        fontSize: "48px",
+        fontFamily: "monospace",
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4,
+      }
+    ).setOrigin(0.5);
+    this.pauseOverlay.add(pausedText);
+
+    const hintText = this.add.text(
+      width / 2, height / 2 + 30,
+      "Press ESC to resume",
+      {
+        fontSize: "18px",
+        fontFamily: "monospace",
+        color: "#aaaaaa",
+        stroke: "#000000",
+        strokeThickness: 2,
+      }
+    ).setOrigin(0.5);
+    this.pauseOverlay.add(hintText);
+
+    this.pauseOverlay.setVisible(false);
+  }
+
+  private togglePause(): void {
+    if (this.gameOver) return;
+
+    this.isPaused = !this.isPaused;
+
+    if (this.isPaused) {
+      this.physics.pause();
+      this.pauseOverlay.setVisible(true);
+    } else {
+      this.physics.resume();
+      this.pauseOverlay.setVisible(false);
+    }
+  }
+
   private endGame(result: GameResult): void {
     if (this.gameOver) return;
     this.gameOver = true;
@@ -452,6 +519,15 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.gameOver) return;
+
+    // Toggle pause on ESC
+    if (this.escKey && Phaser.Input.Keyboard.JustDown(this.escKey)) {
+      this.togglePause();
+      return;
+    }
+
+    // Skip all game logic when paused
+    if (this.isPaused) return;
 
     this.player.update(delta, time);
     // Only update living slimes

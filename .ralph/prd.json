@@ -545,7 +545,7 @@
           "description": "当前游戏没有暂停功能。添加 ESC 键暂停，显示半透明遮罩和「PAUSED」文字，再次按 ESC 或点击 Resume 恢复。暂停时冻结所有游戏逻辑和物理引擎。这是roguelike的基本UX需求。",
           "type": "code",
           "priority": 17,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "按 ESC 键暂停游戏",
@@ -2869,6 +2869,135 @@
             "改为 wasHurt 模式或 takeDamage 返回值",
             "无敌帧期间不播放 hurt 音效",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-177",
+          "title": "SpikeTrap无敌帧期间误触发 — 玩家invincible时陷阱仍激活进入冷却",
+          "description": "SpikeTrap.trigger()回调中直接调用player.takeDamage()，虽然takeDamage内部isInvincible检查会阻止伤害，但陷阱本身仍切换到active状态(显示地刺纹理)并进入2000ms冷却。同时applySlow也被调用，减速效果在无敌期间不应该生效。正确行为：无敌帧期间陷阱不应触发。修复方案：trigger()前检查player.isInvincible(需Player暴露此属性)，或trap回调中先检查再trigger。",
+          "type": "code",
+          "priority": 162,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player invincible期间踩陷阱不会触发trap激活",
+            "trap保持inactive纹理和状态",
+            "invincible结束后踩同一trap可正常触发",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-178",
+          "title": "SpikeTrap update在玩家死亡后停止 — 冷却中的陷阱视觉状态冻结",
+          "description": "GameScene.update()中spike trap更新位于checkLoseCondition()之后。玩家死亡后update()在gameOver=true时return，spike trap不再update。如果陷阱刚触发(2000ms冷却中)玩家就死亡，陷阱会永远停留在active纹理状态直到转场。虽然功能上无影响(800ms后转场)，但视觉上不一致。应将spike trap update移到gameOver检查之前，与其他实体更新一致。",
+          "type": "code",
+          "priority": 163,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spike trap update在gameOver return之前执行",
+            "冷却中的陷阱在死亡动画期间正常恢复inactive纹理",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-179",
+          "title": "runCount递增时序 — TitleScene递增但GameScene create()读取可能不同步",
+          "description": "TitleScene.startGame()中localStorage runCount+1，然后跳转BootScene→GameScene。GameScene.create()中loadRunCount()读取runCount。如果TitleScene increment在场景切换前未完成写入(localStorage是同步的所以没问题)，但US-158(已存在)指出了any key 500ms意外跳过的风险。当前流程：once(\"keydown-SPACE\")触发startGame，500ms后once(\"keydown\")也绑定。第一次按键触发once SPACE→increment+start，但如果500ms内第二次按键被keydown捕获呢？once保证只触发一次，但两个once绑定可能导致双重startGame调用。scene.isActive检查是防护但不够健壮。",
+          "type": "code",
+          "priority": 164,
+          "status": "pending",
+          "dependsOn": [
+            "US-158"
+          ],
+          "acceptanceCriteria": [
+            "startGame只执行一次，无双重触发风险",
+            "runCount精确递增，不跳过或重复",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-180",
+          "title": "宝箱交互距离判定 — knockback期间玩家位置偏移导致交互失败",
+          "description": "GameScene.update()中chest交互检测使用player.x/player.y判断isInRange。如果玩家刚好在宝箱旁被敌人击中触发knockback(25px位移)，knockback期间玩家位置已经偏移但还在按Space。由于knockback期间setVelocity覆盖，玩家无法回到原位。25px在48px/tile的世界中约半个tile，可能刚好超出交互距离。建议：knockback期间缓存交互意图，结束后立即执行；或增大isInRange阈值。",
+          "type": "design",
+          "priority": 165,
+          "status": "pending",
+          "dependsOn": [
+            "US-029"
+          ],
+          "acceptanceCriteria": [
+            "knockback不中断宝箱交互",
+            "交互距离足够覆盖knockback偏移",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-181",
+          "title": "Slime overlap hurt音效条件wasHurt检查逻辑错误 — wasHurt在takeDamage前捕获",
+          "description": "GameScene中slime overlap回调: 。wasHurt捕获的是takeDamage前的alive状态(几乎总是true)，hp < maxHp检查只排除满血首次受伤的情况。正确逻辑应基于takeDamage是否实际扣血(US-117/US-154返回值)。当前逻辑：如果玩家hp=10被slime接触，takeDamage因isInvincible不扣血，wasHurt=true, hp(10) < maxHp(10)=false，音效不播。看起来OK但原因不对——是hp==maxHp而不是isInvincible阻止了音效。如果玩家hp=5(有先前伤害)且isInvincible，hp(5)<maxHp(10)=true→误播音效。这是US-101/US-131/US-176的同一问题，但slime overlap的wasHurt变量引入了额外混淆。",
+          "type": "code",
+          "priority": 166,
+          "status": "pending",
+          "dependsOn": [
+            "US-117"
+          ],
+          "acceptanceCriteria": [
+            "overlap回调基于takeDamage返回值判断音效",
+            "invincible期间不播放hurt音效",
+            "移除wasHurt和hp比较hack",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-182",
+          "title": "Player direction idle值仍存在 — getAttackZone和attack动画中idle→down fallback未消除",
+          "description": "尽管US-071已标记pending且代码中direction初始化为\"down\"而非\"idle\"，但Direction类型仍包含\"idle\"值。getAttackZone()中仍有idle fallback。attack动画中同理。如果_direction永远不是idle(US-071修复后)，这些fallback是死代码但增加了维护负担和类型不安全。应随US-071/US-132一并从Direction类型中移除idle。",
+          "type": "code",
+          "priority": 167,
+          "status": "pending",
+          "dependsOn": [
+            "US-071",
+            "US-132"
+          ],
+          "acceptanceCriteria": [
+            "Direction类型不含idle值",
+            "getAttackZone无idle fallback",
+            "attack动画无idle条件分支",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-183",
+          "title": "玩家受伤knockback期间攻击状态未重置 — isAttacking可能卡死200ms",
+          "description": "Player.update()中knockback分支直接return，跳过攻击输入检测。但isAttacking在delayedCall(200ms)中重置。如果玩家在攻击后200ms内被击中触发knockback(200ms)，knockback期间isAttacking可能在delayedCall到期后被重置为false，但此时update跳过了动画逻辑(因为knockback return)。结果是：knockback结束后玩家可能播放错误的动画(walk/idle与实际状态不符)。影响较小但knockback→attack状态转换应显式处理。",
+          "type": "code",
+          "priority": 168,
+          "status": "pending",
+          "dependsOn": [
+            "US-029"
+          ],
+          "acceptanceCriteria": [
+            "knockback结束时重置isAttacking=false",
+            "knockback结束后动画状态正确恢复",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-184",
+          "title": "HEALTH_POTION_HEAL=1在GameScene硬编码 — 应集中到balance配置与gdd.json同步",
+          "description": "US-037提出将药水回复量提升至3HP，US-068提出创建balance.ts集中管理参数。但当前HEALTH_POTION_HEAL=1仍硬编码在GameScene顶部常量区。如果US-037实现但忘记同步gdd.json(当前记录healthPotionHeal:1)，会产生文档与代码脱节(与US-021相同问题再次出现)。应随US-068一并解决：所有balance常量从单一配置源读取。",
+          "type": "code",
+          "priority": 169,
+          "status": "pending",
+          "dependsOn": [
+            "US-037",
+            "US-068"
+          ],
+          "acceptanceCriteria": [
+            "HEALTH_POTION_HEAL从balance配置读取",
+            "gdd.json和代码使用同一数据源",
+            "tsc + build通过"
           ]
         }
       ]
