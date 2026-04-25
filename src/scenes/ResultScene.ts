@@ -62,7 +62,8 @@ export class ResultScene extends Phaser.Scene {
       strokeThickness: 2,
     };
 
-    if (isWin && killCount !== undefined) {
+    // Show game statistics on both win and lose
+    if (killCount !== undefined) {
       const statsLines = [
         `Enemies Defeated: ${killCount}`,
         `Coins Collected: ${coinCount ?? 0}`,

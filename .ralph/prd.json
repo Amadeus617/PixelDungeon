@@ -579,7 +579,7 @@
           "description": "当前胜利条件是「到达出口房间的楼梯」，但 ResultScene 胜利文案写的是「You defeated all enemies and claimed the treasure!」，与实际胜利条件不一致。需要将文案改为反映真实通关条件（找到钥匙、到达楼梯逃离地牢），并增加通关统计信息（房间数、击败敌人数、金币数、用时）。",
           "type": "code",
           "priority": 19,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-026"
           ],
