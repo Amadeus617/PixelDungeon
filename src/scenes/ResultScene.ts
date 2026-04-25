@@ -10,8 +10,8 @@ export class ResultScene extends Phaser.Scene {
     super({ key: "ResultScene" });
   }
 
-  create(data: { result: GameResult; score?: number; killCount?: number; coinCount?: number }): void {
-    const { result, score, killCount, coinCount } = data;
+  create(data: { result: GameResult; score?: number; killCount?: number; coinCount?: number; elapsedTime?: number }): void {
+    const { result, score, killCount, coinCount, elapsedTime } = data;
     const isWin = result === "win";
 
     // Semi-transparent overlay
@@ -68,6 +68,12 @@ export class ResultScene extends Phaser.Scene {
         `Enemies Defeated: ${killCount}`,
         `Coins Collected: ${coinCount ?? 0}`,
       ];
+      // Add elapsed time if available (US-035)
+      if (elapsedTime !== undefined) {
+        const mins = Math.floor(elapsedTime / 60);
+        const secs = elapsedTime % 60;
+        statsLines.push(`Time: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
+      }
       for (const line of statsLines) {
         const statText = this.add.text(GAME_WIDTH / 2, statsY, line, statsStyle);
         statText.setOrigin(0.5);

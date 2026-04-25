@@ -197,6 +197,12 @@
       "author": "agent-review",
       "change": "第二十四轮设计审查新增4个改进US(US-191~US-194)：ResultScene失败统计显示、GameScene计时基础设施(startTime+elapsedTime)、HUD游戏内高分显示、房间敌人计数追踪(清除判定基础)。更新 improvements 和 balanceAnalysis。",
       "reason": "第二十四轮设计审查深入分析 ResultScene 统计覆盖率、US-035/US-053 的实现依赖链、HUD 信息可见性、US-040/US-039/US-050 的共同前置依赖，发现4个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十五轮设计审查新增5个改进US(US-195~US-199)：GameScene shutdown()统一资源清理、Skeleton追踪模式HP bar跟随修复、SpikeTrap无敌帧穿透修复(GameScene侧)、elapsedTime传递到ResultScene、ResultScene重启返回TitleScene流程闭环。更新improvements和balanceAnalysis。",
+      "reason": "第二十五轮设计审查深入分析场景生命周期管理(发现GameScene缺少shutdown导致事件监听器/回调泄漏)、敌人视觉bug(Skeleton追踪时HP bar脱离是实际可见的bug)、SpikeTrap无敌帧穿透的实现路径(之前US-177只标记了问题未给出代码侧修复方案)、数据传递链断裂(ResultScene缺少elapsedTime导致US-035/US-053无法实现)、游戏流程不完整(ResultScene直接重启GameScene跳过TitleScene)"
     }
   ],
   "improvements": {
@@ -353,7 +359,12 @@
       "US-191: ResultScene失败统计 — 胜负都显示击杀/金币，移除 isWin 条件",
       "US-192: GameScene startTime + elapsedTime — US-035/US-053 前置实现依赖",
       "US-193: HUD高分显示 — 游戏内显示历史最高分，提供挑战目标",
-      "US-194: 房间敌人计数追踪 — US-040/US-039/US-050 共同前置依赖"
+      "US-194: 房间敌人计数追踪 — US-040/US-039/US-050 共同前置依赖",
+      "US-195: GameScene.shutdown() 显式资源清理 — player-attack/enemy-death 事件 off + RoomCameraSystem 回调置空",
+      "US-196: Skeleton 追踪模式 HP bar 跟随修复 — return 前调用 hpBar.follow(this)",
+      "US-197: SpikeTrap 无敌帧穿透修复 — GameScene overlap 回调中检查 player invincible 状态",
+      "US-198: elapsedTime 传递到 ResultScene — startTime 记录 + endGame 计算 + data 传递",
+      "US-199: ResultScene 重启返回 TitleScene — SPACE→TitleScene + 可选 Enter→GameScene 快速重启"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -922,6 +933,26 @@
         "area": "房间清除判定缺少数据基础",
         "detail": "US-040(清除奖励)、US-039(探索进度百分比)、US-050(重生机制)都需要\"一个房间是否已清除\"的判定，但当前没有按房间追踪敌人存活数量的数据结构",
         "recommendation": "GameScene维护roomsEnemyCount，spawn初始化+kill递减+零值事件(US-194)"
+      },
+      {
+        "area": "场景生命周期管理缺失",
+        "detail": "GameScene 缺少 shutdown() 方法。player-attack 和 enemy-death 事件监听器在 scene 重启时不被自动清理（Phaser scene events 需要显式 off）。RoomCameraSystem 的 onRoomChangedCallback 持有 HUD 引用，重启后可能指向已销毁的 HUD 对象",
+        "recommendation": "添加 GameScene.shutdown() 统一清理所有事件监听器和回调引用 (US-195)"
+      },
+      {
+        "area": "Skeleton HP bar 追踪模式脱离",
+        "detail": "Skeleton.update() 追踪模式中直接 return 跳过了 hpBar.follow(this)。追踪时 HP 条留在原地不跟随 Skeleton 移动。这是一个直接影响玩家体验的可见 bug——玩家看到分离的血条",
+        "recommendation": "追踪模式 return 前添加 hpBar 位置更新 (US-196)"
+      },
+      {
+        "area": "数据传递链断裂",
+        "detail": "US-192 要求 GameScene 记录 startTime，但 endGame() 传递给 ResultScene 的 data 中没有 elapsedTime 字段。即使 US-192 实现了计时基础设施，ResultScene 仍然拿不到数据。US-035（通关计时显示）和 US-053（时间奖励分）完全无法实现",
+        "recommendation": "endGame 中计算 elapsedTime 并传递给 ResultScene (US-198)"
+      },
+      {
+        "area": "游戏流程闭环缺失",
+        "detail": "ResultScene 按 SPACE 直接 this.scene.start('GameScene') 跳回游戏，跳过 TitleScene。这意味着玩家无法回到标题画面查看操作说明，每次游戏结束都直接进入下一局。US-127 和 US-175 都标记了这个问题但从未实现",
+        "recommendation": "改为 SPACE→TitleScene，可选 Enter→GameScene 快速重启 (US-199)"
       }
     ],
     "minimapCompleteness": {

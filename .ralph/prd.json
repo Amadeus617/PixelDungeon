@@ -597,7 +597,7 @@
           "description": "在 GameScene 中记录游戏开始时间，ResultScene 中显示通关用时（MM:SS 格式）。让玩家有速度挑战的动力，增加重玩价值。当前 ResultScene 完全没有时间维度。",
           "type": "code",
           "priority": 20,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "GameScene.create() 中记录 startTime = Date.now()",
@@ -3158,6 +3158,90 @@
             "handlePlayerAttack 击杀后递减对应房间计数",
             "count=0 时 emit roomCleared(roomIndex) 事件",
             "entrance 房间(无敌人)初始计数为 0"
+          ]
+        },
+        {
+          "id": "US-195",
+          "title": "GameScene shutdown() 显式资源清理方法",
+          "description": "添加 GameScene.shutdown() 方法，统一清理 player-attack 事件监听器、enemy-death 事件监听器、RoomCameraSystem 回调、HUD 回调。ResultScene 重启时 scene.start 会触发旧 scene 的 shutdown，确保所有引用被释放。这是 US-164/US-165/US-166 的统一实现方案。",
+          "type": "code",
+          "priority": 180,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 方法存在并清理所有事件监听器",
+            "player-attack 和 enemy-death 事件在 shutdown 中 off",
+            "RoomCameraSystem.onRoomChangedCallback 在 shutdown 中置空",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-196",
+          "title": "Skeleton 追踪模式 return 前更新 HP bar 位置",
+          "description": "Skeleton.update() 追踪模式末尾直接 return 跳过了 HP bar follow 逻辑。需要在 return 前调用 hpBar.follow(this)，确保追踪期间血条始终跟随敌人位置。US-136 的具体实现。",
+          "type": "code",
+          "priority": 181,
+          "status": "pending",
+          "dependsOn": [
+            "US-136"
+          ],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式下 HP bar 实时跟随敌人位置",
+            "非追踪模式 HP bar 跟随不受影响",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-197",
+          "title": "SpikeTrap 不检查玩家无敌状态 — invincible 期间应跳过触发",
+          "description": "SpikeTrap.trigger() 无条件激活并造成伤害，不检查 player.isInvincible。玩家在无敌帧期间踩到陷阱仍然扣血和减速。应在 GameScene 的 overlap 回调中先检查 player invincible 状态再调用 trigger()。这是 US-177 的补充方案（代码侧而非陷阱侧）。",
+          "type": "code",
+          "priority": 182,
+          "status": "pending",
+          "dependsOn": [
+            "US-177"
+          ],
+          "acceptanceCriteria": [
+            "无敌帧期间踩陷阱不触发伤害和减速",
+            "无敌帧结束后踩陷阱正常触发",
+            "陷阱冷却机制不受影响",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-198",
+          "title": "ScoreSystem 战斗统计传递 — 传递 elapsedTime 到 ResultScene",
+          "description": "GameScene.endGame() 传递 result/score/killCount/coinCount 到 ResultScene，但缺少 elapsedTime。US-192 要求在 create() 中记录 startTime 并在 endGame 计算耗时。本 US 是 US-035（通关计时显示）和 US-053（时间奖励分）的实现依赖。",
+          "type": "code",
+          "priority": 183,
+          "status": "pending",
+          "dependsOn": [
+            "US-192"
+          ],
+          "acceptanceCriteria": [
+            "GameScene.create() 中记录 this.startTime = this.time.now",
+            "endGame 中计算 elapsedTime = this.time.now - this.startTime",
+            "scene.start(\"ResultScene\") data 包含 elapsedTime 字段",
+            "ResultScene 能接收并使用 elapsedTime",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-199",
+          "title": "ResultScene 重启应返回 TitleScene 而非直接 GameScene",
+          "description": "当前 ResultScene 按空格直接 this.scene.start(\"GameScene\") 跳回游戏，跳过标题画面。应改为 this.scene.start(\"TitleScene\")，让玩家回到标题画面重新开始。如果支持快速重开，可添加 Enter 键快速重启到 GameScene。这是 US-127/US-175 的统一实现。",
+          "type": "code",
+          "priority": 184,
+          "status": "pending",
+          "dependsOn": [
+            "US-127",
+            "US-175"
+          ],
+          "acceptanceCriteria": [
+            "SPACE 键返回 TitleScene",
+            "可选 Enter 键快速重启到 GameScene",
+            "TitleScene 能正确重新启动游戏",
+            "tsc + build 通过"
           ]
         }
       ]

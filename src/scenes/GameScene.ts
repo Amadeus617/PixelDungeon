@@ -76,6 +76,9 @@ export class GameScene extends Phaser.Scene {
   private slimeCount = BASE_SLIME_COUNT;
   private skeletonSpeedMultiplier = 1.0;
 
+  // Game timer (US-035)
+  private startTime = 0;
+
   constructor() {
     super({ key: "GameScene" });
   }
@@ -85,6 +88,7 @@ export class GameScene extends Phaser.Scene {
     this.coinCount = 0;
     this.killCount = 0;
     this.scoreSystem.reset();
+    this.startTime = Date.now(); // Record game start time (US-035)
     this.soundManager = new SoundManager(this);
 
     // --- Difficulty scaling (US-028) ---
@@ -651,12 +655,14 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
 
     // Transition to result scene after a short delay
+    const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // seconds (US-035)
     this.time.delayedCall(800, () => {
       this.scene.start("ResultScene", {
         result,
         score: this.scoreSystem.score,
         killCount: this.killCount,
         coinCount: this.coinCount,
+        elapsedTime,
       });
     });
   }
