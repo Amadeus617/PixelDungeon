@@ -643,7 +643,7 @@
           "description": "当前游戏直接进入 GameScene，缺少标题画面。添加一个 TitleScene 显示游戏标题「PixelDungeon」、像素风装饰和「按任意键开始」提示。这是基本游戏体验的起点，US-024 已 pending 但未有具体实现计划。",
           "type": "code",
           "priority": 23,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "新建 src/scenes/TitleScene.ts",
@@ -3729,6 +3729,85 @@
             "默认值一致",
             "tsc + build 通过"
           ]
+        },
+        {
+          "title": "Slime 碰墙反弹音效与视觉反馈",
+          "description": "Slime 碰撞墙壁时(onHitWall)仅调用 pickDirection() 切换方向，缺少视觉和音效反馈。应添加：1) 碰撞时微小的缩放/压缩动画( squash & stretch ); 2) 播放碰撞音效(squish sound); 3) 可选的小粒子特效(灰尘)。提升打击感和游戏手感。",
+          "type": "code",
+          "priority": 217,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 碰墙时播放 squash & stretch 动画 (scaleY 0.8 → 1.0, 150ms)",
+            "Slime 碰墙时触发音效(如果 SoundManager 已加载对应音效)",
+            "Slime 碰墙时不产生明显卡顿",
+            "tsc + build 通过"
+          ],
+          "id": "US-232"
+        },
+        {
+          "title": "GameScene shutdown 清理——防止内存泄漏",
+          "description": "GameScene 没有 shutdown() 方法。当场景切换(ResultScene)时，事件监听器(player-attack, enemy-death)和 overlap 回调不会自动清理。多次重启游戏后会导致：1) 事件回调累积，同一攻击触发多次; 2) overlap 回调堆积导致拾取重复计数; 3) 内存持续增长。应添加 shutdown() 方法清理所有事件监听和 overlap。",
+          "type": "code",
+          "priority": 218,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "shutdown() 中移除 player-attack 和 enemy-death 事件监听",
+            "shutdown() 中清理所有 physics overlap collider",
+            "连续重启游戏 10 次，内存不持续增长",
+            "tsc + build 通过"
+          ],
+          "id": "US-233"
+        },
+        {
+          "title": "Skeleton 追踪状态下的 HP Bar 位置更新",
+          "description": "Skeleton.update() 中，当骷髅进入追踪玩家模式(dist <= TRACK_RANGE)时，直接 return 而不更新 HP bar 位置。导致追踪状态下 HP bar 与骷髅精灵不同步，HP bar 停留在进入追踪前的位置。应将 HP bar 位置更新逻辑移到追踪 return 之前，或在追踪分支中也调用 hpBar.follow()。",
+          "type": "code",
+          "priority": 219,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式下 HP bar 始终跟随骷髅精灵位置",
+            "追踪和漫游两种状态下 HP bar 位置均正确",
+            "HP bar 不会被创建多次或遗留",
+            "tsc + build 通过"
+          ],
+          "id": "US-234"
+        },
+        {
+          "title": "攻击命中反馈——屏幕震动与数字弹出",
+          "description": "当前攻击命中敌人仅有：闪白(setTint)和击退。缺少更直观的反馈，新手玩家可能不确定攻击是否命中。应添加：1) 轻微屏幕震动( cam shake 50-100ms, 小幅); 2) 伤害数字弹出动画(从敌人位置向上飘出并淡出); 3) 命中时播放 hit 音效。注意：仅在攻击命中至少一个敌人时触发震动，避免未命中时的震屏干扰。",
+          "type": "code",
+          "priority": 220,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中敌人时屏幕轻微震动 (2-3px, 100ms)",
+            "命中点弹出伤害数字，向上飘出 500ms 后淡出消失",
+            "命中时播放 hit 音效 (需 SoundManager 添加方法)",
+            "未命中时不触发震动",
+            "ATK x2 状态下伤害数字显示正确翻倍值",
+            "tsc + build 通过"
+          ],
+          "id": "US-235"
+        },
+        {
+          "title": "连续拾取药水时的叠加回复提示",
+          "description": "当前拾取药水( map potion 3HP, drop potion 2HP )无任何文本反馈，仅在 HP bar 上看到变化。如果 HP 已满，heal() 返回 0 但药水仍然被消耗(collect() 已执行)。应添加：1) 拾取时弹出 \"+3 HP\" / \"+2 HP\" 文字动画; 2) HP 已满时不消耗药水( collect() 前检查); 3) 满血时药水瓶上方显示 \"FULL\" 提示。注意：当前 overlap 回调中 collect() 和 heal() 是分开调用的，需要在 heal 返回 0 时不 collect。",
+          "type": "code",
+          "priority": 221,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "拾取药水时弹出 \"+N HP\" 文字动画 (向上飘出 800ms)",
+            "HP 已满时不消耗药水，不触发拾取",
+            "HP 已满时靠近药水显示 \"HP FULL\" 提示",
+            "同时适用于地图药水和敌人掉落药水",
+            "tsc + build 通过"
+          ],
+          "id": "US-236"
         }
       ]
     }

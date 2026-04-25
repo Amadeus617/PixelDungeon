@@ -215,6 +215,38 @@
       "author": "agent-review",
       "change": "第二十七轮设计审查新增18个改进US(US-214~US-231)：Slime/Skeleton die()与delayedCall闭包时序、动态掉落道具overlap回调泄漏、SpikeTrap overlap不检查gameOver、AttackBoost overlap无active检查、Slime knockback血条脱离、TitleScene双重触发防护、掉落药水与地图药水回复量不同无视觉区分、死亡动画期间HUD冻结、SpikeTrap非Physics.Sprite导致overlap不确定、HUD无效setText、Player死亡后buff计时器残留、ResultScene独立ScoreSystem高分保存脱节、Skeleton追踪不更新动画方向、RoomCameraSystem回调未shutdown清理、Slime knockback与onHitWall双重方向切换、BootScene资源加载失败无处理、Chest交互需按距离排序、runCount管理分散。更新 improvements 和 balanceAnalysis。",
       "reason": "第二十七轮设计审查深入分析代码执行流、闭包生命周期、场景重启清理、物理引擎类型安全、资源管理一致性，发现18个之前审查未覆盖的新问题"
+    },
+    {
+      "round": 29,
+      "date": "2026-04-25",
+      "changes": [
+        {
+          "us": "US-232",
+          "desc": "新增 Slime 碰墙 squash & stretch 动画与音效反馈，提升手感",
+          "rationale": "Slime.onHitWall() 目前仅切换方向，缺少任何视觉/音效反馈，碰墙感弱"
+        },
+        {
+          "us": "US-233",
+          "desc": "GameScene 添加 shutdown() 清理事件监听和 overlap，防止内存泄漏",
+          "rationale": "多次重启后事件回调累积，同一攻击/拾取触发多次，属于关键 bug 修复"
+        },
+        {
+          "us": "US-234",
+          "desc": "修复 Skeleton 追踪模式下 HP Bar 不跟随的问题",
+          "rationale": "Skeleton.update() 追踪分支直接 return 跳过 hpBar.follow()，HP bar 停留在旧位置"
+        },
+        {
+          "us": "US-235",
+          "desc": "攻击命中时添加屏幕微震、伤害数字弹出动画和命中音效",
+          "rationale": "当前命中反馈仅有闪白+击退，新手玩家难以确认攻击是否有效命中"
+        },
+        {
+          "us": "US-236",
+          "desc": "药水拾取添加文字反馈 + 满血保护机制（HP满时不消耗药水）",
+          "rationale": "当前满血拾取药水会浪费资源且无反馈，应保护资源并提示玩家"
+        }
+      ],
+      "notes": "第 29 轮审查。聚焦于：1) 关键 bug(内存泄漏、HP bar 位置); 2) 游戏手感提升(反馈动画、音效); 3) 资源保护(满血药水)。难度缩放系统运行正常，Skeleton 速度倍率逻辑无问题。"
     }
   ],
   "improvements": {
@@ -1072,5 +1104,25 @@
       "recommendation": "建议实施优先级：US-200(takeDamage返回值) > US-207(knockback保护) > US-209(Skeleton HP bar) > US-205(敌人冻结) > US-206(死亡alpha) > US-211(spawn分布) > US-208(TitleScene流程) > US-210(shutdown清理)"
     }
   },
-  "healthPotionHeal": 3
+  "healthPotionHeal": 3,
+  "knownIssues": [
+    {
+      "id": "KI-014",
+      "desc": "GameScene 无 shutdown() 方法，事件监听和 overlap 不清理",
+      "severity": "high",
+      "relatedUS": "US-233"
+    },
+    {
+      "id": "KI-015",
+      "desc": "Skeleton 追踪模式下 HP Bar 不跟随实体",
+      "severity": "medium",
+      "relatedUS": "US-234"
+    },
+    {
+      "id": "KI-016",
+      "desc": "满血时拾取药水浪费资源",
+      "severity": "medium",
+      "relatedUS": "US-236"
+    }
+  ]
 }
