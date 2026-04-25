@@ -3098,6 +3098,67 @@
           ],
           "id": "US-190",
           "status": "pending"
+        },
+        {
+          "id": "US-191",
+          "title": "ResultScene 失败时也显示游戏统计 — 击杀数和金币数",
+          "description": "当前 ResultScene 统计面板仅在 isWin && killCount !== undefined 时渲染。失败时玩家看不到自己击杀了多少敌人、收集了多少金币。应改为无论胜负都显示统计数据，让每次游戏结束都有信息反馈。实现：移除 if(isWin) 条件，始终渲染 statsLines。",
+          "type": "code",
+          "priority": 176,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "失败时 ResultScene 显示 Enemies Defeated 和 Coins Collected",
+            "胜利时统计面板显示不变",
+            "killCount/coinCount 为 0 时正确显示 0 而非隐藏",
+            "statsY 间距在胜负两种模式下一致"
+          ]
+        },
+        {
+          "id": "US-192",
+          "title": "GameScene 游戏计时基础设施 — startTime + elapsedTime 计算",
+          "description": "US-035 要求通关计时系统，但 GameScene 缺少 startTime 时间戳记录。endGame 传递数据中没有 elapsedTime 字段。需在 create() 中记录 this.startTime = Date.now()，endGame 中计算 elapsedTime = (Date.now() - startTime) / 1000 并传递给 ResultScene。这是 US-035 和 US-053(时间奖励分)的前置实现依赖。",
+          "type": "code",
+          "priority": 177,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.create() 中 this.startTime = Date.now() 或 scene.time.now",
+            "endGame() 中计算 elapsedTime 并传递给 ResultScene",
+            "ResultScene 接收并显示通关用时(仅胜利时)",
+            "startTime 在 scene restart 时正确重置"
+          ]
+        },
+        {
+          "id": "US-193",
+          "title": "HUD 显示当前局高分目标 — 游戏内显示历史最高分",
+          "description": "当前高分仅在 ResultScene 显示。游戏过程中玩家不知道自己距离纪录还有多远，缺少 \"挑战纪录\" 的驱动力。应在 HUD 中添加一行小型文字显示 \"Best: {highScore}\"，位于分数显示旁或 minimap 下方。ScoreSystem.getHighScore() 已存在可直接调用。",
+          "type": "code",
+          "priority": 178,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 在分数旁显示 \"Best: {highScore}\"",
+            "高分从 ScoreSystem.getHighScore() 读取",
+            "文字大小适中不遮挡游戏画面",
+            "新高分时该文字闪烁或变亮"
+          ]
+        },
+        {
+          "id": "US-194",
+          "title": "房间敌人计数追踪 — 房间清除判定基础",
+          "description": "US-040(房间清除奖励)依赖 \"何时算清除一个房间\" 的判定逻辑。当前没有按房间追踪存活敌人数量的机制。需在 GameScene 中维护 roomsEnemyCount: Map<number, number>，spawn 时初始化计数，kill 时递减，count=0 触发房间清除事件。这是 US-040、US-039(进度百分比)和 US-050(重生机制)的共同前置依赖。",
+          "type": "code",
+          "priority": 179,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 维护 roomsEnemyCount: Map<number, number>",
+            "每个房间 spawn 完成后记录敌人数量",
+            "handlePlayerAttack 击杀后递减对应房间计数",
+            "count=0 时 emit roomCleared(roomIndex) 事件",
+            "entrance 房间(无敌人)初始计数为 0"
+          ]
         }
       ]
     }

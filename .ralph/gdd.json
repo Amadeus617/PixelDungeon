@@ -191,6 +191,12 @@
       "author": "agent-review",
       "change": "第二十三轮设计审查新增6个改进US(US-185~US-190)：Minimap缺少AttackBoost道具显示(功能遗漏)、Minimap未标记楼梯出口位置(核心目标不可见)、Minimap RenderTexture空分配GPU内存浪费(死代码)、ScoreSystem缺少combo连击计分机制(战斗深度不足)、Skeleton追踪贴脸抖动缺少停止距离阈值(运动学bug)、HealthPotion满血拾取无反馈(US-060依赖但未实现的资源管理)。更新 improvements 和 balanceAnalysis。",
       "reason": "第二十三轮设计审查深入分析Minimap功能完整性（发现AttackBoost和楼梯两个关键信息缺失）、GPU资源浪费、战斗计分策略性（combo系统提升roguelike深度）、敌人AI运动学细节、道具拾取策略反馈，发现6个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十四轮设计审查新增4个改进US(US-191~US-194)：ResultScene失败统计显示、GameScene计时基础设施(startTime+elapsedTime)、HUD游戏内高分显示、房间敌人计数追踪(清除判定基础)。更新 improvements 和 balanceAnalysis。",
+      "reason": "第二十四轮设计审查深入分析 ResultScene 统计覆盖率、US-035/US-053 的实现依赖链、HUD 信息可见性、US-040/US-039/US-050 的共同前置依赖，发现4个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -343,7 +349,11 @@
       "US-181: Slime overlap wasHurt逻辑修正 — 改用takeDamage返回值(US-117依赖)",
       "US-182: Direction idle值彻底移除 — 消除getAttackZone和attack动画fallback",
       "US-183: knockback期间attack状态重置 — isAttacking在knockback结束时清理",
-      "US-184: HealthPotion heal参数集中管理 — 随US-068从balance配置读取"
+      "US-184: HealthPotion heal参数集中管理 — 随US-068从balance配置读取",
+      "US-191: ResultScene失败统计 — 胜负都显示击杀/金币，移除 isWin 条件",
+      "US-192: GameScene startTime + elapsedTime — US-035/US-053 前置实现依赖",
+      "US-193: HUD高分显示 — 游戏内显示历史最高分，提供挑战目标",
+      "US-194: 房间敌人计数追踪 — US-040/US-039/US-050 共同前置依赖"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -892,6 +902,26 @@
         "area": "HealthPotion回复量参数分散",
         "detail": "HEALTH_POTION_HEAL=1在GameScene硬编码，gdd.json记录healthPotionHeal:1。US-037要求改为3但尚未实现。参数分散导致gdd与代码脱节风险(US-021问题重现)",
         "recommendation": "随US-068一并集中到balance配置(US-184)"
+      },
+      {
+        "area": "ResultScene统计覆盖率不足",
+        "detail": "统计面板只在胜利时渲染(isWin条件)，失败时玩家看到空白+GAME OVER。无论胜负都应显示击杀数和金币数，给每次游戏结束提供信息反馈和成就感",
+        "recommendation": "移除 if(isWin) 条件，始终显示统计面板(US-191)"
+      },
+      {
+        "area": "游戏计时基础设施缺失",
+        "detail": "US-035要求通关计时、US-053要求时间奖励分，但GameScene中完全没有startTime时间戳。endGame传递的数据缺少elapsedTime字段，ResultScene无法显示用时",
+        "recommendation": "GameScene.create()记录startTime，endGame计算elapsedTime传递(US-192)"
+      },
+      {
+        "area": "HUD信息可见性不足",
+        "detail": "高分只在ResultScene显示，游戏中玩家不知道自己距离纪录还有多远。缺少\"挑战纪录\"的持续驱动力，尤其影响重玩动机",
+        "recommendation": "HUD添加高分显示，ScoreSystem.getHighScore()直接可用(US-193)"
+      },
+      {
+        "area": "房间清除判定缺少数据基础",
+        "detail": "US-040(清除奖励)、US-039(探索进度百分比)、US-050(重生机制)都需要\"一个房间是否已清除\"的判定，但当前没有按房间追踪敌人存活数量的数据结构",
+        "recommendation": "GameScene维护roomsEnemyCount，spawn初始化+kill递减+零值事件(US-194)"
       }
     ],
     "minimapCompleteness": {
