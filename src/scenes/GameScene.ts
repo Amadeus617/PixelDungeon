@@ -33,6 +33,16 @@ const ATTACK_BOOST_COUNT = 2;
 const ENEMY_CONTACT_DAMAGE = 1;
 const STAIRS_REACH_DISTANCE = 40;
 
+// --- Enemy death drop rates (US-033) ---
+const SLIME_COIN_DROP_RATE = 0.3;    // 30%
+const SLIME_POTION_DROP_RATE = 0.1;  // 10%
+const SKELETON_COIN_DROP_RATE = 0.5; // 50%
+const SKELETON_POTION_DROP_RATE = 0.15; // 15%
+const DROP_POTION_HEAL = 2;          // Small potion from drop heals 2 HP (vs map potion 1 HP)
+const DROP_POP_HEIGHT = 20;          // Popup arc height in px
+const DROP_POP_DURATION = 400;       // Popup animation duration in ms
+// --- End enemy death drop rates ---
+
 export type GameResult = "win" | "lose";
 
 export class GameScene extends Phaser.Scene {
@@ -317,6 +327,9 @@ export class GameScene extends Phaser.Scene {
 
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
+
+    // Listen for enemy death events (US-033: enemy drop loot)
+    this.events.on("enemy-death", this.handleEnemyDeathDrop, this);
   }
 
   private handlePlayerAttack(): void {
@@ -423,6 +436,127 @@ export class GameScene extends Phaser.Scene {
       }
     }
     return null;
+  }
+
+  /** Handle enemy death — drop loot with probability (US-033) */
+  private handleEnemyDeathDrop(data: { x: number; y: number; type: string }): void {
+    const { x, y, type } = data;
+    const isSkeleton = type === "skeleton";
+
+    const coinRate = isSkeleton ? SKELETON_COIN_DROP_RATE : SLIME_COIN_DROP_RATE;
+    const potionRate = isSkeleton ? SKELETON_POTION_DROP_RATE : SLIME_POTION_DROP_RATE;
+
+    // Death particle effect: brief expanding/fading particles around death position
+    this.spawnDeathParticles(x, y);
+
+    // Determine drops (can drop both coin and potion)
+    const dropCoin = Math.random() < coinRate;
+    const dropPotion = Math.random() < potionRate;
+
+    if (dropCoin) {
+      const offsetAngle = Math.random() * Math.PI * 2;
+      const offsetDist = Phaser.Math.Between(15, 30);
+      const targetX = x + Math.cos(offsetAngle) * offsetDist;
+      const targetY = y + Math.sin(offsetAngle) * offsetDist;
+      this.spawnDropCoin(targetX, targetY, x, y);
+    }
+
+    if (dropPotion) {
+      const offsetAngle = Math.random() * Math.PI * 2;
+      const offsetDist = Phaser.Math.Between(15, 30);
+      const targetX = x + Math.cos(offsetAngle) * offsetDist;
+      const targetY = y + Math.sin(offsetAngle) * offsetDist;
+      this.spawnDropPotion(targetX, targetY, x, y);
+    }
+  }
+
+  /** Spawn a brief particle burst at enemy death position */
+  private spawnDeathParticles(x: number, y: number): void {
+    const particleCount = 6;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i;
+      const px = this.add.rectangle(x, y, 4, 4, 0xffffff, 0.8);
+      px.setDepth(15);
+      this.tweens.add({
+        targets: px,
+        x: x + Math.cos(angle) * 20,
+        y: y + Math.sin(angle) * 20,
+        alpha: 0,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => px.destroy(),
+      });
+    }
+  }
+
+  /** Spawn a dropped coin with popup arc animation, then register overlap for pickup */
+  private spawnDropCoin(targetX: number, targetY: number, originX: number, originY: number): void {
+    const coin = new Coin(this, originX, originY);
+    coin.setAlpha(0); // Start invisible
+    this.coins.push(coin);
+
+    // Popup arc animation
+    this.tweens.add({
+      targets: coin,
+      x: targetX,
+      y: { value: targetY - DROP_POP_HEIGHT, from: originY },
+      alpha: 1,
+      duration: DROP_POP_DURATION,
+      ease: 'Quad.easeOut',
+      yoyo: false,
+      onComplete: () => {
+        // Final settle to targetY
+        this.tweens.add({
+          targets: coin,
+          y: targetY,
+          duration: 150,
+          ease: 'Bounce.easeOut',
+        });
+      },
+    });
+
+    // Register overlap for pickup
+    this.physics.add.overlap(this.player, coin, () => {
+      if (coin.collect()) {
+        this.coinCount++;
+        this.scoreSystem.addCoinPoints();
+        this.soundManager.playPickup();
+      }
+    });
+  }
+
+  /** Spawn a dropped small health potion with popup arc animation */
+  private spawnDropPotion(targetX: number, targetY: number, originX: number, originY: number): void {
+    const potion = new HealthPotion(this, originX, originY);
+    potion.setAlpha(0); // Start invisible
+    this.healthPotions.push(potion);
+
+    // Popup arc animation
+    this.tweens.add({
+      targets: potion,
+      x: targetX,
+      y: { value: targetY - DROP_POP_HEIGHT, from: originY },
+      alpha: 1,
+      duration: DROP_POP_DURATION,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        // Final settle to targetY
+        this.tweens.add({
+          targets: potion,
+          y: targetY,
+          duration: 150,
+          ease: 'Bounce.easeOut',
+        });
+      },
+    });
+
+    // Register overlap for pickup
+    this.physics.add.overlap(this.player, potion, () => {
+      if (potion.collect()) {
+        this.player.heal(DROP_POTION_HEAL);
+        this.soundManager.playPickup();
+      }
+    });
   }
 
   private checkWinCondition(): boolean {

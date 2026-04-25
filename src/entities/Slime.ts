@@ -108,6 +108,14 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private die(): void {
     if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
+
+    // Emit death event for loot drops before destroying
+    this.scene.events.emit("enemy-death", {
+      x: this.x,
+      y: this.y,
+      type: "slime",
+    });
+
     this.setActive(false);
     this.setVisible(false);
     this.destroy();
