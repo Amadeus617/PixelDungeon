@@ -20,7 +20,7 @@ import { SoundManager } from "@/systems/SoundManager";
 const RUN_COUNT_KEY = "pixeldungeon_run_count";
 const BASE_SLIME_COUNT = 4;
 const SLIME_COUNT_CAP = 8;
-const BASE_SKELETON_SPEED = 45;
+const BASE_SKELETON_SPEED = 55;
 const SPEED_INCREASE_PER_RUN = 0.1; // +10% per run
 const SPEED_CAP_MULTIPLIER = 2.0;   // max 200%
 // --- End difficulty scaling ---

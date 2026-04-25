@@ -1,8 +1,8 @@
 import Phaser from "phaser";
 import { EnemyHpBar } from "@/ui/EnemyHpBar";
 
-const SKELETON_SPEED = 45;
-const SKELETON_MAX_HP = 2;
+const SKELETON_SPEED = 55;
+const SKELETON_MAX_HP = 4;
 const TRACK_RANGE = 200;
 const HP_BAR_Y_OFFSET = -20;
 const KNOCKBACK_SPEED = 300;

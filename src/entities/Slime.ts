@@ -5,7 +5,7 @@ const SLIME_SPEED = 60;
 const HP_BAR_Y_OFFSET = -20;
 const DIR_CHANGE_MIN = 1500;
 const DIR_CHANGE_MAX = 3500;
-const SLIME_MAX_HP = 3;
+const SLIME_MAX_HP = 2;
 const KNOCKBACK_SPEED = 300;
 const KNOCKBACK_DURATION = 150;
 

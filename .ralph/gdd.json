@@ -15,12 +15,12 @@
     "playerAttackCooldown": 400,
     "playerInvincibleDuration": 1000,
     "enemyHP": {
-      "slime": 3,
-      "skeleton": 2
+      "slime": 2,
+      "skeleton": 4
     },
     "enemySpeed": {
       "slime": 60,
-      "skeleton": 45
+      "skeleton": 55
     },
     "enemyCount": {
       "slime": 4,
@@ -203,6 +203,12 @@
       "author": "agent-review",
       "change": "第二十五轮设计审查新增5个改进US(US-195~US-199)：GameScene shutdown()统一资源清理、Skeleton追踪模式HP bar跟随修复、SpikeTrap无敌帧穿透修复(GameScene侧)、elapsedTime传递到ResultScene、ResultScene重启返回TitleScene流程闭环。更新improvements和balanceAnalysis。",
       "reason": "第二十五轮设计审查深入分析场景生命周期管理(发现GameScene缺少shutdown导致事件监听器/回调泄漏)、敌人视觉bug(Skeleton追踪时HP bar脱离是实际可见的bug)、SpikeTrap无敌帧穿透的实现路径(之前US-177只标记了问题未给出代码侧修复方案)、数据传递链断裂(ResultScene缺少elapsedTime导致US-035/US-053无法实现)、游戏流程不完整(ResultScene直接重启GameScene跳过TitleScene)"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十六轮设计审查新增14个改进US(US-200~US-213)：Player takeDamage返回boolean基础接口(6+个下游US共同依赖)、gameOver后HUD冻结修复、Slime/Skeleton overlap hurt音效条件修正(基于takeDamage返回值)、SpikeTrap无敌帧穿透GameScene侧修复、endGame后敌人update冻结、Player死亡alpha残留playDeathAnimation前重置、Slime/Skeleton onHitWall knockback保护、ResultScene重启返回TitleScene流程闭环、Skeleton追踪模式HP bar跟随修复、GameScene shutdown事件清理、Skeleton 3房间spawn分布修复、Coin spawn跳过entrance、Direction类型移除idle值。本轮重点：确认25轮审查中大量已标记但未实际修复的问题仍存在于代码中，本次重新确认并补充实现细节。",
+      "reason": "第二十六轮设计审查深入分析代码执行流，发现多个之前审查已识别但代码仍未修复的核心问题持续存在：takeDamage返回值是多个下游功能(音效/统计/掉落)的前置依赖；gameOver生命周期管理不完整导致HUD冻结和敌人CPU浪费；SpikeTrap无敌帧穿透；死亡动画alpha残留；knockback碰墙覆盖；游戏流程闭环缺失；Skeleton追踪HP bar脱离是直接可见的视觉bug"
     }
   ],
   "improvements": {
@@ -977,6 +983,49 @@
         "Skeleton追踪距离过近时位置抖动，缺少STOP_DISTANCE阈值 (US-189)"
       ],
       "impact": "视觉异常但不影响gameplay，优先级较低"
+    },
+    "round26ConfirmedUnfixed": {
+      "date": "2026-04-25",
+      "summary": "第26轮审查确认以下问题在之前多轮审查中已标记(US编号已存在)但代码仍未修复",
+      "criticalUnfixed": [
+        {
+          "us": "US-117/US-154/US-171 → US-200",
+          "area": "takeDamage 返回 boolean",
+          "impact": "6+个下游US(音效/统计/掉落)被阻塞",
+          "roundsFlagged": "第15/19/21轮标记，第26轮确认仍为void"
+        },
+        {
+          "us": "US-106/US-174 → US-205",
+          "area": "endGame后敌人update冻结",
+          "impact": "所有敌人CPU浪费+潜在副作用",
+          "roundsFlagged": "第13/21轮标记，第26轮确认update仍执行"
+        },
+        {
+          "us": "US-099/US-100/US-172 → US-207",
+          "area": "敌人knockback碰墙保护",
+          "impact": "击退效果碰墙即消失",
+          "roundsFlagged": "第12/21轮标记，第26轮确认onHitWall仍覆盖"
+        },
+        {
+          "us": "US-104 → US-211",
+          "area": "3房间Skeleton spawn分布",
+          "impact": "出口房间5个敌人难度尖峰",
+          "roundsFlagged": "第13轮标记，第26轮确认spawn公式未修复"
+        },
+        {
+          "us": "US-127/US-175/US-199 → US-208",
+          "area": "ResultScene返回TitleScene",
+          "impact": "游戏流程不完整，无法回标题",
+          "roundsFlagged": "第16/21/25轮标记，第26轮确认仍直接跳GameScene"
+        },
+        {
+          "us": "US-136/US-196 → US-209",
+          "area": "Skeleton追踪HP bar跟随",
+          "impact": "追踪时血条脱离敌人(直接可见bug)",
+          "roundsFlagged": "第17/25轮标记，第26轮确认return前无hpBar更新"
+        }
+      ],
+      "recommendation": "建议实施优先级：US-200(takeDamage返回值) > US-207(knockback保护) > US-209(Skeleton HP bar) > US-205(敌人冻结) > US-206(死亡alpha) > US-211(spawn分布) > US-208(TitleScene流程) > US-210(shutdown清理)"
     }
   }
 }

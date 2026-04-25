@@ -612,7 +612,7 @@
           "description": "当前 Slime（普通随机AI）3HP > Skeleton（追踪AI）2HP，后期敌人反而更弱。应调整：Skeleton HP → 4，Slime HP → 2，使敌人强度与 AI 复杂度和出场顺序匹配。同时 Skeleton 追踪速度可从 45 提至 55。",
           "type": "code",
           "priority": 21,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime HP 改为 2（gdd.json 同步更新）",
@@ -3241,6 +3241,217 @@
             "SPACE 键返回 TitleScene",
             "可选 Enter 键快速重启到 GameScene",
             "TitleScene 能正确重新启动游戏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-200",
+          "title": "Player takeDamage 返回 boolean — 基础接口修复（第26轮确认）",
+          "description": "Player.takeDamage() 当前返回 void，但几乎所有 overlap 回调都需要判断是否实际扣血来决定音效/统计。US-117/US-154/US-171 均标记此问题但代码未修复。本轮确认：所有下游 US（US-101/US-131/US-176/US-181）依赖此返回值。优先级最高，是 6+ 个 US 的共同前置。",
+          "type": "code",
+          "priority": 185,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player.takeDamage() 返回 boolean（true=实际受伤，false=无敌帧/已死跳过）",
+            "Slime.takeDamage() 和 Skeleton.takeDamage() 同步返回 boolean",
+            "GameScene slime/skeleton overlap 回调基于返回值播放 hurt 音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-201",
+          "title": "GameScene.update gameOver 后 HUD 冻结修复",
+          "description": "当前 update() 中 gameOver=true 直接 return 跳过 hud.update()。endGame() 到 scene.start 的 800ms 延迟期间 HUD 完全冻结，最后一击的分数变化和 buff 状态不可见。playDeathAnimation(600ms) + endGame delay(800ms) = 最长 1400ms HUD 不更新。应分离 gameOver 对 HUD 的影响，仅阻断 player/enemy 逻辑。",
+          "type": "code",
+          "priority": 186,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gameOver=true 时 hud.update() 继续执行",
+            "死亡动画期间分数/buff/HP 状态实时更新",
+            "转场前 HUD 显示最终状态",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-202",
+          "title": "Slime overlap hurt 音效 wasHurt 条件修正",
+          "description": "当前 slime overlap 回调：`wasHurt = this.player.alive; player.takeDamage(...); if (wasHurt && player.hp < player.maxHp) playHurt()`。两个条件都有问题：(1) wasHurt=alive 不代表本次受伤，invincible 期间 alive=true 但 takeDamage 不扣血；(2) hp<maxHp 在非满血时总为 true，无敌帧期间误播音效。US-181 标记但未实现。正确方案：基于 takeDamage 返回值（US-200）。",
+          "type": "code",
+          "priority": 187,
+          "status": "pending",
+          "dependsOn": [
+            "US-200"
+          ],
+          "acceptanceCriteria": [
+            "hurt 音效只在 takeDamage 返回 true 时播放",
+            "无敌帧期间不播放 hurt 音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-203",
+          "title": "Skeleton overlap hurt 音效条件修复（第26轮确认）",
+          "description": "Skeleton overlap 回调无条件播放 hurt 音效（`if (player.hp < player.maxHp) playHurt()`），非满血时无敌帧期间每帧误播。与 Slime overlap 为同一问题的不同表现。US-176 标记但代码未修复。依赖 US-200 takeDamage 返回值。",
+          "type": "code",
+          "priority": 188,
+          "status": "pending",
+          "dependsOn": [
+            "US-200"
+          ],
+          "acceptanceCriteria": [
+            "skeleton overlap hurt 音效只在 takeDamage 返回 true 时播放",
+            "无敌帧期间不播放 hurt 音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-204",
+          "title": "SpikeTrap trigger 无敌帧穿透修复（GameScene 侧 overlap 检查）",
+          "description": "SpikeTrap.trigger() 不检查 player.isInvincible，无敌帧期间陷阱仍激活进入冷却 + applySlow 减速穿透无敌帧。US-177/US-197 标记但未实现。修复方案：GameScene 的 spikeTrap overlap 回调中检查 player.isInvincible，为 true 时跳过 trap.trigger()。",
+          "type": "code",
+          "priority": 189,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap overlap 回调中检查 player.isInvincible",
+            "invincible 期间不调用 trap.trigger()",
+            "invincible 期间不受减速效果",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-205",
+          "title": "endGame 后敌人 update 冻结（第26轮确认）",
+          "description": "GameScene.endGame() 调用 physics.pause() 但不阻断 scene update 循环。所有 Slime/Skeleton 的 update(delta) 继续执行无意义的逻辑运算（dirTimer 递增、pickDirection 调用等）。US-106/US-174 标记但未实现。应设 gameOver 标志在敌人 update 开头跳过，但注意当前 update() 在 gameOver return 之前已调用所有 enemy.update——需将敌人 update 移到 gameOver 检查之后或给敌人添加 frozen 属性。",
+          "type": "code",
+          "priority": 190,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gameOver=true 后敌人 update 不执行逻辑",
+            "敌人不浪费 CPU 在无意义的计时器递增",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-206",
+          "title": "Player 死亡 alpha 残留修复 — playDeathAnimation 前重置 alpha",
+          "description": "Player.update() 中无敌帧闪烁在 hp=0 时被 `if (!this.alive) return` 跳过。如果死亡瞬间 alpha=0.4（闪烁低点），playDeathAnimation 的 tween(alpha→0) 从 0.4 开始渐隐，视觉表现为角色短暂变亮后消失而非正常的完整渐隐。US-105/US-150/US-173 标记但代码未修复。修复：playDeathAnimation 开头添加 this.setAlpha(1) + 停止无敌帧闪烁。",
+          "type": "code",
+          "priority": 191,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playDeathAnimation 开始时 alpha 重置为 1",
+            "死亡动画从 alpha=1 渐隐到 0",
+            "无敌帧闪烁在死亡时停止",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-207",
+          "title": "Slime/Skeleton onHitWall knockback 保护（第26轮确认）",
+          "description": "敌人被击退撞墙时 onHitWall() 覆盖 knockback 速度，击退视觉效果碰墙即消失。US-099/US-100/US-172 标记但代码未修复。Slime.onHitWall() 和 Skeleton.onHitWall() 开头添加 `if (this.isKnockedBack) return;` 即可。",
+          "type": "code",
+          "priority": 192,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 检查 isKnockedBack 跳过方向切换",
+            "Skeleton.onHitWall() 检查 isKnockedBack 跳过方向切换",
+            "击退效果持续完整 150ms",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-208",
+          "title": "ResultScene 重启返回 TitleScene 流程闭环（第26轮确认）",
+          "description": "ResultScene SPACE/ENTER 直接 scene.start(\"GameScene\")，跳过 TitleScene。玩家无法返回标题画面查看操作说明。US-127/US-175/US-199 均标记此问题但从未实现。本轮确认：改为 SPACE→TitleScene，添加 \"Enter: Quick Restart\" 快捷键直接进 GameScene。",
+          "type": "code",
+          "priority": 193,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SPACE 键返回 TitleScene",
+            "ENTER 键快速重启直接进入 GameScene",
+            "操作提示文案更新反映两个选项",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-209",
+          "title": "Skeleton 追踪模式 return 前更新 HP bar 位置（第26轮确认）",
+          "description": "Skeleton.update() 追踪模式中直接 return 跳过了 hpBar.follow(this)。追踪时 HP 条留在原地不跟随 Skeleton 移动。US-136/US-196 标记但代码未修复。这是一个玩家直接可见的视觉 bug。修复：在追踪模式的 return 语句前添加 hpBar 跟随逻辑。",
+          "type": "code",
+          "priority": 194,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式 return 前调用 hpBar.follow(this)",
+            "追踪时 HP 条正确跟随敌人位置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-210",
+          "title": "GameScene shutdown() 事件监听器清理（第26轮确认）",
+          "description": "GameScene 缺少 shutdown() 方法。player-attack 和 enemy-death 事件监听器在 scene 重启时不被自动清理。RoomCameraSystem 的 onRoomChangedCallback 持有 HUD 引用可能指向已销毁对象。US-112/US-164/US-165/US-166/US-195 标记但未实现。本轮确认问题仍然存在且无清理代码。",
+          "type": "code",
+          "priority": 195,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "添加 GameScene.shutdown() 方法",
+            "shutdown 中 off(\"player-attack\") 和 off(\"enemy-death\")",
+            "RoomCameraSystem callback 置空",
+            "HUD 引用清理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-211",
+          "title": "Skeleton 3房间地牢 spawn 分布修复（第26轮确认）",
+          "description": "3房间地牢时 `2 + (i % Math.max(1, rooms.length - 2))` 导致 rooms.length=3 时 `i % 1 = 0`，所有 Skeleton 在 rooms[2]。加上 2 个 Slime 也在 rooms[2]，出口房间共 5 个敌人形成难度尖峰。US-104 标记但代码中 spawn 公式未修复。",
+          "type": "code",
+          "priority": 196,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "3房间地牢时 Skeleton 均匀分布在 rooms[1..2]",
+            "出口房间不会堆积所有 Skeleton",
+            "N房间地牢时 Skeleton 分配逻辑正确",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-212",
+          "title": "Coin spawn 跳过 entrance 房间",
+          "description": "Coin spawn 使用 `rooms[i % rooms.length]`，i=0 时在 entrance 房间生成。其他所有道具（HealthPotion/AttackBoost）都用 `(i+1) % length` 跳过 entrance。只有 Coin 不跳过，玩家出生就能拾取降低探索动力。US-108 标记但代码未修复。",
+          "type": "code",
+          "priority": 197,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin spawn 改为 rooms[(i+1) % rooms.length]",
+            "entrance 房间不生成 Coin",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-213",
+          "title": "Direction 类型移除 idle 值（第26轮确认）",
+          "description": "Direction 联合类型包含 \"idle\" 值，但 US-071 修复后玩家停止移动保留最后朝向，idle 不应出现。getAttackZone 中 `this._direction === \"idle\" ? \"down\" : this._direction` fallback 和攻击动画中 `idle-${this._direction === \"idle\" ? \"down\" : this._direction}` 均硬编码 fallback。US-132/US-182 标记但代码中 Direction 类型仍含 idle。修复：从类型定义移除 idle，清理所有 fallback。",
+          "type": "code",
+          "priority": 198,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Direction 类型定义移除 \"idle\"",
+            "getAttackZone 移除 idle fallback",
+            "攻击动画移除 idle fallback",
+            "Player._direction 初始值保持 \"down\"",
             "tsc + build 通过"
           ]
         }
