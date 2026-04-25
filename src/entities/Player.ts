@@ -7,6 +7,8 @@ const ATTACK_RANGE = 50;
 const ATTACK_DAMAGE = 1;
 const ATTACK_COOLDOWN = 400;
 const INVINCIBLE_DURATION = 1000;
+const KNOCKBACK_DISTANCE = 25; // pixels
+const KNOCKBACK_DURATION = 200; // ms
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -25,6 +27,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private isAttacking: boolean = false;
   private isInvincible: boolean = false;
   private invincibleTimer: number = 0;
+  private isKnockedBack: boolean = false;
+  private knockbackTimer: number = 0;
+  private isDeadAnimating: boolean = false;
 
   /** Combat config – exposed for testing and external use */
   static readonly ATTACK_RANGE = ATTACK_RANGE;
@@ -120,7 +125,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return this._hp - before;
   }
 
-  takeDamage(amount: number): void {
+  takeDamage(amount: number, sourceX?: number, sourceY?: number): void {
     if (this.isInvincible || !this.alive) return;
     this._hp = Math.max(0, this._hp - amount);
     this.isInvincible = true;
@@ -128,6 +133,34 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Flash effect
     this.setAlpha(0.5);
+
+    // Knockback: push away from damage source
+    if (sourceX !== undefined && sourceY !== undefined) {
+      const dx = this.x - sourceX;
+      const dy = this.y - sourceY;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const vx = (dx / len) * (KNOCKBACK_DISTANCE / (KNOCKBACK_DURATION / 1000));
+      const vy = (dy / len) * (KNOCKBACK_DISTANCE / (KNOCKBACK_DURATION / 1000));
+      this.setVelocity(vx, vy);
+      this.isKnockedBack = true;
+      this.knockbackTimer = KNOCKBACK_DURATION;
+    }
+  }
+
+  /** Play death animation (fade out) instead of instant freeze */
+  playDeathAnimation(onComplete?: () => void): void {
+    if (this.isDeadAnimating) return;
+    this.isDeadAnimating = true;
+    this.setVelocity(0, 0);
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 0,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => {
+        if (onComplete) onComplete();
+      },
+    });
   }
 
   private updateInvincibility(delta: number): void {
@@ -143,6 +176,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   update(_delta: number, time?: number): void {
     if (!this.alive) return;
+
+    // During knockback, count down and skip input
+    if (this.isKnockedBack) {
+      this.knockbackTimer -= _delta;
+      this.updateInvincibility(_delta);
+      if (this.knockbackTimer <= 0) {
+        this.isKnockedBack = false;
+        this.setVelocity(0, 0);
+      }
+      return;
+    }
 
     this.updateInvincibility(_delta);
 

@@ -130,10 +130,10 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.slimeGroup,
-      (_playerObj, _slimeObj) => {
+      (_playerObj, slimeObj) => {
         const wasHurt = this.player.alive;
-        this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
-        if (this.player.hp < this.player.maxHp) {
+        this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
+        if (wasHurt && this.player.hp < this.player.maxHp) {
           this.soundManager.playHurt();
         }
       }
@@ -161,8 +161,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.player,
       this.skeletonGroup,
-      () => {
-        this.player.takeDamage(ENEMY_CONTACT_DAMAGE);
+      (_playerObj, skeletonObj) => {
+        this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
         if (this.player.hp < this.player.maxHp) {
           this.soundManager.playHurt();
         }
@@ -433,7 +433,12 @@ export class GameScene extends Phaser.Scene {
 
     // Check lose condition first (death takes priority)
     if (this.checkLoseCondition()) {
-      this.endGame("lose");
+      if (!this.gameOver) {
+        this.player.playDeathAnimation(() => {
+          this.endGame("lose");
+        });
+        this.gameOver = true; // prevent re-triggering
+      }
       return;
     }
 
