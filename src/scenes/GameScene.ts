@@ -47,7 +47,6 @@ export class GameScene extends Phaser.Scene {
   private coins: Coin[] = [];
   private healthPotions: HealthPotion[] = [];
   private attackBoosts: AttackBoost[] = [];
-  private attackBoosted = false;
   private coinCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
@@ -222,7 +221,7 @@ export class GameScene extends Phaser.Scene {
     for (const boost of this.attackBoosts) {
       this.physics.add.overlap(this.player, boost, () => {
         if (boost.collect()) {
-          this.attackBoosted = true;
+          this.player.activateAttackBoost();
           this.soundManager.playPickup();
         }
       });
@@ -262,7 +261,7 @@ export class GameScene extends Phaser.Scene {
       () => this.coinCount,
       this.scoreSystem,
       this.roomCameraSystem,
-      () => this.attackBoosted,
+      () => this.player.attackBoosted,
       {
         getSlimes: () => this.slimes,
         getSkeletons: () => this.skeletons,
@@ -284,11 +283,8 @@ export class GameScene extends Phaser.Scene {
     // Play attack swoosh sound
     this.soundManager.playAttack();
 
-    const damage = this.attackBoosted ? Player.ATTACK_DAMAGE * 2 : Player.ATTACK_DAMAGE;
-    // Consume the boost after one attack
-    if (this.attackBoosted) {
-      this.attackBoosted = false;
-    }
+    const damage = this.player.attackBoosted ? Player.ATTACK_DAMAGE * 2 : Player.ATTACK_DAMAGE;
+    // Buff stays active for the full duration (timed, not one-shot)
 
     // Filter out dead slimes
     this.slimes = this.slimes.filter((s) => s.active);

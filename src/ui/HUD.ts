@@ -51,6 +51,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private scoreSystem: ScoreSystem;
   private roomCameraSystem?: RoomCameraSystem;
   private getAttackBoosted: () => boolean;
+  private getAttackBoostRemaining: () => number;
 
   // Minimap entity getters (passed from GameScene)
   private minimapGetSlimes: () => Phaser.GameObjects.Sprite[];
@@ -88,6 +89,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.roomCameraSystem = roomCameraSystem;
 
     this.getAttackBoosted = getAttackBoosted;
+    this.getAttackBoostRemaining = () => player.attackBoostRemaining;
     this.difficultyLevel = difficultyLevel;
 
     // Store minimap entity getters
@@ -327,6 +329,13 @@ export class HUD extends Phaser.GameObjects.Container {
     const boosted = this.getAttackBoosted();
     this.attackBoostIcon.setVisible(boosted);
     this.attackBoostLabel.setVisible(boosted);
+    if (boosted) {
+      const remaining = this.getAttackBoostRemaining();
+      const secs = Math.ceil(remaining / 1000);
+      this.attackBoostLabel.setText(`ATK x2 [${secs}s]`);
+    } else {
+      this.attackBoostLabel.setText("ATK x2!");
+    }
 
     // Update minimap
     if (this.minimap) {

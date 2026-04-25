@@ -509,7 +509,7 @@
           "description": "当前 AttackBoost 是一次性消耗（下一击双倍伤害），策略性不足。改为拾取后获得 10 秒攻击力翻倍 buff，HUD 显示 buff 倒计时。buff 结束后自动消失。这样玩家需要规划拾取时机（留到多敌人房间再捡）。",
           "type": "code",
           "priority": 15,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "拾取 AttackBoost 后获得 10 秒 ATK x2 buff",

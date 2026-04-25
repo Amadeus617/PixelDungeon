@@ -9,6 +9,7 @@ const ATTACK_COOLDOWN = 400;
 const INVINCIBLE_DURATION = 1000;
 const KNOCKBACK_DISTANCE = 25; // pixels
 const KNOCKBACK_DURATION = 200; // ms
+const ATTACK_BOOST_DURATION = 10000; // 10 seconds
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -30,6 +31,27 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
   private isDeadAnimating: boolean = false;
+
+  // Attack boost (timed buff)
+  private _attackBoosted: boolean = false;
+  private _attackBoostTimer: number = 0;
+  private _attackBoostDuration: number = ATTACK_BOOST_DURATION;
+
+  /** Whether the player currently has the ATK x2 buff */
+  get attackBoosted(): boolean {
+    return this._attackBoosted;
+  }
+
+  /** Remaining buff time in ms (0 if no buff active) */
+  get attackBoostRemaining(): number {
+    return this._attackBoosted ? Math.max(0, this._attackBoostTimer) : 0;
+  }
+
+  /** Activate the attack boost buff. If already active, refreshes the duration. */
+  activateAttackBoost(): void {
+    this._attackBoosted = true;
+    this._attackBoostTimer = this._attackBoostDuration;
+  }
 
   /** Combat config – exposed for testing and external use */
   static readonly ATTACK_RANGE = ATTACK_RANGE;
@@ -175,6 +197,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   update(_delta: number, time?: number): void {
+    // Update attack boost timer (even when dead, so it cleans up)
+    if (this._attackBoosted) {
+      this._attackBoostTimer -= _delta;
+      if (this._attackBoostTimer <= 0) {
+        this._attackBoosted = false;
+        this._attackBoostTimer = 0;
+      }
+    }
+
     if (!this.alive) return;
 
     // During knockback, count down and skip input
