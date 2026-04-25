@@ -628,7 +628,7 @@
           "description": "当前 HealthPotion 回复 1 HP（玩家上限 10），回复比例仅 10%，几乎没有拾取动力。提升至 3 HP（30%），让药水成为有意义的战术选择。",
           "type": "code",
           "priority": 22,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "HEALTH_POTION_HEAL 常量改为 3",

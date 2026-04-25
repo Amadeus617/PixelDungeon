@@ -1071,5 +1071,6 @@
       ],
       "recommendation": "建议实施优先级：US-200(takeDamage返回值) > US-207(knockback保护) > US-209(Skeleton HP bar) > US-205(敌人冻结) > US-206(死亡alpha) > US-211(spawn分布) > US-208(TitleScene流程) > US-210(shutdown清理)"
     }
-  }
+  },
+  "healthPotionHeal": 3
 }
