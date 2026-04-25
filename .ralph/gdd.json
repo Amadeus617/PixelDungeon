@@ -209,6 +209,12 @@
       "author": "agent-review",
       "change": "第二十六轮设计审查新增14个改进US(US-200~US-213)：Player takeDamage返回boolean基础接口(6+个下游US共同依赖)、gameOver后HUD冻结修复、Slime/Skeleton overlap hurt音效条件修正(基于takeDamage返回值)、SpikeTrap无敌帧穿透GameScene侧修复、endGame后敌人update冻结、Player死亡alpha残留playDeathAnimation前重置、Slime/Skeleton onHitWall knockback保护、ResultScene重启返回TitleScene流程闭环、Skeleton追踪模式HP bar跟随修复、GameScene shutdown事件清理、Skeleton 3房间spawn分布修复、Coin spawn跳过entrance、Direction类型移除idle值。本轮重点：确认25轮审查中大量已标记但未实际修复的问题仍存在于代码中，本次重新确认并补充实现细节。",
       "reason": "第二十六轮设计审查深入分析代码执行流，发现多个之前审查已识别但代码仍未修复的核心问题持续存在：takeDamage返回值是多个下游功能(音效/统计/掉落)的前置依赖；gameOver生命周期管理不完整导致HUD冻结和敌人CPU浪费；SpikeTrap无敌帧穿透；死亡动画alpha残留；knockback碰墙覆盖；游戏流程闭环缺失；Skeleton追踪HP bar脱离是直接可见的视觉bug"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十七轮设计审查新增18个改进US(US-214~US-231)：Slime/Skeleton die()与delayedCall闭包时序、动态掉落道具overlap回调泄漏、SpikeTrap overlap不检查gameOver、AttackBoost overlap无active检查、Slime knockback血条脱离、TitleScene双重触发防护、掉落药水与地图药水回复量不同无视觉区分、死亡动画期间HUD冻结、SpikeTrap非Physics.Sprite导致overlap不确定、HUD无效setText、Player死亡后buff计时器残留、ResultScene独立ScoreSystem高分保存脱节、Skeleton追踪不更新动画方向、RoomCameraSystem回调未shutdown清理、Slime knockback与onHitWall双重方向切换、BootScene资源加载失败无处理、Chest交互需按距离排序、runCount管理分散。更新 improvements 和 balanceAnalysis。",
+      "reason": "第二十七轮设计审查深入分析代码执行流、闭包生命周期、场景重启清理、物理引擎类型安全、资源管理一致性，发现18个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -370,7 +376,25 @@
       "US-196: Skeleton 追踪模式 HP bar 跟随修复 — return 前调用 hpBar.follow(this)",
       "US-197: SpikeTrap 无敌帧穿透修复 — GameScene overlap 回调中检查 player invincible 状态",
       "US-198: elapsedTime 传递到 ResultScene — startTime 记录 + endGame 计算 + data 传递",
-      "US-199: ResultScene 重启返回 TitleScene — SPACE→TitleScene + 可选 Enter→GameScene 快速重启"
+      "US-199: ResultScene 重启返回 TitleScene — SPACE→TitleScene + 可选 Enter→GameScene 快速重启",
+      "US-214: die()与delayedCall闭包时序 — takeDamage的delayedCall(100ms)在die()后仍持有闭包引用",
+      "US-215: 动态掉落道具overlap回调泄漏 — spawnDropCoin/spawnDropPotion运行时注册overlap闭包在scene重启时残留",
+      "US-216: SpikeTrap overlap不检查gameOver — 游戏结束后陷阱仍可触发damage+slow",
+      "US-217: AttackBoost overlap无active前置检查 — 同帧多次overlap可能重复activateAttackBoost",
+      "US-218: Slime knockback血条脱离 — isKnockedBack分支return跳过hpBar.follow（与US-209同类）",
+      "US-219: TitleScene startGame双重触发 — SPACE+ENTER同时按下可能runCount递增两次",
+      "US-220: 掉落药水heal=2与地图药水heal=1无视觉区分 — 相同纹理不同回复量违背信息可见性",
+      "US-221: 死亡动画期间HUD冻结 — gameOver=true导致update return跳过hud.update()（与US-144/US-201相关）",
+      "US-222: SpikeTrap非Physics.Arcade.Sprite — physics.add.overlap对无body对象行为不确定",
+      "US-223: HUD attackBoostLabel非boost状态仍setText — 每帧无效字符串创建",
+      "US-224: Player死亡后buff计时器残留 — takeDamage(hp<=0)未清除_attackBoosted",
+      "US-225: ResultScene独立ScoreSystem高分保存 — HIGH_SCORE_KEY重复定义+GameScene.saveHighScore()从未调用",
+      "US-226: Skeleton追踪模式不更新动画方向 — 未来添加方向性动画会不工作",
+      "US-227: RoomCameraSystem回调shutdown未清理 — 旧回调持有已销毁HUD引用",
+      "US-228: Slime knockback与onHitWall双重方向切换 — knockback期间wall collider仍触发pickDirection",
+      "US-229: BootScene preload loaderror — 外部资源缺失导致动画注册崩溃",
+      "US-230: Chest交互需按距离排序 — 当前遍历第一个return不支持多宝箱",
+      "US-231: runCount管理分散 — GameScene默认1与TitleScene默认0逻辑分散"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
@@ -959,6 +983,26 @@
         "area": "游戏流程闭环缺失",
         "detail": "ResultScene 按 SPACE 直接 this.scene.start('GameScene') 跳回游戏，跳过 TitleScene。这意味着玩家无法回到标题画面查看操作说明，每次游戏结束都直接进入下一局。US-127 和 US-175 都标记了这个问题但从未实现",
         "recommendation": "改为 SPACE→TitleScene，可选 Enter→GameScene 快速重启 (US-199)"
+      },
+      {
+        "area": "掉落药水与地图药水不一致",
+        "detail": "DROP_POTION_HEAL=2 vs HEALTH_POTION_HEAL=1，掉落药水回复量是地图的2倍但外观完全相同",
+        "recommendation": "掉落药水使用绿色纹理区分（US-220）"
+      },
+      {
+        "area": "SpikeTrap物理类型不匹配",
+        "detail": "SpikeTrap继承GameObjects.Sprite而非Physics.Arcade.Sprite，无physics body但用physics.add.overlap检测",
+        "recommendation": "改为Physics.Arcade.Sprite或使用距离检测（US-222）"
+      },
+      {
+        "area": "闭包生命周期管理",
+        "detail": "动态创建道具（spawnDropCoin/Potion）注册的overlap闭包在scene重启时不会自动清理。delayedCall闭包在die()后残留",
+        "recommendation": "GameScene.shutdown()统一清理所有闭包引用（US-215）"
+      },
+      {
+        "area": "runCount管理碎片化",
+        "detail": "localStorage runCount的读取（GameScene默认1）和写入（TitleScene默认0+1=1）分散在两个scene中，默认值不一致",
+        "recommendation": "统一到GameState模块管理（US-231）"
       }
     ],
     "minimapCompleteness": {

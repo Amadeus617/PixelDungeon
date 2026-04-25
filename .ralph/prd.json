@@ -3454,6 +3454,281 @@
             "Player._direction 初始值保持 \"down\"",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-214",
+          "title": "Slime/Skeleton die() destroy() 与 delayedCall 闭包时序 — destroyed sprite 的 clearTint 可能报错",
+          "description": "Slime/Skeleton takeDamage 中 delayedCall(100ms) 清除闪白 tint，但如果敌人在 100ms 内死亡(die->destroy)，delayedCall 回调中的 this.clearTint() 执行在已 destroy 的 sprite 上。虽然有 if(this.active) 保护，但 Phaser destroy 后 active 可能在某些版本中不立即生效。应改为 die() 中显式取消 pending delayedCall。",
+          "type": "code",
+          "priority": 199,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "die() 中显式存储并取消 takeDamage 的 delayedCall timerEvent",
+            "destroyed sprite 不再执行 clearTint",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-215",
+          "title": "spawnDropCoin/spawnDropPotion 动态创建道具 overlap 回调泄漏 — scene 重启残留",
+          "description": "handleEnemyDeathDrop 中 spawnDropCoin/spawnDropPotion 在运行时动态创建 Coin/HealthPotion 实例并注册 overlap 回调。这些回调持有对 coin/potion 变量的闭包引用。scene 重启时 overlap collider 不会自动清理（因为没有 GameScene.shutdown()），可能导致旧回调在新 scene 中执行。",
+          "type": "code",
+          "priority": 200,
+          "status": "pending",
+          "dependsOn": [
+            "US-195"
+          ],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 清理所有动态注册的 overlap collider",
+            "scene 重启后无残留回调执行",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-216",
+          "title": "SpikeTrap overlap 回调无条件调用 trigger() — 不检查 gameOver/player.alive",
+          "description": "SpikeTrap 的 overlap 回调直接调用 trap.trigger()，没有检查 this.gameOver 或 player.alive 状态。endGame 调用 physics.pause()，但暂停前同一帧 overlap 可能已触发。trigger() 的 onDamage 回调在 GameScene 中直接调用 player.takeDamage + soundManager.playHurt，不检查 gameOver 状态。",
+          "type": "code",
+          "priority": 201,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap overlap 回调检查 gameOver 状态",
+            "trigger() 的 damage 回调中检查 player.alive",
+            "游戏结束后陷阱不触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-217",
+          "title": "AttackBoost overlap 回调无 active 检查 — collect() 保护不完整",
+          "description": "AttackBoost overlap 回调调用 boost.collect()，collect() 内部设 collected=true 然后 destroy()。但 overlap 回调本身没有前置检查 boost.active。如果 Phaser overlap 在同一帧多次触发，第二次调用时 boost 已标记 collected 但尚未 destroy，activateAttackBoost() 被重复调用刷新 buff 计时。",
+          "type": "code",
+          "priority": 202,
+          "status": "pending",
+          "dependsOn": [
+            "US-137"
+          ],
+          "acceptanceCriteria": [
+            "AttackBoost overlap 回调前置 if (!boost.active) return",
+            "与 Coin/HealthPotion/KeyItem 的 collect 保护模式一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-218",
+          "title": "Slime knockback 期间 return 跳过 hpBar.follow — 击退时血条脱离",
+          "description": "Slime.update() 中 isKnockedBack 分支直接 return，跳过了 hpBar.follow(this)。这与 Skeleton 追踪模式跳过 hpBar.follow 是同类问题(US-136/US-196/US-209)。Slime 被击退时 hpBar 留在原地不跟随，直到 knockback 结束才跳回。",
+          "type": "code",
+          "priority": 203,
+          "status": "pending",
+          "dependsOn": [
+            "US-209"
+          ],
+          "acceptanceCriteria": [
+            "Slime knockback return 前调用 hpBar.follow(this)",
+            "击退期间血条跟随敌人移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-219",
+          "title": "TitleScene startGame 双重触发防护不完整 — SPACE+ENTER 同时按下 runCount 递增两次",
+          "description": "TitleScene.create() 注册了 keyboard.once(\"keydown-SPACE\") 和 keyboard.once(\"keydown-ENTER\")。如果同时按 SPACE+ENTER，两个 once 都触发 startGame()。虽然有 scene.isActive guard，但 localStorage 写入 runCount+1 可能执行两次导致跳过一个难度等级。",
+          "type": "code",
+          "priority": 204,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "startGame() 使用 boolean flag 防止重复调用",
+            "runCount 只递增一次",
+            "SPACE/ENTER 统一为单次触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-220",
+          "title": "spawnDropPotion heal=2 vs 地图 HealthPotion heal=1 — 掉落药水更强但无视觉区分",
+          "description": "handleEnemyDeathDrop 掉落的 HealthPotion 用 DROP_POTION_HEAL=2 回复，而地图放置的 HealthPotion 用 HEALTH_POTION_HEAL=1。掉落药水回复量是地图的 2 倍但外观完全相同（都用 health_potion 纹理）。玩家无法区分两种药水，违背了roguelike中信息可见性原则。",
+          "type": "code",
+          "priority": 205,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落药水使用不同颜色纹理区分（如绿色 vs 红色）",
+            "或拾取时显示回复量提示（+2 vs +1）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-221",
+          "title": "GameScene.update 死亡动画期间 HUD 冻结 — gameOver=true 导致 return 跳过 hud.update()",
+          "description": "GameScene.update() 中 checkLoseCondition 后设置 this.gameOver=true，后续帧 update 开头 if(this.gameOver) return 跳过 hud.update()。600ms 死亡动画期间 HUD 完全冻结，最后获得的分数变化不可见。需要分离死亡动画阶段和完全结束阶段。",
+          "type": "code",
+          "priority": 206,
+          "status": "pending",
+          "dependsOn": [
+            "US-201"
+          ],
+          "acceptanceCriteria": [
+            "死亡动画期间 HUD 继续更新",
+            "gameOver 分离为 deathAnimating 和 fullyGameOver 两阶段",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-222",
+          "title": "SpikeTrap 不继承 Physics.Arcade.Sprite — physics.add.overlap 行为不确定",
+          "description": "SpikeTrap 继承 Phaser.GameObjects.Sprite（非 Physics.Arcade.Sprite），构造函数中没有 scene.physics.add.existing(this)。GameScene 用 this.physics.add.overlap(player, trap, ...) 检测。Phaser Arcade Physics 的 overlap 需要对象有 physics body，SpikeTrap 无 body 时 Phaser 可能创建临时 body 或静默失败，行为在不同 Phaser 版本间不确定。",
+          "type": "code",
+          "priority": 207,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap 改为继承 Phaser.Physics.Arcade.Sprite 并添加 physics body",
+            "或改用距离检测替代 physics overlap",
+            "overlap 行为在 Phaser 版本间一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-223",
+          "title": "HUD attackBoostLabel 非 boost 状态仍 setText — 无效字符串创建",
+          "description": "HUD.update() 中 attackBoostLabel 无论 boosted 状态如何都调用 setText。非 boosted 时 icon 和 label 都是 setVisible(false)，但每帧仍创建 \"ATK x2!\" 字符串对象并设置文本。应只在 boosted 时更新文本。",
+          "type": "code",
+          "priority": 208,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "非 boosted 状态不调用 attackBoostLabel.setText",
+            "boosted 状态正确更新倒计时文本",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-224",
+          "title": "Player 死亡后 attackBoosted 计时器仍在递减 — 语义不清",
+          "description": "Player.update() 第一段更新 _attackBoosted 计时器，在 !this.alive return 之前执行。玩家死后 buff 计时器继续递减直到归零。功能上无害但语义不正确：如果未来添加 buff 过期视觉效果（粒子消散），死亡后仍会触发。",
+          "type": "code",
+          "priority": 209,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playDeathAnimation 或 takeDamage(hp<=0) 中清除 _attackBoosted",
+            "死亡后 buff 计时器不再递减",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-225",
+          "title": "ResultScene 用 new ScoreSystem() 独立实例保存高分 — 与 GameScene 脱节",
+          "description": "ResultScene 创建独立 ScoreSystem 实例来比较和保存高分，GameScene.scoreSystem.saveHighScore() 从未被调用。HIGH_SCORE_KEY 在 ScoreSystem.ts 和 ResultScene.ts 中都定义了。两处独立管理高分保存是维护风险和 bug 源头。",
+          "type": "code",
+          "priority": 210,
+          "status": "pending",
+          "dependsOn": [
+            "US-133"
+          ],
+          "acceptanceCriteria": [
+            "高分保存在 GameScene.endGame() 中调用 scoreSystem.saveHighScore()",
+            "ResultScene 不再创建独立 ScoreSystem",
+            "HIGH_SCORE_KEY 只在 ScoreSystem 中定义",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-226",
+          "title": "Skeleton 追踪模式不更新动画方向 — 未来方向性动画会不工作",
+          "description": "Skeleton.update() 追踪模式计算 vx/vy 后直接 setVelocity() 然后 return，不更新动画方向。当前只有 skeleton-move 动画所以视觉无影响，但如果添加方向性动画（walk-up/down/left/right），追踪时不会切换动画方向。",
+          "type": "code",
+          "priority": 211,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "追踪模式根据 vx/vy 方向更新动画",
+            "wander 模式同理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-227",
+          "title": "RoomCameraSystem setOnRoomChanged 回调未在 shutdown 清理",
+          "description": "HUD 构造函数中调用 roomCameraSystem.setOnRoomChanged(callback)，callback 捕获了 HUD 实例。scene 重启时如果 RoomCameraSystem 未销毁或回调引用未清除，旧回调持有已销毁的 HUD 引用。",
+          "type": "code",
+          "priority": 212,
+          "status": "pending",
+          "dependsOn": [
+            "US-195"
+          ],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 中清除 roomCameraSystem.onRoomChangedCallback",
+            "scene 重启后无旧回调残留",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-228",
+          "title": "Slime knockback 结束 pickDirection 与 onHitWall 冲突 — 双重方向切换",
+          "description": "Slime knockback 结束调用 pickDirection()，但 knockback 期间 wall collider 仍触发 onHitWall() 也调用 pickDirection()。两套 pickDirection 调用可能导致方向快速切换。根因是 knockback 期间 onHitWall 未被跳过（US-099/US-172 已标记未修）。",
+          "type": "code",
+          "priority": 213,
+          "status": "pending",
+          "dependsOn": [
+            "US-172"
+          ],
+          "acceptanceCriteria": [
+            "knockback 期间 onHitWall 不执行",
+            "knockback 结束后只调用一次 pickDirection",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-229",
+          "title": "BootScene preload 加载外部文件无 loaderror 处理 — 缺失资源导致游戏崩溃",
+          "description": "BootScene.preload() 加载 knight.png、slime.png、dungeon_tiles.png 三个外部文件。如果文件缺失，加载失败后 create() 中的动画注册（generateFrameNumbers(\"knight\"...)）会因为纹理不存在而报错，导致整个游戏崩溃。US-103 已标记但未实现。",
+          "type": "code",
+          "priority": 214,
+          "status": "pending",
+          "dependsOn": [
+            "US-103"
+          ],
+          "acceptanceCriteria": [
+            "preload 添加 this.load.on(\"loaderror\") 事件监听",
+            "加载失败时生成 fallback 纯色纹理",
+            "游戏不因资源缺失崩溃",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-230",
+          "title": "Chest handleChestInteraction 遍历所有宝箱但 return 第一个 — 未来多宝箱场景需按距离排序",
+          "description": "GameScene.handleChestInteraction 遍历 this.chests 数组找到第一个 isInRange 且 isOpen=false 的宝箱就 return。当前只有一个宝箱所以没问题，但 US-095 多宝箱实现后，应按距离排序选择最近的宝箱，否则可能开了远处的宝箱而非近处的。",
+          "type": "code",
+          "priority": 215,
+          "status": "pending",
+          "dependsOn": [
+            "US-095"
+          ],
+          "acceptanceCriteria": [
+            "宝箱交互按距离排序选择最近的",
+            "或优先开最近的宝箱",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-231",
+          "title": "GameScene.runCount 与 TitleScene.runCount 管理分散 — 维护风险",
+          "description": "runCount 的读取在 GameScene.loadRunCount()（默认1），递增在 TitleScene.startGame()（读0+1=1存入）。两条路径最终值一致但逻辑分散在两个场景中，且使用相同的 localStorage key 但不同的默认值（GameScene默认1，TitleScene默认0）。",
+          "type": "code",
+          "priority": 216,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "runCount 管理统一到一个模块",
+            "默认值一致",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
