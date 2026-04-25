@@ -2999,6 +2999,105 @@
             "gdd.json和代码使用同一数据源",
             "tsc + build通过"
           ]
+        },
+        {
+          "title": "Minimap缺少AttackBoost道具显示 — 攻击增益道具不出现在小地图上",
+          "description": "Minimap类追踪Coins、Chests、HealthPotions、KeyItem但在entity getters中缺少AttackBoost。玩家无法通过小地图定位攻击增益道具位置，降低探索决策效率。需添加attackBoost实体getter到Minimap和HUD构造函数，并在update()中绘制专用颜色圆点。",
+          "type": "code",
+          "priority": 170,
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap显示AttackBoost道具（使用与POTION不同的颜色，如紫色0xcc44ff）",
+            "HUD构造函数新增getAttackBoosts getter参数",
+            "GameScene传入attackBoosts到minimapEntityGetters",
+            "攻击增益被拾取后从minimap消失",
+            "tsc + build 通过"
+          ],
+          "id": "US-185",
+          "status": "pending"
+        },
+        {
+          "title": "Minimap未显示楼梯出口位置 — 玩家无法在地图上定位胜利目标",
+          "description": "游戏胜利条件是到达stairs出口，但Minimap完全没有标记楼梯位置。作为roguelike核心目标，出口应在已访问房间可见时显示。需要在Minimap中新增stairs位置绘制逻辑，使用特殊标记（如闪烁绿色方块）与普通floor tile区分。RoomCameraSystem已有getDungeonData()，需在Minimap中提取stairs位置。",
+          "type": "code",
+          "priority": 171,
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap在已访问房间中显示楼梯出口位置",
+            "楼梯使用独特颜色/形状标记（建议白色三角形或闪烁方块）",
+            "未访问房间的楼梯位置不可见（fog of war一致）",
+            "到达楼梯后标记保持可见",
+            "tsc + build 通过"
+          ],
+          "id": "US-186",
+          "status": "pending"
+        },
+        {
+          "title": "Minimap RenderTexture空分配 — GPU内存浪费",
+          "description": "Minimap类在构造函数中创建了RenderTexture（160x120像素GPU缓冲区）但update()中所有绘制都通过Graphics对象完成，RenderTexture从未被draw()或clear()。这是残留代码，浪费GPU内存且增加GC压力。应移除renderTexture相关代码或改为使用RenderTexture做离屏缓存（dirty flag优化方案的一部分，US-162）。",
+          "type": "code",
+          "priority": 172,
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "移除Minimap中未使用的renderTexture属性及其创建代码",
+            "destroy()中移除renderTexture?.destroy()",
+            "Minimap功能不受影响（Graphics绘制正常）",
+            "tsc + build 通过"
+          ],
+          "id": "US-187",
+          "status": "pending"
+        },
+        {
+          "title": "ScoreSystem缺少连击计分机制 — 快速击杀无额外奖励",
+          "description": "当前ScoreSystem对每个敌人固定+50分，无论击杀节奏。Roguelike游戏通常通过combo系统奖励攻击性玩法，提升战斗深度。建议：在3秒内连续击杀敌人时累计combo倍率（x1.5/x2/x3），HUD显示当前combo数和倍率，combo超时后重置。这为速通和激进玩法提供策略激励。",
+          "type": "design",
+          "priority": 173,
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem新增comboTimer和comboCount状态",
+            "3秒内连续击杀comboCount递增，超时重置为0",
+            "分数 = ENEMY_POINTS * comboMultiplier(1 + comboCount * 0.5)",
+            "HUD显示combo状态（\"Combo x3!\"）和倍率",
+            "combo超时或玩家受伤时combo重置",
+            "gdd.json balance更新combo参数",
+            "tsc + build 通过"
+          ],
+          "id": "US-188",
+          "status": "pending"
+        },
+        {
+          "title": "Skeleton追踪模式距离过近时抖动 — 缺少停止距离阈值",
+          "description": "Skeleton.update()追踪模式下，当距离玩家很近时（如<20px）仍以全速追踪，导致与玩家重叠后出现微小位置抖动。应在TRACK_RANGE内增加一个STOP_DISTANCE（建议30px），当距离<STOP_DISTANCE时停止移动而不是继续追踪，避免抖动和视觉异常。",
+          "type": "code",
+          "priority": 174,
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton新增STOP_DISTANCE常量（30px）",
+            "追踪分支中dist<STOP_DISTANCE时setVelocity(0,0)并return",
+            "STOP_DISTANCE<ENEMY_CONTACT_DAMAGE的overlap范围，确保接触伤害仍生效",
+            "Skeleton不再出现贴脸抖动",
+            "tsc + build 通过"
+          ],
+          "id": "US-189",
+          "status": "pending"
+        },
+        {
+          "title": "HealthPotion满血仍可拾取且无视觉反馈 — 资源浪费无提示",
+          "description": "US-060已提出此问题但仍pending。HealthPotion拾取overlap回调直接调用player.heal()，heal()内部虽有maxHp cap但返回实际恢复量，而当前代码完全忽略返回值。满血拾取药水=浪费资源且无任何提示。应在overlap回调中检查player.hp<player.maxHp才允许拾取，否则显示\"HP Full!\"浮动文字提示。",
+          "type": "code",
+          "priority": 175,
+          "dependsOn": [
+            "US-060"
+          ],
+          "acceptanceCriteria": [
+            "HealthPotion overlap回调检查player.hp<player.maxHp",
+            "满血时药水不被拾取（留在原位）",
+            "满血接触药水时显示浮动文字\"HP Full!\"（1秒后消失）",
+            "非满血时正常拾取并播放pickup音效",
+            "tsc + build 通过"
+          ],
+          "id": "US-190",
+          "status": "pending"
         }
       ]
     }

@@ -185,6 +185,12 @@
       "author": "agent-review",
       "change": "第二十二轮设计审查新增8个改进US(US-177~US-184)：SpikeTrap无敌帧期间误触发修复、SpikeTrap死亡后update时序修正、TitleScene runCount递增双重触发防护、宝箱交互knockback距离容差、Slime overlap hurt音效wasHurt逻辑修正、Direction类型idle值彻底移除、knockback期间attack状态重置、HealthPotion heal参数集中管理。更新 improvements 和 balanceAnalysis。",
       "reason": "第二十二轮设计审查深入分析US-031(SpikeTrap)实现引入的新问题、游戏流程启动时序、knockback与交互系统的级联影响、类型系统健壮性，发现8个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十三轮设计审查新增6个改进US(US-185~US-190)：Minimap缺少AttackBoost道具显示(功能遗漏)、Minimap未标记楼梯出口位置(核心目标不可见)、Minimap RenderTexture空分配GPU内存浪费(死代码)、ScoreSystem缺少combo连击计分机制(战斗深度不足)、Skeleton追踪贴脸抖动缺少停止距离阈值(运动学bug)、HealthPotion满血拾取无反馈(US-060依赖但未实现的资源管理)。更新 improvements 和 balanceAnalysis。",
+      "reason": "第二十三轮设计审查深入分析Minimap功能完整性（发现AttackBoost和楼梯两个关键信息缺失）、GPU资源浪费、战斗计分策略性（combo系统提升roguelike深度）、敌人AI运动学细节、道具拾取策略反馈，发现6个之前审查未覆盖的新问题"
     }
   ],
   "improvements": {
@@ -887,6 +893,29 @@
         "detail": "HEALTH_POTION_HEAL=1在GameScene硬编码，gdd.json记录healthPotionHeal:1。US-037要求改为3但尚未实现。参数分散导致gdd与代码脱节风险(US-021问题重现)",
         "recommendation": "随US-068一并集中到balance配置(US-184)"
       }
-    ]
+    ],
+    "minimapCompleteness": {
+      "status": "incomplete",
+      "issues": [
+        "AttackBoost道具不显示在minimap (US-185)",
+        "楼梯出口位置不显示在minimap (US-186)",
+        "RenderTexture空分配浪费GPU内存 (US-187)"
+      ],
+      "impact": "玩家无法通过minimap做出最优探索决策，降低roguelike核心体验中的信息可见性"
+    },
+    "combatScoring": {
+      "status": "shallow",
+      "currentSystem": "固定分值(coin=10, enemy=50)，无连击/时间/效率维度",
+      "proposal": "combo连击系统：3秒窗口内连续击杀递增倍率(x1.5/x2/x3)，受伤重置",
+      "impact": "提升战斗深度和重玩性，奖励攻击性玩法",
+      "relatedUS": "US-188"
+    },
+    "enemyAIFineTuning": {
+      "status": "minor_issue",
+      "issues": [
+        "Skeleton追踪距离过近时位置抖动，缺少STOP_DISTANCE阈值 (US-189)"
+      ],
+      "impact": "视觉异常但不影响gameplay，优先级较低"
+    }
   }
 }
