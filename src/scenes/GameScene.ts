@@ -7,7 +7,9 @@ import { Chest } from "@/entities/Chest";
 import { Coin } from "@/entities/Coin";
 import { HealthPotion } from "@/entities/HealthPotion";
 import { AttackBoost } from "@/entities/AttackBoost";
+import { SpikeTrap } from "@/entities/SpikeTrap";
 import { DungeonMap } from "@/map";
+import { isWall } from "@/map/dungeonData";
 import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
@@ -47,6 +49,7 @@ export class GameScene extends Phaser.Scene {
   private coins: Coin[] = [];
   private healthPotions: HealthPotion[] = [];
   private attackBoosts: AttackBoost[] = [];
+  private spikeTraps: SpikeTrap[] = [];
   private coinCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
@@ -227,6 +230,34 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
+    // --- Spike Traps in corridors (US-031) ---
+    const spikeTrapCount = Phaser.Math.Between(0, 2);
+    for (let i = 0; i < spikeTrapCount; i++) {
+      const corridor = dungeonData.corridors[i % dungeonData.corridors.length];
+      if (!corridor) continue;
+      const trapPos = this.getCorridorFloorPos(corridor);
+      if (!trapPos) continue;
+      const trap = new SpikeTrap(this, trapPos.x, trapPos.y);
+      trap.setCallbacks(
+        (amount: number) => {
+          // Damage from trap — use source position of trap itself for knockback
+          this.player.takeDamage(amount, trap.x, trap.y);
+          this.soundManager.playHurt();
+        },
+        (multiplier: number, duration: number) => {
+          this.player.applySlow(multiplier, duration);
+        }
+      );
+      this.spikeTraps.push(trap);
+    }
+
+    // Overlap: player triggers spike traps
+    for (const trap of this.spikeTraps) {
+      this.physics.add.overlap(this.player, trap, () => {
+        trap.trigger();
+      });
+    }
+
     // Overlap: player picks up coins
     for (const coin of this.coins) {
       this.physics.add.overlap(this.player, coin, () => {
@@ -350,6 +381,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Get a random floor position within a corridor segment (world pixels) */
+  private getCorridorFloorPos(corridor: { start: { col: number; row: number }; end: { col: number; row: number } }): { x: number; y: number } | null {
+    const tiles = this.dungeonMap.getDungeonData().tiles;
+    const tileS = this.dungeonMap.TILE_SIZE;
+    const scale = 3;
+    const halfW = Math.floor(3 / 2); // CORRIDOR_WIDTH / 2
+
+    // Try random positions along the corridor
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const t = Math.random();
+      const col = Math.round(corridor.start.col + t * (corridor.end.col - corridor.start.col));
+      const row = Math.round(corridor.start.row + t * (corridor.end.row - corridor.start.row));
+
+      // Check a small area around this point for a non-wall tile
+      for (let dr = -halfW; dr <= halfW; dr++) {
+        for (let dc = -halfW; dc <= halfW; dc++) {
+          const r = row + dr;
+          const c = col + dc;
+          if (r >= 0 && r < tiles.length && c >= 0 && c < tiles[0].length) {
+            const tile = tiles[r][c];
+            if (!isWall(tile)) {
+              return {
+                x: (c * tileS + tileS / 2) * scale,
+                y: (r * tileS + tileS / 2) * scale,
+              };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   private checkWinCondition(): boolean {
     // Win: reach the stairs in the exit room
     const stairsPos = this.dungeonMap.getStairsPos();
@@ -436,6 +500,11 @@ export class GameScene extends Phaser.Scene {
         this.gameOver = true; // prevent re-triggering
       }
       return;
+    }
+
+    // Update spike traps
+    for (const trap of this.spikeTraps) {
+      trap.update(delta);
     }
 
     // Check win condition: player reaches the stairs

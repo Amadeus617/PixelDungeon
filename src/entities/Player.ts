@@ -32,6 +32,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private knockbackTimer: number = 0;
   private isDeadAnimating: boolean = false;
 
+  // Slow debuff (from spike traps)
+  private slowMultiplier: number = 1.0;
+  private slowTimer: number = 0;
+
   // Attack boost (timed buff)
   private _attackBoosted: boolean = false;
   private _attackBoostTimer: number = 0;
@@ -185,6 +189,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /** Apply a movement slow debuff (e.g. from spike traps) */
+  applySlow(multiplier: number, duration: number): void {
+    this.slowMultiplier = multiplier;
+    this.slowTimer = duration;
+  }
+
   private updateInvincibility(delta: number): void {
     if (!this.isInvincible) return;
     this.invincibleTimer -= delta;
@@ -207,6 +217,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (!this.alive) return;
+
+    // Update slow debuff timer
+    if (this.slowTimer > 0) {
+      this.slowTimer -= _delta;
+      if (this.slowTimer <= 0) {
+        this.slowTimer = 0;
+        this.slowMultiplier = 1.0;
+      }
+    }
 
     // During knockback, count down and skip input
     if (this.isKnockedBack) {
@@ -248,7 +267,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       vy /= len;
     }
 
-    this.setVelocity(vx * this.speed, vy * this.speed);
+    this.setVelocity(vx * this.speed * this.slowMultiplier, vy * this.speed * this.slowMultiplier);
 
     // Determine direction and animation
     const isMoving = vx !== 0 || vy !== 0;

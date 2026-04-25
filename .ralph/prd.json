@@ -526,7 +526,7 @@
           "description": "在连接房间的走廊中随机放置地刺陷阱。玩家经过时触发，造成 1 点伤害并短暂减速。陷阱有视觉提示（地面纹理差异）让警觉的玩家可以避开。增加走廊通过的风险感和探索紧张感。",
           "type": "code",
           "priority": 16,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-016"
           ],
@@ -2772,6 +2772,102 @@
             "TitleScene.startGame()中清理particles数组",
             "或确认Phaser scene shutdown自动销毁children",
             "多次启动游戏无内存泄漏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-171",
+          "title": "Player.takeDamage() 返回 boolean — 基础接口修复",
+          "description": "Player.takeDamage() 当前返回 void，所有 overlap 回调无法判断是否实际受伤。Slime overlap 用 wasHurt(hp对比) hack，Skeleton overlap 用 hp<maxHp（先前受伤后永远 true）。改为返回 boolean：(1) isInvincible 或 !alive 时返回 false；(2) 实际扣血后返回 true。overlap 回调统一用返回值控制 hurt 音效。这是 US-117/US-154 的聚合修复。",
+          "type": "code",
+          "priority": 156,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player.takeDamage() 返回 boolean",
+            "isInvincible 期间返回 false",
+            "!alive 时返回 false",
+            "实际扣血后返回 true",
+            "Slime overlap 回调用返回值控制 hurt 音效",
+            "Skeleton overlap 回调用返回值控制 hurt 音效（移除 hp<maxHp hack）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-172",
+          "title": "Slime/Skeleton onHitWall() knockback 保护 — 击退碰墙不覆盖速度",
+          "description": "Slime.onHitWall() 和 Skeleton.onHitWall() 在 knockback 期间仍执行 pickDirection()/pickWanderDirection()，覆盖击退速度。虽然 update() 中 knockbackTimer 继续倒计时，但速度已被随机方向替代，击退效果碰墙即消失。简单修复：onHitWall() 开头检查 if(this.isKnockedBack) return;。这是 US-099/US-100 的确认修复。",
+          "type": "bug",
+          "priority": 157,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 检查 isKnockedBack，是则 return",
+            "Skeleton.onHitWall() 检查 isKnockedBack，是则 return",
+            "击退碰墙后速度保持 knockback 方向直到计时结束",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-173",
+          "title": "playDeathAnimation 与无敌帧闪烁 alpha 冲突修复",
+          "description": "playDeathAnimation 用 tween 控制 alpha→0(600ms)，但 updateInvincibility 也在操控 alpha(0.4/1.0 交替)。如果玩家在无敌帧期间死亡，两套 alpha 控制冲突导致死亡动画视觉不连贯。修复：playDeathAnimation 中先停止无敌帧闪烁（设 isInvincible=false, alpha=1），再开始 death tween。",
+          "type": "bug",
+          "priority": 158,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playDeathAnimation 开始时先停止无敌帧闪烁",
+            "设 this.isInvincible = false",
+            "设 this.setAlpha(1) 作为 tween 起点",
+            "死亡动画视觉连贯（无闪烁干扰）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-174",
+          "title": "endGame 后冻结敌人 update — 停止无意义的逻辑执行",
+          "description": "GameScene.endGame() 只调用 physics.pause()，不阻止 scene update 循环。所有 Slime/Skeleton 的 update(delta) 继续执行 dirTimer 递增、pickDirection 等逻辑。虽然 velocity 被 physics.pause 吞掉无视觉影响，但：(1) CPU 浪费；(2) delayedCall 回调（如 knockback timer 到期）仍触发。修复：Slime/Skeleton 添加 frozen 属性，update 开头 if(this.frozen) return;。endGame 中遍历设置所有敌人 frozen=true。",
+          "type": "code",
+          "priority": 159,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime/Skeleton 添加 frozen: boolean 属性",
+            "update() 开头检查 frozen，是则 return",
+            "endGame() 中遍历所有敌人设置 frozen=true",
+            "endGame 后敌人不再执行任何逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-175",
+          "title": "ResultScene 重启改为返回 TitleScene — 完整游戏流程闭环",
+          "description": "当前 ResultScene 按空格/回车直接 scene.start('GameScene')，跳过 TitleScene。完整游戏流程应支持返回标题画面。添加两个选项：(1) SPACE/ENTER 快速重启 GameScene；(2) ESC 返回 TitleScene。TitleScene → GameScene → ResultScene → TitleScene 形成完整循环。",
+          "type": "code",
+          "priority": 160,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 显示两个选项：SPACE重启 / ESC返回标题",
+            "SPACE/ENTER → scene.start('GameScene')",
+            "ESC → scene.start('TitleScene')",
+            "标题画面重新开始游戏无状态残留",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-176",
+          "title": "Skeleton overlap hurt 音效条件修复 — 移除错误的 hp<maxHp 判断",
+          "description": "Slime overlap 回调用 wasHurt 变量(player.alive 对比)来决定是否播放 hurt 音效，虽然不完美但有一定保护。Skeleton overlap 直接用 this.player.hp < this.player.maxHp，这在先前受伤后(如 hp=8)永远为 true，无敌帧期间 overlap 触发 takeDamage 不扣血但仍播放音效。修复：统一用 takeDamage 返回值(依赖 US-171)，或暂时用 wasHurt 模式与 Slime 对齐。",
+          "type": "bug",
+          "priority": 161,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton overlap 不再用 hp<maxHp 判断 hurt 音效",
+            "改为 wasHurt 模式或 takeDamage 返回值",
+            "无敌帧期间不播放 hurt 音效",
             "tsc + build 通过"
           ]
         }

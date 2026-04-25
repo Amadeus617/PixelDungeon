@@ -126,6 +126,51 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Generate spike trap inactive texture (spikes retracted — subtle floor hazard)
+    if (!this.textures.exists("spike_trap_inactive")) {
+      const g = this.add.graphics();
+      // Dark base (slightly different from regular floor)
+      g.fillStyle(0x3a3a4a, 1);
+      g.fillRect(2, 2, 12, 12);
+      // Small dots hinting at retracted spikes
+      g.fillStyle(0x6a6a7a, 1);
+      g.fillRect(4, 4, 2, 2);
+      g.fillRect(10, 4, 2, 2);
+      g.fillRect(4, 10, 2, 2);
+      g.fillRect(10, 10, 2, 2);
+      g.fillRect(7, 7, 2, 2);
+      g.generateTexture("spike_trap_inactive", 16, 16);
+      g.destroy();
+    }
+
+    // Generate spike trap active texture (spikes extended)
+    if (!this.textures.exists("spike_trap_active")) {
+      const g = this.add.graphics();
+      // Dark base
+      g.fillStyle(0x3a3a4a, 1);
+      g.fillRect(2, 2, 12, 12);
+      // Metallic spikes (silver)
+      g.fillStyle(0xc0c0c0, 1);
+      // Center spike cluster
+      g.fillRect(5, 3, 2, 4);
+      g.fillRect(9, 3, 2, 4);
+      g.fillRect(3, 6, 2, 4);
+      g.fillRect(11, 6, 2, 4);
+      g.fillRect(6, 8, 2, 4);
+      g.fillRect(9, 8, 2, 4);
+      // Spike highlights (brighter)
+      g.fillStyle(0xe0e0e0, 1);
+      g.fillRect(5, 3, 1, 2);
+      g.fillRect(9, 3, 1, 2);
+      g.fillRect(3, 6, 1, 2);
+      g.fillRect(11, 6, 1, 2);
+      // Red tint for danger
+      g.fillStyle(0xff4444, 0.3);
+      g.fillRect(2, 2, 12, 12);
+      g.generateTexture("spike_trap_active", 16, 16);
+      g.destroy();
+    }
+
     // Generate skeleton sprite (procedural 4-frame spritesheet)
     if (!this.textures.exists("skeleton")) {
       const g = this.add.graphics();

@@ -173,6 +173,12 @@
       "author": "agent-review",
       "change": "第二十轮设计审查新增7个改进US(US-164~US-170)：ResultScene events.on('update')轮询替代为keydown事件、HUD roomChanged回调shutdown清理、player-attack事件监听器泄漏修复、BootScene动画重复注册检查、玩家属性成长meta progression设计、collect()一帧延迟防重复拾取、TitleScene粒子内存清理。更新 improvements 和 balanceAnalysis。",
       "reason": "第二十轮设计审查深入分析场景生命周期管理、事件监听器清理、玩家成长曲线缺失、物理引擎时序风险，发现7个之前审查未覆盖的新问题"
+    },
+    {
+      "date": "2026-04-25",
+      "author": "agent-review",
+      "change": "第二十一轮设计审查新增6个改进US(US-171~US-176)：Player.takeDamage()返回boolean基础接口修复、Slime/Skeleton onHitWall() knockback保护、playDeathAnimation与无敌帧alpha冲突、endGame后冻结敌人update、ResultScene重启返回TitleScene完整流程闭环、Skeleton overlap hurt音效条件修复。本轮重点：修复4个runtime bug(knockback碰墙覆盖、alpha冲突、音效误播、敌人update泄漏)和2个架构改进(takeDamage接口、游戏流程闭环)。",
+      "reason": "第二十一轮设计审查深入分析代码执行流，发现6个之前审查已识别但代码仍未修复的核心问题。本次聚焦高优先级bug和基础接口修复：takeDamage返回值是多个下游功能(音效、掉落、统计)的前置依赖；knockback碰墙覆盖削弱战斗打击感；alpha冲突导致死亡动画视觉异常；敌人update泄漏浪费CPU且存在副作用风险；游戏流程不完整降低重玩体验"
     }
   ],
   "improvements": {
@@ -311,7 +317,13 @@
       "US-152: knockback与走廊过渡冻结竞态 — 两套速度覆盖机制统一管理",
       "US-153: getStairsPos缓存优化 — create()中缓存楼梯位置消除每帧遍历",
       "US-154: takeDamage返回boolean — US-029未一并修复，overlap回调音效判断依赖此返回值",
-      "US-155: 死亡动画期间HUD更新 — playDeathAnimation+endGame期间分数应持续刷新"
+      "US-155: 死亡动画期间HUD更新 — playDeathAnimation+endGame期间分数应持续刷新",
+      "US-171: Player.takeDamage() 返回 boolean — 基础接口修复，下游音效/统计/掉落依赖此返回值",
+      "US-172: Slime/Skeleton onHitWall() knockback 保护 — 击退碰墙不覆盖速度",
+      "US-173: playDeathAnimation 与无敌帧闪烁 alpha 冲突修复 — 死亡动画先停闪烁再渐隐",
+      "US-174: endGame 后冻结敌人 update — 停止无意义的逻辑执行",
+      "US-175: ResultScene 重启改为返回 TitleScene — 完整游戏流程闭环",
+      "US-176: Skeleton overlap hurt 音效条件修复 — 移除错误的 hp<maxHp 判断"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
