@@ -4658,6 +4658,110 @@
             "GDD balance 参数同步更新",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-291",
+          "title": "BootScene anims.create 缺少重复创建保护 — 场景重启后崩溃",
+          "description": "BootScene.create() 中的 anims.create() 调用无重复检测。如果 GameScene 重启回 BootScene（如从 TitleScene 重新进入），已存在的动画 key 会抛出异常。应使用 if (!anims.exists(key)) 保护或移到独立的 preload 阶段。",
+          "type": "code",
+          "priority": 276,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "BootScene anims.create 前检查 anims.exists() 避免重复创建",
+            "从 GameScene → TitleScene → BootScene 循环不崩溃",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-292",
+          "title": "SoundManager 音频节点未回收 — 长时间运行性能下降",
+          "description": "SoundManager 每次调用 playXxx() 都创建 OscillatorNode/BufferSource + GainNode + BiquadFilter，但从不 disconnect。高频调用（连续攻击 0.12s 间隔）会导致大量节点堆积。建议在 stop 后 disconnect 音频节点。",
+          "type": "code",
+          "priority": 277,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playAttack/playEnemyDeath/playHurt/playPickup/playChestOpen 中音频节点在 stop 后调用 disconnect()",
+            "连续快速调用不产生 AudioContext 内存警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-293",
+          "title": "AttackBoost 持续时间与代码注释不一致 — GDD 需补充说明",
+          "description": "AttackBoost.ts 代码注释写 \"Doubles attack damage for the next hit\"（单次），但 Player.ts 实际实现是持续 10 秒的攻击力加成（attackBoostTimer 10000ms）。GDD balance 中只有 attackBoostCount:2 但无 duration 参数。需要统一文档描述并补充 GDD balance.attackBoostDuration。",
+          "type": "code",
+          "priority": 278,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "AttackBoost.ts 代码注释修正为 \"Increases attack damage for 10 seconds\"",
+            "GDD balance 新增 attackBoostDuration: 10000",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-294",
+          "title": "DungeonMap.returnWorldHeight() 拼写错误 — 死代码清理",
+          "description": "DungeonMap.ts 中同时存在 returnWorldHeight()（拼写错误，return 前缀不符合 getter 命名）和正确的 getWorldHeight()。returnWorldHeight() 是死代码，无任何调用方。应删除以避免混淆。",
+          "type": "code",
+          "priority": 279,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 DungeonMap.returnWorldHeight() 方法",
+            "确认无其他文件调用 returnWorldHeight",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-295",
+          "title": "Minimap 不显示走廊中的实体 — 走廊击杀后掉落物不可追踪",
+          "description": "Minimap.isInVisitedRoom() 只检查 room 边界内的实体位置。走廊中的敌人（US-055 走廊巡逻计划）和走廊中的掉落物（US-261 走廊击杀掉落）在 Minimap 上永远不会显示。需要扩展 Minimap 实体可见性逻辑，支持走廊区域的实体追踪。",
+          "type": "code",
+          "priority": 280,
+          "status": "pending",
+          "dependsOn": [
+            "US-055",
+            "US-261"
+          ],
+          "acceptanceCriteria": [
+            "走廊中的敌人/掉落物在 Minimap 上可见",
+            "走廊实体仅在与已访问房间相连时显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-296",
+          "title": "EnemyHpBar destroy 后 tween 回调仍执行 — setAlpha 崩溃风险",
+          "description": "EnemyHpBar.scheduleHide() 创建的 fade tween onComplete 回调调用 setAlpha(1) 和 setVisible(false)。如果 EnemyHpBar 在 tween 期间被 destroy()（如敌人死亡），回调中的 this 引用已销毁的对象。应在 destroy 中也停止相关 tween。",
+          "type": "code",
+          "priority": 281,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "EnemyHpBar.destroy() 中停止所有活跃 tween",
+            "onComplete 回调中检查 this.active 或 this.scene 是否存在",
+            "敌人死亡时 HP bar 不抛出异常",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-297",
+          "title": "US-042 PRD 状态未同步 — 代码已实现但 PRD 标记 pending",
+          "description": "US-042（玩家攻击挥剑视觉效果）在 commit 984c58a 中已实现（slashGfx 粒子效果、Player.ts 中 attackSlash 相关代码），但 PRD 中仍标记为 pending。应更新 PRD 状态为 done，避免后续审查重复标记。",
+          "type": "code",
+          "priority": 282,
+          "status": "pending",
+          "dependsOn": [
+            "US-042"
+          ],
+          "acceptanceCriteria": [
+            "PRD 中 US-042 status 更新为 done",
+            "确认 git log 中 feat commit 存在",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

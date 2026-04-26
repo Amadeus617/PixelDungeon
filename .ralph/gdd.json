@@ -76,7 +76,8 @@
           "bonus": 100
         }
       ]
-    }
+    },
+    "attackBoostDuration": 10000
   },
   "designLog": [
     {
@@ -562,6 +563,59 @@
           "priority": "P2"
         }
       ]
+    },
+    {
+      "round": 38,
+      "date": "2026-04-26",
+      "title": "代码审查第38轮 — BootScene健壮性、音频清理、文档一致性、死代码",
+      "summary": "审查全部25个源文件后，发现7个改进点：(1) BootScene anims.create 无重复创建保护，场景循环会崩溃；(2) SoundManager 每次播放创建音频节点但不 disconnect，长时间运行性能下降；(3) AttackBoost 注释写单次但实际是10秒持续，与 GDD 不一致；(4) DungeonMap.returnWorldHeight() 拼写错误死代码；(5) Minimap 不显示走廊实体，与 US-055/US-261 走廊机制不兼容；(6) EnemyHpBar tween 回调在 destroy 后仍执行有崩溃风险；(7) US-042 代码已实现但 PRD 未同步。新增 US-291~US-297。",
+      "newUserStories": [
+        "US-291",
+        "US-292",
+        "US-293",
+        "US-294",
+        "US-295",
+        "US-296",
+        "US-297"
+      ],
+      "changes": [
+        {
+          "area": "balance",
+          "change": "新增 attackBoostDuration: 10000（从代码推断，与注释不一致需统一）",
+          "priority": "P3"
+        },
+        {
+          "area": "scenes/BootScene",
+          "change": "US-291: anims.create 前检查 exists() 保护",
+          "priority": "P2"
+        },
+        {
+          "area": "systems/SoundManager",
+          "change": "US-292: 音频节点 stop 后 disconnect",
+          "priority": "P3"
+        },
+        {
+          "area": "entities/AttackBoost",
+          "change": "US-293: 注释修正 + GDD attackBoostDuration 补充",
+          "priority": "P3"
+        },
+        {
+          "area": "map/DungeonMap",
+          "change": "US-294: 删除 returnWorldHeight 死代码",
+          "priority": "P4"
+        },
+        {
+          "area": "ui/Minimap",
+          "change": "US-295: 走廊实体显示支持",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/EnemyHpBar",
+          "change": "US-296: destroy 中停止活跃 tween",
+          "priority": "P2"
+        }
+      ],
+      "priority": "US-291 (BootScene 崩溃保护) 是最高优先级 — 影响游戏启动稳定性。US-296 (HP bar tween) 和 US-295 (走廊 Minimap) 次之。"
     }
   ],
   "improvements": {
