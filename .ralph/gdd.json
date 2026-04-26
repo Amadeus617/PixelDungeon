@@ -331,6 +331,48 @@
         }
       ],
       "notes": "第31轮审查。本轮聚焦于：1) 反复报告但未修复的顽固bug（HP bar脱离、hurt音效误播、HUD冻结、ResultScene流程）；2) 架构健壮性（SpikeTrap物理类型、BootScene幂等性）。大部分新US是对历史US的补充实现细节，提供更具体的修复方案。"
+    },
+    {
+      "round": 32,
+      "date": "2026-04-26",
+      "changes": [
+        {
+          "us": "US-251",
+          "desc": "Slime takeDamage 缺少闪白反馈 — 代码中仍未实现 setTint，与 Skeleton 不一致",
+          "rationale": "US-041 标记为 pending 但 31 轮审查后代码仍未实现。Slime 受击无任何视觉反馈导致战斗体验不一致"
+        },
+        {
+          "us": "US-252",
+          "desc": "Player takeDamage 仍返回 void — 6+ 个下游 US 的共同前置依赖",
+          "rationale": "US-117/171/200 三轮审查均标记但代码未修复。heal() 已正确返回 number，takeDamage 应同理返回 boolean"
+        },
+        {
+          "us": "US-253",
+          "desc": "ResultScene events.on('update') 监听器从不清理 — 改为 keyboard 事件",
+          "rationale": "当前用 events.on('update') 轮询检测按键，比 input.keyboard.on('keydown') 更重且不自动清理"
+        },
+        {
+          "us": "US-254",
+          "desc": "Player knockback 速度 125px/s vs 敌人 300px/s — 击退效果严重不对称",
+          "rationale": "KNOCKBACK_DISTANCE=25px, DURATION=200ms → 速度仅 125px/s，实际位移 25px 几乎不可感知。敌人击退 45px/150ms。玩家被击中时无明显后退降低了战斗反馈"
+        },
+        {
+          "us": "US-255",
+          "desc": "Slime die() 未发射 enemy-death 事件 — 击杀 Slime 不触发掉落",
+          "rationale": "Skeleton.die() 正确发射事件触发 US-033 掉落逻辑，但 Slime.die() 缺失此事件。US-033 的掉落率(Slime 30% coin, 10% potion)从未生效"
+        },
+        {
+          "us": "US-256",
+          "desc": "ScoreSystem.addRoomClearPoints 缺少幂等保护 — 未来重构风险",
+          "rationale": "当前去重逻辑完全依赖 GameScene.clearedRooms Set，ScoreSystem 本身无保护。应接受房间索引参数做内部去重"
+        },
+        {
+          "us": "US-257",
+          "desc": "endGame 后当帧仍有一帧敌人/陷阱 update 浪费",
+          "rationale": "gameOver=true 在 update 末尾的 checkLoseCondition 中设置，但敌人 update 在 update 开头已执行。endGame 那帧仍有无效逻辑执行"
+        }
+      ],
+      "notes": "第 32 轮审查。本轮聚焦于：(1) 反复标记但代码仍未修复的顽固问题（Slime 闪白、takeDamage 返回值）；(2) 发现新的 runtime bug（Slime die 无事件导致掉落失效 — 这是 US-033 从未对 Slime 生效的根因）；(3) 平衡性问题（玩家 knockback 与敌人不对称）；(4) 代码健壮性（ResultScene 监听器清理、ScoreSystem 幂等）。"
     }
   ],
   "improvements": {

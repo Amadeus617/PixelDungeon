@@ -4019,6 +4019,108 @@
             "All textures and animations correctly available after restart",
             "tsc + build passes"
           ]
+        },
+        {
+          "id": "US-251",
+          "title": "Slime takeDamage 缺少闪白反馈 — 与 Skeleton 不一致",
+          "description": "Slime.takeDamage() 直接扣血无 setTint(0xffffff)，US-041 标记为 pending 但代码中 Slime 仍未添加闪白效果。Skeleton 有 setTint(0xffffff)+delayedCall(100)+clearTint，Slime 应一致。",
+          "type": "code",
+          "priority": 236,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.takeDamage() 添加 setTint(0xffffff)",
+            "100ms 后 delayedCall clearTint（与 Skeleton 一致）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-252",
+          "title": "Player takeDamage 仍返回 void — US-117/US-171/US-200 三轮标记未修复",
+          "description": "Player.takeDamage() 返回 void，而 heal() 已正确返回 number。这是 6+ 个下游 US（US-101/131/154/176/181/202/247）的共同前置依赖。代码中已有 heal() 返回实际回复量的先例，takeDamage 同理应返回 boolean 表示是否实际受伤。",
+          "type": "code",
+          "priority": 237,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player.takeDamage() 返回 boolean",
+            "invincible 或 !alive 时返回 false",
+            "实际扣血后返回 true",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-253",
+          "title": "ResultScene events.on(\"update\") 监听器从不清理 — 场景泄漏",
+          "description": "ResultScene.create() 中注册了 this.events.on(\"update\", callback) 用于检测按键重启，但 ResultScene 没有 shutdown() 方法。如果从 ResultScene 跳转到 GameScene 再返回，监听器可能残留。改为 this.input.keyboard.on(\"keydown\") 更安全且自动随场景销毁清理。",
+          "type": "code",
+          "priority": 238,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 按键监听改为 input.keyboard 事件",
+            "不再使用 events.on(\"update\") 轮询",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-254",
+          "title": "Player knockback 速度计算有误 — KNOCKBACK_DISTANCE 是像素但用作速度",
+          "description": "Player.takeDamage() 中 knockback 速度 = (dx/len) * (KNOCKBACK_DISTANCE / (KNOCKBACK_DURATION/1000))。KNOCKBACK_DISTANCE=25px, DURATION=200ms → 速度=125px/s。但敌人 knockback 用 KNOCKBACK_SPEED=300px/s 持续 150ms。玩家被击退仅 25px（几乎看不出），而被击退敌人移动 45px。击退效果严重不对称。",
+          "type": "code",
+          "priority": 239,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player knockback 速度提升至 200px/s 与游戏比例匹配",
+            "或 KNOCKBACK_DISTANCE 从 25 提升至 40-50px",
+            "击退方向和距离视觉上可感知",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-255",
+          "title": "Slime die() 立即 destroy — 未发射 enemy-death 事件导致无掉落",
+          "description": "Skeleton.die() 先 emit \"enemy-death\" 事件（触发掉落）再 destroy，但 Slime 代码中 die() 缺少 enemy-death 事件发射。这意味着击杀 Slime 永远不掉落金币和药水，只有 Skeleton 会掉落。US-033 的掉落机制只对 Skeleton 生效。",
+          "type": "code",
+          "priority": 240,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.die() 在 destroy 前发射 enemy-death 事件",
+            "事件参数包含 { x, y, type: \"slime\" }",
+            "Slime 击杀后正确触发掉落逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-256",
+          "title": "ScoreSystem.addRoomClearPoints 缺少房间首次清除保护",
+          "description": "GameScene.checkRoomClear() 使用 clearedRooms Set 防止重复奖励，但 ScoreSystem.addRoomClearPoints() 本身无幂等保护。如果未来 checkRoomClear 逻辑被重构或有多个调用路径，可能重复加分。ScoreSystem 应接受房间索引参数做内部去重。",
+          "type": "code",
+          "priority": 241,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem.addRoomClearPoints(roomIndex) 接受房间索引",
+            "内部 Set 记录已奖励房间防止重复",
+            "GameScene 传入 currentRoom 参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-257",
+          "title": "GameScene.update gameOver 后敌人 spikeTrap 仍 update — CPU 和逻辑浪费",
+          "description": "endGame 触发时，当前帧的 update 中敌人 update 和 spikeTrap update 可能已经执行了部分逻辑（在 gameOver 设为 true 之前）。虽然下一帧开始 return，但 endGame 那帧仍有一帧的浪费。且 physics.pause() 不影响 scene update。应在 endGame 中立即设 this.gameOver=true 并在敌人/陷阱 update 中也检查此标志。",
+          "type": "code",
+          "priority": 242,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 后标记 scene 级 gameEnded 标志",
+            "敌人/陷阱 update 开头检查此标志并跳过",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
