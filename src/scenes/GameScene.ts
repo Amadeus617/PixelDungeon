@@ -25,7 +25,50 @@ const SPEED_INCREASE_PER_RUN = 0.1; // +10% per run
 const SPEED_CAP_MULTIPLIER = 2.0;   // max 200%
 // --- End difficulty scaling ---
 
-const SKELETON_COUNT = 3;
+// --- Room depth difficulty (US-044) ---
+interface RoomEnemyConfig {
+  slimeCount: number;
+  skeletonCount: number;
+}
+
+/**
+ * Returns enemy configuration for a given room based on its depth index.
+ * Room 0 = entrance (no enemies).
+ * Deeper rooms get progressively more and tougher enemies.
+ */
+function getEnemyConfigForRoom(roomIndex: number, totalRooms: number): RoomEnemyConfig {
+  // Entrance room has no enemies
+  if (roomIndex === 0) {
+    return { slimeCount: 0, skeletonCount: 0 };
+  }
+
+  // Combat rooms: rooms 1..totalRooms-1
+  const combatRoomCount = totalRooms - 1; // number of rooms that can have enemies
+  const combatIndex = roomIndex - 1; // 0-based index among combat rooms
+  const lastCombatRoom = combatIndex === combatRoomCount - 1;
+
+  if (combatRoomCount <= 1) {
+    // Only one combat room: moderate difficulty
+    return { slimeCount: 2, skeletonCount: 1 };
+  }
+
+  // Normalize combat depth: 0.0 = first combat room, 1.0 = last combat room
+  const depth = combatIndex / (combatRoomCount - 1);
+
+  if (lastCombatRoom) {
+    // Last room before exit: hardest — max enemies
+    return { slimeCount: 1, skeletonCount: 3 };
+  } else if (depth < 0.4) {
+    // Early combat rooms: only slimes, few
+    return { slimeCount: 2, skeletonCount: 0 };
+  } else {
+    // Mid rooms: mix of slimes and skeletons
+    return { slimeCount: 2, skeletonCount: 1 };
+  }
+}
+// --- End room depth difficulty (US-044) ---
+
+const SKELETON_COUNT = 3; // kept for backward compat / fallback
 const COIN_COUNT = 5;
 const HEALTH_POTION_COUNT = 3;
 const HEALTH_POTION_HEAL = 3;
@@ -135,26 +178,44 @@ export class GameScene extends Phaser.Scene {
     );
     this.roomCameraSystem.init(this.player, entranceRoomIdx);
 
-    // Create a physics group for slimes
+    // --- Spawn enemies per-room based on depth difficulty (US-044) ---
     this.slimeGroup = this.physics.add.group();
+    this.skeletonGroup = this.physics.add.group();
 
-    // Spawn slimes in rooms other than the entrance
     const wallLayer = this.dungeonMap.getWallLayer();
     const dungeonData = this.dungeonMap.getDungeonData();
-    for (let i = 0; i < this.slimeCount; i++) {
-      // Distribute slimes across non-entrance rooms
-      const roomIdx = 1 + (i % (dungeonData.rooms.length - 1)); // rooms 1..N-1
-      const room = dungeonData.rooms[roomIdx];
-      const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
-      const slime = new Slime(this, spos.x, spos.y);
-      this.physics.add.collider(slime, wallLayer, (_slimeObj) => {
-        slime.onHitWall();
-      });
-      this.slimes.push(slime);
-      this.slimeGroup.add(slime);
-    }
+    const totalRooms = dungeonData.rooms.length;
 
-    // Enemy contact with player → player takes damage
+    for (let roomIdx = 0; roomIdx < totalRooms; roomIdx++) {
+      const room = dungeonData.rooms[roomIdx];
+      const config = getEnemyConfigForRoom(roomIdx, totalRooms);
+
+      // Spawn slimes for this room
+      for (let s = 0; s < config.slimeCount; s++) {
+        const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
+        const slime = new Slime(this, spos.x, spos.y);
+        this.physics.add.collider(slime, wallLayer, (_slimeObj) => {
+          slime.onHitWall();
+        });
+        this.slimes.push(slime);
+        this.slimeGroup.add(slime);
+      }
+
+      // Spawn skeletons for this room
+      for (let s = 0; s < config.skeletonCount; s++) {
+        const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
+        const skeleton = new Skeleton(this, spos.x, spos.y, this.skeletonSpeedMultiplier);
+        skeleton.setPlayerRef(this.player);
+        this.physics.add.collider(skeleton, wallLayer, () => {
+          skeleton.onHitWall();
+        });
+        this.skeletons.push(skeleton);
+        this.skeletonGroup.add(skeleton);
+      }
+    }
+    // --- End room-depth enemy spawning (US-044) ---
+
+    // Slime contact with player → player takes damage
     this.physics.add.overlap(
       this.player,
       this.slimeGroup,
@@ -166,24 +227,6 @@ export class GameScene extends Phaser.Scene {
         }
       }
     );
-
-    // --- Skeletons ---
-    this.skeletonGroup = this.physics.add.group();
-
-    for (let i = 0; i < SKELETON_COUNT; i++) {
-      // Spawn skeletons in rooms 2..N-1 (skip entrance and first combat room)
-      const roomIdx = 2 + (i % Math.max(1, dungeonData.rooms.length - 2));
-      const actualIdx = Math.min(roomIdx, dungeonData.rooms.length - 1);
-      const room = dungeonData.rooms[actualIdx];
-      const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
-      const skeleton = new Skeleton(this, spos.x, spos.y, this.skeletonSpeedMultiplier);
-      skeleton.setPlayerRef(this.player);
-      this.physics.add.collider(skeleton, wallLayer, () => {
-        skeleton.onHitWall();
-      });
-      this.skeletons.push(skeleton);
-      this.skeletonGroup.add(skeleton);
-    }
 
     // Skeleton contact with player → player takes damage
     this.physics.add.overlap(
