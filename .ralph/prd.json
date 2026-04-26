@@ -4507,6 +4507,157 @@
             "类属性只声明类型不赋值",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-282",
+          "title": "KeyItem/Coin/HealthPotion/AttackBoost 全部继承 GameObjects.Sprite 而非 Physics — overlap 检测无 physics body",
+          "description": "所有可拾取道具(KeyItem, Coin, HealthPotion, AttackBoost)继承Phaser.GameObjects.Sprite，没有physics body。GameScene使用physics.add.overlap()检测玩家与道具重叠，但Phaser Arcade overlap对无body的Sprite依赖内部fallback，可能不触发或行为不一致。SpikeTrap(US-222/US-249/US-273)已有同类问题。应统一所有需要overlap检测的实体继承Physics.Arcade.Sprite或在构造时enable body。",
+          "type": "code",
+          "priority": 267,
+          "status": "pending",
+          "dependsOn": [
+            "US-273"
+          ],
+          "acceptanceCriteria": [
+            "KeyItem/Coin/HealthPotion/AttackBoost 继承 Physics.Arcade.Sprite 或调用 scene.physics.add.existing(this)",
+            "所有可拾取道具 overlap 检测可靠触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-283",
+          "title": "GameScene restart 后 roomCameraSystem 事件回调持有旧 HUD 引用",
+          "description": "RoomCameraSystem.setOnRoomChanged(callback) 在 HUD 构造函数中注册。场景重启时 RoomCameraSystem 被重建（在 GameScene.create() 中 new RoomCameraSystem），但 RoomCameraSystem 内部使用 scene.cameras.main 的事件系统（cam.once FADE_OUT_COMPLETE/FADE_IN_COMPLETE）。如果旧场景的 camera 事件未完全清理，可能导致旧回调在过渡期间被触发。更关键的是：RoomCameraSystem 自身的 shutdown/cleanup 方法不存在，cam.once 回调可能在场景切换中途持有已销毁的对象。",
+          "type": "code",
+          "priority": 268,
+          "status": "pending",
+          "dependsOn": [
+            "US-280"
+          ],
+          "acceptanceCriteria": [
+            "RoomCameraSystem 添加 destroy/cleanup 方法取消所有 camera 事件监听",
+            "GameScene.shutdown() 中显式清理 RoomCameraSystem",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-284",
+          "title": "Inventory 使用 Set — add('key') 两次后 remove('key') 一次仍有 key",
+          "description": "Inventory 底层用 Set<string>，连续调用 add('key') 两次后，remove('key') 删除一次仍保留 key（因为 Set 只有一个元素所以实际 remove 后为空）。但语义上 US-134 提出改为 Map<string, number> 支持数量计数，这是正确方向。当前代码在 GameScene.handleChestInteraction() 中 inventory.remove('key') 后 open chest，如果未来多宝箱支持（US-095），第二次 remove('key') 在 Set 实现中返回 false（已删除），玩家可能持有钥匙但无法开第二个宝箱。本 US 是 US-134 的具体实现：改为 Map<string, number>，add 递增，remove 递减，has 检查 > 0。",
+          "type": "code",
+          "priority": 269,
+          "status": "pending",
+          "dependsOn": [
+            "US-134"
+          ],
+          "acceptanceCriteria": [
+            "Inventory 内部改为 Map<string, number>",
+            "add(itemId) 递增计数",
+            "remove(itemId) 递减计数，计数为0时删除key",
+            "has(itemId) 检查计数 > 0",
+            "现有代码无需修改即可兼容",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-285",
+          "title": "HUD 构造函数中 minimap 实体 getters 捕获 GameScene 数组引用 — 动态添加的道具不显示",
+          "description": "HUD 构造时接收 minimapEntityGetters（getSlimes, getSkeletons, getCoins 等），这些 getter 返回 GameScene 的数组（this.slimes, this.coins 等）。但 handleEnemyDeathDrop() 动态创建新的 Coin/HealthPotion 并 push 到 this.coins/this.healthPotions 数组中。Minimap.update() 通过 getter 获取数组时能看到新元素，但 spawnDropCoin 创建的 Coin 使用 new Coin()（GameObjects.Sprite 无 physics body），Minimap 的世界坐标转换可能正确显示。然而问题在于：动态添加的 Coin 的 active 状态在 pickup 动画期间可能不准确（alpha=0 且 collect() 前的 Coin active=true 但不可见），导致 Minimap 显示不可拾取的弹出动画中的道具。",
+          "type": "code",
+          "priority": 270,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spawnDropCoin/spawnDropPotion 创建的道具在弹出动画期间不在 Minimap 上显示",
+            "动画完成后的可拾取道具正常显示在 Minimap",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-286",
+          "title": "ScoreSystem 缺少通关时间奖励 — US-053 部分实现缺失",
+          "description": "ScoreSystem 目前有 addCoinPoints(+10)、addEnemyPoints(+50)、addRoomClearPoints(+100) 三种加分方式。US-053 提出通关时间奖励但从未实现。建议：通关时根据用时给 bonus 分（如 < 60s +500, < 120s +200, < 180s +100）。startTime 已在 GameScene.create() 中记录，elapsedTime 在 endGame() 中计算。只需在 endGame() 中调用 scoreSystem.addTimeBonus(elapsedTime) 并在 ScoreSystem 中实现该方法。GDD balance 参数应新增：timeBonusThresholds: [{60: 500}, {120: 200}, {180: 100}]。",
+          "type": "code",
+          "priority": 271,
+          "status": "pending",
+          "dependsOn": [
+            "US-035",
+            "US-065"
+          ],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 addTimeBonus(elapsedSeconds) 方法",
+            "GameScene.endGame() 在 win 时调用 scoreSystem.addTimeBonus()",
+            "ResultScene 显示时间奖励分",
+            "GDD balance 新增 timeBonusThresholds 参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-287",
+          "title": "checkRoomClear entrance 房间自动清除但未计分 — 清除计数与实际不符",
+          "description": "GameScene.checkRoomClear() 中 currentRoom===0（entrance room）时自动标记为 cleared 但不加分（直接 return）。这意味着 clearedRooms.size 包含 entrance room，但 ScoreSystem 只在其他房间清除时加分。如果未来用 clearedRooms.size 计算清除率（如 US-264），entrance 自动清除会膨胀数据。建议：(1) entrance 不加入 clearedRooms（它本来就没有敌人）；(2) 或单独标记为 autoClear 区分手动清除。",
+          "type": "code",
+          "priority": 272,
+          "status": "pending",
+          "dependsOn": [
+            "US-040"
+          ],
+          "acceptanceCriteria": [
+            "entrance 房间不加入 clearedRooms 或用单独集合追踪",
+            "房间清除率统计排除 entrance",
+            "US-264 通关面板清除率数据准确",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-288",
+          "title": "Slime die() 事件发射确认 — US-255 标记但需验证当前代码",
+          "description": "US-255 标记 Slime die() 未发射 enemy-death 事件导致 US-033 掉落从未对 Slime 生效。但查看当前代码，Slime.die() 中实际已包含 this.scene.events.emit('enemy-death', {x, y, type: 'slime'})。US-255 的标记可能基于旧版代码。本 US 用于确认：验证当前代码确实发射事件，如果已修复则更新 US-255 状态为 done；如果仍有问题则定位具体原因。",
+          "type": "code",
+          "priority": 273,
+          "status": "pending",
+          "dependsOn": [
+            "US-255"
+          ],
+          "acceptanceCriteria": [
+            "确认 Slime.die() 发射 enemy-death 事件",
+            "确认 GameScene handleEnemyDeathDrop 对 slime 类型使用正确的掉落率",
+            "如果已修复，更新 US-255 状态为 done",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-289",
+          "title": "handlePlayerAttack 中 wasDead 判断在 takeDamage 之前 — 依赖 isDead 初始状态",
+          "description": "handlePlayerAttack() 中逻辑：const wasDead = slime.isDead; slime.takeDamage(damage); if (!wasDead && slime.isDead) { killCount++ }。wasDead 在 takeDamage 之前获取，此时如果 slime._hp 已经是 0（isDead=true，但 slime.active 仍为 true 因为 filter 在末尾），wasDead=true 导致正确跳过。但如果同一帧两个攻击来源（如不可能但理论上），第二个来源看到的 wasDead=false（因为第一次 attack 的 takeDamage 使 hp=0 但 isDead 变 true，die() 中 destroy() 后 active=false，slimes 数组下次 filter 才移除）。当前实现语义正确，但 wasDead 变量名有误导性 — 实际检查的是 'wasDeadBeforeThisHit'。",
+          "type": "code",
+          "priority": 274,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "wasDead 重命名为 wasAlreadyDead 提高可读性",
+            "或改为 takeDamage 返回 kill 信息（依赖 US-252）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-290",
+          "title": "Difficulty scaling 只影响 Slime 数量和 Skeleton 速度 — US-143 标记但缺少具体实现方案",
+          "description": "US-028 和 US-143 标记了难度缩放维度不完整的问题。当前代码只缩放：(1) slimeCount = min(4 + (runCount-1), 8); (2) skeletonSpeedMultiplier = min(1.0 + (runCount-1) * 0.1, 2.0)。缺少：(1) Skeleton 数量递增（固定3个）；(2) Slime 速度递增（固定60）；(3) 敌人 HP 递增；(4) 道具数量缩放（更多敌人应配更多药水）。本 US 给出具体实现方案：skeletonCount = min(3 + floor(runCount/3), 5); slimeSpeedMultiplier = min(1.0 + (runCount-1)*0.05, 1.5); healthPotionCount = min(3 + floor(runCount/4), 6)。GDD balance 参数新增对应递增配置。",
+          "type": "code",
+          "priority": 275,
+          "status": "pending",
+          "dependsOn": [
+            "US-028",
+            "US-143"
+          ],
+          "acceptanceCriteria": [
+            "Skeleton 数量随 runCount 递增（3→5 cap）",
+            "Slime 速度随 runCount 递增（60→90 cap）",
+            "HealthPotion 数量随 runCount 递增（3→6 cap）",
+            "GDD balance 参数同步更新",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

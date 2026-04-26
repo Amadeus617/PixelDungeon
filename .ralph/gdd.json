@@ -39,7 +39,44 @@
     "dashSpeed": 80,
     "dashDuration": 150,
     "dashCooldown": 1500,
-    "corridorPatrolCount": "1-2"
+    "corridorPatrolCount": "1-2",
+    "difficultyScaling": {
+      "skeletonCountPerRun": {
+        "base": 3,
+        "incrementPerRun": "floor(runCount/3)",
+        "cap": 5,
+        "note": "US-290: 每3次run增加1个Skeleton，上限5"
+      },
+      "slimeSpeedPerRun": {
+        "base": 60,
+        "multiplierPerRun": 0.05,
+        "cap": 1.5,
+        "note": "US-290: Slime速度每run增加5%，上限1.5x"
+      },
+      "healthPotionPerRun": {
+        "base": 3,
+        "incrementPerRun": "floor(runCount/4)",
+        "cap": 6,
+        "note": "US-290: 每4次run增加1个药水，上限6"
+      }
+    },
+    "timeBonusThresholds": {
+      "note": "US-286: 通关时间奖励",
+      "tiers": [
+        {
+          "underSeconds": 60,
+          "bonus": 500
+        },
+        {
+          "underSeconds": 120,
+          "bonus": 200
+        },
+        {
+          "underSeconds": 180,
+          "bonus": 100
+        }
+      ]
+    }
   },
   "designLog": [
     {
@@ -461,6 +498,70 @@
         }
       ],
       "priority": "US-279 (HP bar 脱离) 和 US-280 (shutdown) 是最高优先级 — 直接可见的视觉 bug 和影响稳定性的内存泄漏"
+    },
+    {
+      "date": "2026-04-26",
+      "round": 37,
+      "title": "代码审查第37轮 — Physics Body 统一、事件清理、难度缩放扩展",
+      "summary": "审查所有实体类、HUD、ScoreSystem、Inventory、RoomCameraSystem 代码。发现9个改进点：(1) 可拾取道具缺少 physics body 导致 overlap 检测不可靠；(2) RoomCameraSystem 缺少 destroy/cleanup 方法；(3) Inventory Set 实现不支持多钥匙计数；(4) Minimap 显示弹出动画中的临时道具；(5) 通关时间奖励从未实现；(6) entrance 房间清除计数膨胀；(7) Slime die() 事件发射状态需验证；(8) wasDead 变量名误导性；(9) 难度缩放维度不完整。新增 US-282~US-290。",
+      "newUserStories": [
+        "US-282",
+        "US-283",
+        "US-284",
+        "US-285",
+        "US-286",
+        "US-287",
+        "US-288",
+        "US-289",
+        "US-290"
+      ],
+      "changes": [
+        {
+          "area": "entities",
+          "change": "US-282: KeyItem/Coin/HealthPotion/AttackBoost 应继承 Physics.Arcade.Sprite 或 enable body",
+          "priority": "P1"
+        },
+        {
+          "area": "systems/RoomCameraSystem",
+          "change": "US-283: 添加 destroy/cleanup 方法取消 camera 事件监听",
+          "priority": "P2"
+        },
+        {
+          "area": "systems/Inventory",
+          "change": "US-284: Set 改为 Map<string, number> 支持数量计数",
+          "priority": "P3"
+        },
+        {
+          "area": "ui/Minimap",
+          "change": "US-285: 过滤弹出动画中的临时道具",
+          "priority": "P3"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-286: 新增 addTimeBonus() 通关时间奖励",
+          "priority": "P2"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-287: entrance 房间不加入 clearedRooms",
+          "priority": "P3"
+        },
+        {
+          "area": "entities/Slime",
+          "change": "US-288: 验证 die() 事件发射状态",
+          "priority": "P1"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-289: wasDead 重命名为 wasAlreadyDead",
+          "priority": "P3"
+        },
+        {
+          "area": "balance",
+          "change": "US-290: 扩展难度缩放维度（Skeleton数量、Slime速度、药水数量）",
+          "priority": "P2"
+        }
+      ]
     }
   ],
   "improvements": {
