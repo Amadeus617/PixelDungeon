@@ -58,7 +58,9 @@
         "incrementPerRun": "floor(runCount/4)",
         "cap": 6,
         "note": "US-290: 每4次run增加1个药水，上限6"
-      }
+      },
+      "slimeHpScaling": "2 + floor((runCount-1)/3), cap 5",
+      "slimeSpeedScaling": "60 * (1 + (runCount-1)*0.05), cap 90"
     },
     "timeBonusThresholds": {
       "note": "US-286: 通关时间奖励",
@@ -616,6 +618,42 @@
         }
       ],
       "priority": "US-291 (BootScene 崩溃保护) 是最高优先级 — 影响游戏启动稳定性。US-296 (HP bar tween) 和 US-295 (走廊 Minimap) 次之。"
+    },
+    {
+      "round": 39,
+      "date": "2026-04-26",
+      "title": "第39轮设计审查 — 核心玩法闭环+Bug修复+代码清理",
+      "summary": "深入审查全部源码后发现三个关键设计缺陷：(1) 胜利条件不需要 key 导致 key/chest 系统无意义、(2) 宝箱开启无奖励产出、(3) Slime 无难度缩放。同时发现 Skeleton HP bar 跟随 bug、overlap 内存泄漏、数组残留等代码质量问题。",
+      "newUserStories": [
+        "US-306",
+        "US-307",
+        "US-308",
+        "US-309",
+        "US-310",
+        "US-311",
+        "US-312",
+        "US-313",
+        "US-314",
+        "US-315"
+      ],
+      "changes": [
+        "US-306: Chest 系统重构 — 开启时产出随机战利品，支持多宝箱分布",
+        "US-307: 胜利条件修正 — checkWinCondition 增加 key 检查，key-chest-stairs 形成完整游戏循环",
+        "US-308: Skeleton HP bar 追踪模式修复 — chase 分支补充 hpBar.follow()",
+        "US-309: AttackBoost 视觉反馈 — 玩家增强状态下添加 tint/光环",
+        "US-310: Overlap 清理机制 — destroyed entity 的 collider 需主动移除",
+        "US-311: 掉落物品数组管理 — collect 后从数组移除或定期清理",
+        "US-312: Slime 难度缩放 — HP/speed 随 runCount 增长",
+        "US-313: Win 过渡动画 — 胜利场景金色粒子+延迟跳转",
+        "US-314: 删除 returnWorldHeight 死方法",
+        "US-315: 删除 buildCorridor 死函数"
+      ],
+      "balanceChanges": [
+        "提议 Slime HP: 2 + floor((runCount-1)/3), cap 5",
+        "提议 Slime speed: 60 * (1 + (runCount-1)*0.05), cap 1.5x",
+        "提议 Chest 赏金: 50% coin(3-5), 30% potion, 20% attackBoost"
+      ],
+      "priority": "high"
     }
   ],
   "improvements": {

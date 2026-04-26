@@ -4879,6 +4879,156 @@
             "60fps下减少90%+的无效setText调用",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-306",
+          "title": "Chest 开启无奖励反馈 — 打开后无物品产出，玩家不知道是否成功",
+          "description": "Chest.open() 仅切换纹理为 chest_open，无任何奖励（coin/potion/key）产出。应在开启时生成随机战利品并播放特效，否则宝箱交互缺乏游戏价值。chest 也只生成了 1 个且固定在倒数第二房间，应支持多宝箱随机分布。",
+          "type": "code",
+          "priority": 291,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 生成随机战利品（coin/potion/attackBoost）",
+            "战利品以 popup arc 动画飞出",
+            "宝箱开启时播放音效 (SoundManager.playChestOpen 已有)",
+            "支持地图生成多个宝箱（2-3个，分布在不同房间）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-307",
+          "title": "checkWinCondition 不需要 key — 玩家可直接走到楼梯通关",
+          "description": "当前胜利条件仅检查玩家与楼梯距离 < 40px，完全不需要 key。但 ResultScene 胜利文字写的是 \"You found the key, reached the stairs\"。Key 和 Chest 系统形同虚设。应要求持有 key 才能使用楼梯，或设计为 key 解锁楼梯附近的门。",
+          "type": "code",
+          "priority": 292,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 增加 inventory.has(\"key\") 检查",
+            "无 key 时靠近楼梯显示提示文本 \"You need a key!\"",
+            "HUD 添加楼梯/目标方向指示（当 key 已拾取时）",
+            "更新 ResultScene 胜利/失败文字保持一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-308",
+          "title": "Skeleton 追踪模式下 HP bar 不跟随 — update 中 chase 分支缺少 hpBar.follow()",
+          "description": "Skeleton.update() 中，当追踪玩家时直接 return，跳过了 hpBar.follow(this) 调用。导致 HP bar 停留在追踪开始位置不随骷髅移动。Wander 分支中 hpBar.follow 在正确位置。",
+          "type": "code",
+          "priority": 293,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支在 setVelocity 后、return 前调用 hpBar.follow(this)",
+            "HP bar 在追踪模式下平滑跟随骷髅位置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-309",
+          "title": "AttackBoost 物品拾取后无视觉差异 — 缺少玩家变色/光环特效",
+          "description": "Player 拾取 attack_boost 后仅设置 _attackBoosted=true，玩家外观无任何变化（无颜色、无光环、无粒子）。HUD 有 ATK x2 [Xs] 文字但角色本身看不出增强状态，玩家可能忘记 buff 是否激活。",
+          "type": "code",
+          "priority": 294,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "attackBoosted 期间玩家添加微弱红色/橙色 tint 或光环",
+            "HUD 指示器已有，确保角色视觉一致性",
+            "buff 结束时清除 tint/光环",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-310",
+          "title": "GameScene 不清理 destroyed entity 的 overlap listener — 潜在内存泄漏",
+          "description": "coins、healthPotions、attackBoosts 的 overlap 回调在 entity 被 destroy() 后仍注册在 physics 系统中。虽然 collect() 有 guard，但 Phaser overlap manager 仍遍历这些引用。应在 entity 消失后移除对应的 overlap collider。",
+          "type": "code",
+          "priority": 295,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin/HealthPotion/AttackBoost 被 collect 后，对应 overlap collider 被销毁",
+            "或改用 Physics Group + 单一 overlap（而非逐个注册）",
+            "验证长时间游玩后无 overlap 回调堆积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-311",
+          "title": "SpawnDropPotion 加入 healthPotions 数组但不清除 — 拾取后数组残留",
+          "description": "spawnDropPotion 创建新 HealthPotion 并 push 到 this.healthPotions 数组，但拾取后（coin.collect/potion.collect）不会从数组中移除。HUD Minimap 遍历 healthPotions 显示标记时会遍历到 inactive 的 potion。虽然 active guard 存在，但数组会无限增长。",
+          "type": "code",
+          "priority": 296,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落 potion 拾取后从 healthPotions 数组移除",
+            "掉落 coin 拾取后从 coins 数组移除",
+            "或定期清理 inactive 元素（每 N 帧或 room change 时）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-312",
+          "title": "Slime 没有难度缩放 — HP/速度/runCount 无关，后期太弱",
+          "description": "Slime HP=2/speed=60 固定不变，不受 runCount 影响。Skeleton 有 speedMultiplier，但 Slime 完全没有。后期多跑几轮后 Slime 变成纯farm，缺乏威胁。应给 Slime 也加 runCount 缩放（HP +1 per 3 runs, cap at 5; 或 speed +5%）。",
+          "type": "code",
+          "priority": 297,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 构造函数接受 speedMultiplier 参数",
+            "GameScene 传入与 runCount 相关的缩放系数",
+            "Slime HP 可随 runCount 微增（公式需在 gdd.json balance 中记录）",
+            "更新 gdd.json balance.difficultyScaling 文档",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-313",
+          "title": "Win 场景无过渡效果 — 直接跳转 ResultScene，缺少胜利仪式感",
+          "description": "endGame(\"win\") 在玩家到达楼梯后 800ms 直接 scene.start(\"ResultScene\")，无胜利动画（如金色闪光、画面定格、玩家欢呼）。对比死亡有红闪+渐隐动画，胜利场景过于平淡。",
+          "type": "code",
+          "priority": 298,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Win 时播放胜利画面效果：金色粒子/闪光 overlay",
+            "玩家播放胜利 pose 动画或原地旋转",
+            "延迟 1.5s 后再跳转 ResultScene（给玩家反应时间）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-314",
+          "title": "DungeonMap.returnWorldHeight 拼写错误 — 方法名应为 getWorldHeight",
+          "description": "DungeonMap.ts 第 39 行有 returnWorldHeight() 方法名（typo），同时第 43 行有正确的 getWorldHeight()。returnWorldHeight 无任何调用方但仍存在，属于死代码，应删除避免混淆。",
+          "type": "code",
+          "priority": 299,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 returnWorldHeight 方法",
+            "确认无其他文件调用该方法（grep 验证）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-315",
+          "title": "buildCorridor 函数是死代码 — paintCorridors 实际执行走廊绘制",
+          "description": "dungeonData.ts 中 buildCorridor() 函数（约40行）包含完整的 L-shaped 走廊逻辑但从未被调用。实际走廊绘制由 paintCorridors() 执行。buildCorridor 应被删除以减少代码量和维护负担。",
+          "type": "code",
+          "priority": 300,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 buildCorridor 函数",
+            "确认 generateDungeon 仅调用 paintCorridors",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
