@@ -32,6 +32,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private knockbackTimer: number = 0;
   private isDeadAnimating: boolean = false;
 
+  // Slash effect graphics reference (US-042)
+  private slashGfx: Phaser.GameObjects.Graphics | null = null;
+
   // Slow debuff (from spike traps)
   private slowMultiplier: number = 1.0;
   private slowTimer: number = 0;
@@ -189,6 +192,62 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     });
   }
 
+  /** Spawn a directional slash arc visual effect (US-042) */
+  private spawnSlashEffect(): void {
+    // Clean up any previous slash
+    if (this.slashGfx) {
+      this.slashGfx.destroy();
+      this.slashGfx = null;
+    }
+
+    const dir = this._direction === "idle" ? "down" : this._direction;
+    const offsets: Record<string, { dx: number; dy: number; angle: number }> = {
+      up:    { dx: 0,  dy: -1, angle: -Math.PI / 2 },
+      down:  { dx: 0,  dy:  1, angle:  Math.PI / 2 },
+      left:  { dx: -1, dy:  0, angle:  Math.PI },
+      right: { dx:  1, dy:  0, angle:  0 },
+    };
+
+    const o = offsets[dir];
+    const reach = 22; // how far the arc extends from player centre
+    const originX = this.x + o.dx * 12;
+    const originY = this.y + o.dy * 12;
+
+    const gfx = this.scene.add.graphics();
+    gfx.setDepth(15);
+    this.slashGfx = gfx;
+
+    // Draw the slash arc: two concentric arcs forming a swoosh shape
+    gfx.lineStyle(3, 0xffffff, 0.9);
+    gfx.beginPath();
+    gfx.arc(originX, originY, reach, o.angle - 0.8, o.angle + 0.8, false);
+    gfx.strokePath();
+
+    gfx.lineStyle(2, 0xccddff, 0.7);
+    gfx.beginPath();
+    gfx.arc(originX, originY, reach + 4, o.angle - 0.5, o.angle + 0.5, false);
+    gfx.strokePath();
+
+    gfx.lineStyle(1, 0xffffff, 0.4);
+    gfx.beginPath();
+    gfx.arc(originX, originY, reach - 4, o.angle - 0.6, o.angle + 0.6, false);
+    gfx.strokePath();
+
+    // Animate: scale up slightly then fade and destroy over 200ms
+    this.scene.tweens.add({
+      targets: gfx,
+      alpha: 0,
+      duration: 200,
+      ease: "Power2",
+      onComplete: () => {
+        gfx.destroy();
+        if (this.slashGfx === gfx) {
+          this.slashGfx = null;
+        }
+      },
+    });
+  }
+
   /** Apply a movement slow debuff (e.g. from spike traps) */
   applySlow(multiplier: number, duration: number): void {
     this.slowMultiplier = multiplier;
@@ -295,6 +354,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.lastAttackTime = now;
         this.isAttacking = true;
         this.play(`idle-${this._direction === "idle" ? "down" : this._direction}`, true);
+        // Spawn slash visual effect (US-042)
+        this.spawnSlashEffect();
         // Emit event so GameScene can handle hit detection
         this.scene.events.emit("player-attack");
         // End attack state after a short delay
