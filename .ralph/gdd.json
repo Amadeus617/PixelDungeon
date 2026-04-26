@@ -1510,5 +1510,37 @@
       "severity": "medium",
       "relatedUS": "US-236"
     }
+  ],
+  "levelDesign": {
+    "rules": [
+      {
+        "name": "出生安全区",
+        "description": "entranceRoom 标记为 safe zone，禁止敌人和 SpikeTrap 生成",
+        "appliesTo": [
+          "Slime",
+          "Skeleton",
+          "SpikeTrap"
+        ]
+      }
+    ]
+  },
+  "reviewHistory": [
+    {
+      "round": 39,
+      "date": "2026-04-26",
+      "newUS": [
+        "US-298",
+        "US-299",
+        "US-300",
+        "US-301",
+        "US-302",
+        "US-303",
+        "US-304",
+        "US-305"
+      ],
+      "focus": "攻击动画朝向/Slime timer泄漏/Skeleton追踪缩放/胜利判定/走廊门框/dash碰撞/安全区/HUD性能",
+      "totalUS": 305,
+      "completedUS": 42
+    }
   ]
 }

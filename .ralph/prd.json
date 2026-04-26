@@ -4762,6 +4762,123 @@
             "确认 git log 中 feat commit 存在",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-298",
+          "title": "Player attack slash effect sprite 随朝向翻转 — 当前仅水平翻转，缺少上下朝向",
+          "description": "US-042攻击动画的slash sprite使用setFlipX处理朝向，但上下朝向（up/down）应使用不同的翻转组合或旋转。当前down朝向无翻转但视觉效果应与up区分。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "slash sprite 根据四个朝向正确翻转/旋转",
+            "上→翻转Y，下→默认，左→翻转X，右→翻转X+翻转Y（或旋转90°）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-299",
+          "title": "Slime 随机移动 timer 在 die() 后未移除 — delayedCall 残留导致内存泄漏",
+          "description": "Slime.create() 中使用 this.scene.time.delayedCall 启动 pickDirection 循环（每800-1500ms），但 die() 中没有清除这个 timer。Slime死亡后timer继续触发pickDirection，调用已destroy对象的属性。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime die() 中移除 pickDirection timer",
+            "验证 destroy 后 timer callback 不再执行",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-300",
+          "title": "Skeleton 追踪速度 hardcoded 80 — 应纳入 difficulty scaling 公式",
+          "description": "Skeleton.update()中tracking时速度固定为80，不受difficulty scaling影响。而patrol速度通过baseSpeed+runCount*5缩放。tracking作为高威胁行为反而无缩放，低runCount时追踪过于强力。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "tracking速度 = baseTrackingSpeed + runCount * scaleFactor",
+            "GDD中补充tracking速度缩放公式",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-301",
+          "title": "GameScene checkWinCondition 依赖 pixel overlap — 改为 room-based 判定",
+          "description": "当前胜利判定通过physics overlap检测玩家是否碰到stair位置的不可见sprite。如果stair sprite位置有偏差或玩家speed过快跳过，会导致无法通关。应改为：当玩家所在room为exitRoom时自动触发胜利。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "胜利判定基于玩家当前roomIndex === exitRoomIndex",
+            "保留stair位置作为视觉参考",
+            "移除physics overlap依赖",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-302",
+          "title": "走廊连接房间时缺少门框 tile — 视觉上走廊和房间无边界感",
+          "description": "dungeonData.ts中carveHorizontal/carveVertical直接将走廊tile设为FLOOR，与房间内部floor无区分。玩家无法视觉感知从走廊进入房间的边界。应在走廊-房间连接处添加DOOR_FRAME或DECOR_STONE tile。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊入口处（与房间墙壁交界）放置装饰tile",
+            "装饰tile有独立视觉（不同于floor和wall）",
+            "装饰tile无碰撞",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-303",
+          "title": "玩家 dash 冲刺无碰撞保护 — 可能穿过墙壁进入无效区域",
+          "description": "GDD中设计Shift键冲刺机制（US pending），但当前代码中Player的移动通过physics velocity实现，instant teleport（如果dash用tween）会绕过AABB碰撞。dash必须使用physics-based位移或碰撞安全检查。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "dash位移通过physics velocity实现而非直接坐标修改",
+            "dash期间碰撞检测正常工作",
+            "dash结束后速度正确归零",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-304",
+          "title": "entrance 房间应标记为 safe zone — 禁止敌人和陷阱 spawn",
+          "description": "虽然Coin spawn已修复为跳过entrance，但SpikeTrap和其他危险元素的spawn未检查是否在entrance房间。新玩家可能在出生点被陷阱伤害，违反roguelike公平性原则。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "entranceRoom index的所有tile上不生成SpikeTrap",
+            "entranceRoom不spawn任何敌人",
+            "entranceRoom标记为safe zone并在spawn逻辑中统一检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-305",
+          "title": "HUD 金币/分数文本每帧创建新 string — 添加 dirty flag 缓存优化",
+          "description": "HUD.update()每帧调用setText(`Score: ${score}`)和setText(`Coins: ${coinCount}`)等，即使值未变化也创建新字符串和触发Phaser文本重渲染。应缓存上次值，仅在变化时更新。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD持有上次显示值的缓存",
+            "仅在值变化时调用setText",
+            "60fps下减少90%+的无效setText调用",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
