@@ -79,7 +79,19 @@
         }
       ]
     },
-    "attackBoostDuration": 10000
+    "attackBoostDuration": 10000,
+    "enemyStats": {
+      "_plannedMultipliers": {
+        "description": "US-338 将为敌人构造器添加 hpMultiplier 参数。以下为计划公式（尚未实现）：",
+        "hpMultiplierFormula": "baseHp * depthMultiplier * runCountMultiplier",
+        "depthMultiplier": {
+          "early": 1.0,
+          "mid": 1.25,
+          "last": 1.5
+        },
+        "runCountMultiplier": "1.0 + (runCount - 1) * 0.05, capped at 2.0"
+      }
+    }
   },
   "designLog": [
     {
@@ -1718,6 +1730,74 @@
       "focus": "攻击动画朝向/Slime timer泄漏/Skeleton追踪缩放/胜利判定/走廊门框/dash碰撞/安全区/HUD性能",
       "totalUS": 305,
       "completedUS": 42
+    }
+  ],
+  "gameSystems": {
+    "difficultyScaling": {
+      "roomDepth": {
+        "description": "US-044 引入按房间深度配置敌人的机制。每个房间根据其深度索引获得不同数量和强度的敌人。此系统需与 runCount 跨局缩放统一（US-336）。",
+        "roomTypes": {
+          "entrance": {
+            "slimeCount": 0,
+            "skeletonCount": 0,
+            "description": "入口房间，无敌人"
+          },
+          "early": {
+            "slimeCount": 2,
+            "skeletonCount": 0,
+            "depthThreshold": 0.4,
+            "description": "早期战斗房间（depth < 0.4），仅 Slime"
+          },
+          "mid": {
+            "slimeCount": 2,
+            "skeletonCount": 1,
+            "description": "中期战斗房间，Slime + Skeleton 混合"
+          },
+          "last": {
+            "slimeCount": 1,
+            "skeletonCount": 3,
+            "description": "最终房间，大量 Skeleton"
+          }
+        },
+        "knownIssue": "当前 getEnemyConfigForRoom 使用硬编码值，未接入 runCount。US-336 将修复此问题。",
+        "plannedEnhancements": [
+          "US-337: Slime speedMultiplier 支持",
+          "US-338: Slime/Skeleton hpMultiplier 支持",
+          "US-339: 魔法数字提取为命名常量"
+        ]
+      }
+    },
+    "hazards": {
+      "spikeTrap": {
+        "deathBehavior": {
+          "description": "US-341: 玩家死亡时，活跃状态（尖刺伸出）的陷阱应重置视觉为非活跃状态。避免 gameOver 后陷阱视觉冻结。",
+          "currentBehavior": "gameOver=true 跳过 spikeTraps.update()，活跃陷阱视觉永久停留",
+          "plannedFix": "endGame 时遍历重置活跃陷阱纹理"
+        }
+      }
+    }
+  },
+  "gameProgression": {
+    "roomClear": {
+      "entranceRoomProgress": {
+        "description": "US-340: 入口房间自动标记为已清除但不计入 HUD 进度显示。进度分母应为 totalRooms - 1。",
+        "displayRule": "HUD 显示已清除/总战斗房间数（排除入口）"
+      }
+    }
+  },
+  "changelog": [
+    {
+      "date": "2026-04-26",
+      "round": 41,
+      "summary": "第 41 轮游戏设计审查。发现 US-044 实现导致难度缩放系统断裂（getEnemyConfigForRoom 硬编码忽略 runCount），新增 6 个 US（US-336~US-341）覆盖难度统一、Slime 速度/血量缩放、魔法数字提取、HUD 进度修复和陷阱视觉修复。",
+      "newUS": [
+        "US-336",
+        "US-337",
+        "US-338",
+        "US-339",
+        "US-340",
+        "US-341"
+      ]
     }
   ]
 }

@@ -740,7 +740,7 @@
           "description": "当前所有房间敌人类型和数量固定（4 Slime + 3 Skeleton），无论房间深度。应实现基于房间索引的难度递增：靠前的房间只有 Slime 且数量少，越深入房间增加 Skeleton 比例和总数。例如：Room 1: 2 Slime; Room 2: 2 Slime + 1 Skeleton; Room 3+: 1 Slime + 2 Skeleton + 1 extra per room。与 US-028 难度缩放互补。",
           "type": "code",
           "priority": 29,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-036"
           ],
@@ -5393,6 +5393,116 @@
             "金色粒子从玩家位置爆发",
             "画面渐亮效果",
             "ResultScene 标题缩放弹入动画",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-336",
+          "title": "US-044 难度缩放断裂修复 — getEnemyConfigForRoom 接入 runCount",
+          "description": "US-044 引入的 getEnemyConfigForRoom 使用硬编码敌人数量，完全忽略了 US-028 的 runCount 难度缩放系统。导致：1) this.slimeCount（随 runCount 递增）成为死代码，从未在新的按房间生成逻辑中使用；2) 多次通关后敌人数量不变，只有 Skeleton 速度缩放生效。修复方案：getEnemyConfigForRoom 接受 runCount 参数，按比例增加各房间敌人数量和 Slime 速度。同步更新 GDD difficultyScaling 章节。",
+          "type": "bug",
+          "priority": 321,
+          "status": "pending",
+          "dependsOn": [
+            "US-044",
+            "US-028"
+          ],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom(roomIndex, totalRooms, runCount) 接受 runCount 参数",
+            "Slime 数量随 runCount 递增（与原 this.slimeCount 逻辑一致）",
+            "Skeleton 数量随 runCount 递增",
+            "this.slimeCount 死代码清理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-337",
+          "title": "Slime 构造器添加 speedMultiplier 参数 — 支持房间深度 + runCount 速度缩放",
+          "description": "Skeleton 构造器已接受 speedMultiplier 参数并用于追踪速度缩放，但 Slime 构造器无此接口。Slime 当前移动速度完全硬编码为 50px/s，不受 runCount 和房间深度影响。后期 Slime 过于脆弱（US-312/US-320 标记但未修复构造器接口）。修复：Slime 构造器接受 speedMultiplier，getEnemyConfigForRoom 可为不同房间深度返回不同速度倍率。",
+          "type": "feature",
+          "priority": 322,
+          "status": "pending",
+          "dependsOn": [
+            "US-336"
+          ],
+          "acceptanceCriteria": [
+            "Slime 构造器接受 speedMultiplier?: number 参数",
+            "Slime 移动速度 = baseSpeed * speedMultiplier",
+            "getEnemyConfigForRoom 返回 slimeSpeedMultiplier",
+            "后期 runCount 的 Slime 速度不低于 1.5x 基础速度",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-338",
+          "title": "Slime/Skeleton 构造器添加 hpMultiplier 参数 — 房间深度敌人血量递增",
+          "description": "当前 Slime HP=2、Skeleton HP=4 完全固定，不随房间深度或 runCount 变化。深层房间的敌人与入口旁的敌人同样脆弱，缺乏递进挑战感。修复：两个敌人构造器增加 hpMultiplier 参数，getEnemyConfigForRoom 按深度返回血量倍率（如入口旁房间 1.0x，最终房间 1.5x-2.0x），runCount 进一步加成。GDD balance 章节需同步更新。",
+          "type": "feature",
+          "priority": 323,
+          "status": "pending",
+          "dependsOn": [
+            "US-336"
+          ],
+          "acceptanceCriteria": [
+            "Slime/Skeleton 构造器接受 hpMultiplier?: number 参数",
+            "敌人 maxHp = baseHp * hpMultiplier",
+            "EnemyHpBar 正确显示缩放后的血量",
+            "最终房间敌人血量 ≥ 1.5x 基础值",
+            "GDD balance.enemyStats 更新 hpMultiplier 公式",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-339",
+          "title": "getEnemyConfigForRoom 魔法数字提取为命名常量 — 统一到 balance 配置",
+          "description": "US-044 的 getEnemyConfigForRoom 使用大量硬编码数字（slimeCount: 2, skeletonCount: 3, depth 阈值 0.4 等），与 GDD difficultyScaling 章节和 GameScene 顶部的常量系统完全脱节。应提取为 ROOM_DEPTH_EARLY_THRESHOLD、ROOM_MAX_SLIME、ROOM_MAX_SKELETON 等命名常量，集中在文件顶部与现有 BASE_SLIME_COUNT 等一起管理，便于后续调平衡。",
+          "type": "refactor",
+          "priority": 324,
+          "status": "pending",
+          "dependsOn": [
+            "US-336"
+          ],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom 中所有魔法数字提取为命名常量",
+            "常量集中在 GameScene 顶部 // Room depth difficulty 区域",
+            "depth 阈值、敌人数量上限、速度/血量倍率全部可配置",
+            "GDD difficultyScaling 新增 roomDepth 子章节记录这些值",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-340",
+          "title": "入口房间不计入 HUD 房间清除进度 — 修复进度显示虚高",
+          "description": "checkRoomClear 在 roomIndex===0 时自动加入 clearedRooms 但不计分。这导致 HUD 从游戏开始就显示「已清除 1/N 房间」，误导玩家以为已完成了一个房间。修复：HUD 房间清除进度应排除入口房间（分母用 totalRooms-1），或者 entrance room 不加入 clearedRooms（仅在需要时标记但单独计数）。",
+          "type": "bug",
+          "priority": 325,
+          "status": "pending",
+          "dependsOn": [
+            "US-039",
+            "US-040"
+          ],
+          "acceptanceCriteria": [
+            "HUD 房间清除进度从 0/N 开始（不含入口房间）",
+            "clearedRooms 仍标记入口为已清除（防止重复检查）",
+            "进度分母 = totalRooms - 1（排除入口）",
+            "入口房间不触发 Room Clear 浮动文字",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-341",
+          "title": "玩家死亡后 SpikeTrap 视觉状态冻结修复 — 陷阱活跃动画在 gameOver 后应停止",
+          "description": "GameScene.update() 在 gameOver=true 时立即 return，跳过所有 spikeTraps.update() 调用。如果某个陷阱处于活跃状态（尖刺伸出），其视觉纹理将永远停留在活跃状态，直到场景切换。应在 endGame/endGameInternal 中遍历所有陷阱，将活跃陷阱重置为非活跃纹理，或在死亡延迟期间继续更新陷阱视觉（但不再检测碰撞）。",
+          "type": "bug",
+          "priority": 326,
+          "status": "pending",
+          "dependsOn": [
+            "US-031"
+          ],
+          "acceptanceCriteria": [
+            "endGame 时遍历 spikeTraps，将活跃陷阱重置为非活跃纹理",
+            "或：死亡延迟期间继续调用 spikeTraps.update() 但跳过碰撞检测",
+            "玩家死亡瞬间无活跃尖刺停留在伸出状态",
             "tsc + build 通过"
           ]
         }
