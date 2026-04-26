@@ -722,7 +722,7 @@
           "description": "当前玩家死亡时 physics.pause() + setVelocity(0,0) 直接冻结，没有死亡过渡。应添加：1) 玩家 alpha 渐隐 (1→0, ~800ms)；2) 红色 tint 闪烁；3) 死亡后短暂延迟再转场到 ResultScene。增强死亡体验的戏剧感。",
           "type": "code",
           "priority": 28,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-029"
           ],
