@@ -289,6 +289,48 @@
         }
       ],
       "notes": "第 30 轮审查。本轮聚焦于：1) Minimap 功能完整性（楼梯标记、AttackBoost、死代码清理）；2) 玩家体验保护（出生无敌）；3) 视觉反馈增强（回血数字弹出）；4) 小 bug 修复（coin 分配、动画方向）。大部分历史 bug（内存泄漏、overlap 回调、HP bar 位置等）已有对应 pending US，本轮不重复添加。"
+    },
+    {
+      "round": 31,
+      "date": "2026-04-26",
+      "changes": [
+        {
+          "us": "US-244",
+          "desc": "Skeleton tracking/wander branch HP bar follow — 所有early-return路径缺hpBar.follow",
+          "rationale": "Skeleton.update()追踪分支return跳过hpBar.follow，knockback分支同理。HP bar在多个状态下脱离sprite"
+        },
+        {
+          "us": "US-245",
+          "desc": "Slime knockback分支HP bar follow缺失 — 与Skeleton同类问题",
+          "rationale": "Slime.update() isKnockedBack return跳过hpBar.follow，击退时HP bar原地不动"
+        },
+        {
+          "us": "US-246",
+          "desc": "ResultScene重启流程闭环 — SPACE→TitleScene, ENTER→GameScene",
+          "rationale": "ResultScene直接重启GameScene跳过TitleScene，游戏流程不完整。events.on('update')监听器泄漏"
+        },
+        {
+          "us": "US-247",
+          "desc": "Slime overlap hurt音效hp<maxHp条件修复 — 用hp before/after替代",
+          "rationale": "hp<maxHp在有先前伤害时无敌帧期间仍为true导致误播。US-101/131/176/181/202均标记但未修复"
+        },
+        {
+          "us": "US-248",
+          "desc": "GameScene.update gameOver选择性跳过 — HUD在死亡动画期间继续更新",
+          "rationale": "gameOver=true后return跳过HUD.update()导致800ms转场期间分数冻结。US-144/201/221均标记但未修复"
+        },
+        {
+          "us": "US-249",
+          "desc": "SpikeTrap继承Physics.Arcade.Sprite — 修复overlap检测可靠性",
+          "rationale": "SpikeTrap继承GameObjects.Sprite无physics body，overlap检测依赖Phaser内部fallback行为不可靠"
+        },
+        {
+          "us": "US-250",
+          "desc": "BootScene动画注册幂等性 — anims.create前检查anims.exists",
+          "rationale": "TitleScene→BootScene重复执行时anims.create可能产生重复key警告或动画实例泄漏"
+        }
+      ],
+      "notes": "第31轮审查。本轮聚焦于：1) 反复报告但未修复的顽固bug（HP bar脱离、hurt音效误播、HUD冻结、ResultScene流程）；2) 架构健壮性（SpikeTrap物理类型、BootScene幂等性）。大部分新US是对历史US的补充实现细节，提供更具体的修复方案。"
     }
   ],
   "improvements": {

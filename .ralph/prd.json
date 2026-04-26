@@ -3910,6 +3910,115 @@
             "coin 分配公式保证从 rooms[1] 开始",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-244",
+          "title": "Skeleton tracking mode — HP bar follow missing on tracking branch return",
+          "description": "Skeleton.update() tracking branch does setVelocity and returns WITHOUT calling hpBar.follow(this). While US-196/US-234 flagged this issue, a deeper problem exists: the hpBar.follow is also missing on the wander branch when the skeleton transitions from tracking to wander. After isKnockedBack ends, pickWanderDirection is called but hpBar.follow only runs mid-wander. Fix: add hpBar.follow(this) to ALL early-return paths in Skeleton.update() including the knockback return and the tracking return.",
+          "type": "code",
+          "priority": 229,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton HP bar follows in all code paths: tracking, knockback, wander",
+            "No visible HP bar desync when Skeleton alternates between track and wander",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-245",
+          "title": "Slime knockback branch missing hpBar.follow — identical to Skeleton issue",
+          "description": "Slime.update() knockback early-return skips hpBar.follow(this). When Slime is knocked back, its HP bar freezes at the pre-knockback position. This is the Slime equivalent of US-244. Fix: add hpBar.follow(this) before the return in the isKnockedBack block.",
+          "type": "code",
+          "priority": 230,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime HP bar follows during knockback animation",
+            "No visual desync between Slime sprite and HP bar",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-246",
+          "title": "ResultScene game-over still restarts to GameScene — flow loop incomplete",
+          "description": "ResultScene.create() registers events.on(\"update\") listener with JustDown → this.scene.start(\"GameScene\"). This means: (1) player can never return to TitleScene; (2) the events.on(\"update\") listener is never cleaned up; (3) if scene restart doesn't fully destroy ResultScene, the listener accumulates. While US-127/US-175/US-199/US-208 all flagged this, none have been implemented. This US provides a concrete implementation: SPACE → TitleScene, ENTER → GameScene (quick restart).",
+          "type": "code",
+          "priority": 231,
+          "status": "pending",
+          "dependsOn": [
+            "US-038"
+          ],
+          "acceptanceCriteria": [
+            "SPACE on ResultScene goes to TitleScene",
+            "ENTER on ResultScene goes to GameScene (quick restart)",
+            "No events.on listener leak — use keydown once or shutdown cleanup",
+            "Full game loop: Title → Game → Result → Title/Game",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-247",
+          "title": "Slime overlap hurt sound condition still uses hp<maxHp — not fixed since US-101",
+          "description": "GameScene slime overlap callback: `if (wasHurt && this.player.hp < this.player.maxHp) { playHurt() }`. The condition `hp < maxHp` is TRUE whenever player has ANY prior damage, causing hurt sound to play during invincible frames if player was previously hurt. This bug has been reported in US-101/US-131/US-176/US-181/US-202 but never fixed. Root cause: takeDamage returns void. The simplest fix WITHOUT requiring takeDamage return value change: remove the hp check entirely and use a local wasActuallyHurt flag comparing hp before/after takeDamage.",
+          "type": "code",
+          "priority": 232,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Hurt sound only plays when player actually takes damage (HP decreases)",
+            "No hurt sound during invincible frames regardless of prior damage",
+            "Works for both Slime and Skeleton overlap callbacks",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-248",
+          "title": "GameScene.update gameOver=true blocks all updates — HUD freezes during death animation",
+          "description": "GameScene.update() first line: `if (this.gameOver) return;`. This blocks HUD.update(), spike trap updates, and camera updates during the 800ms death→ResultScene transition. The HUD shows stale data (e.g., last kill score not reflected). While US-144/US-201/US-221 flagged variants of this, the fix needs to be at the top of update(): only block player/enemy logic, not HUD/traps/camera. Split the early return into selective skips.",
+          "type": "code",
+          "priority": 233,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD continues updating during death animation (score refreshes)",
+            "Spike traps stop updating after gameOver",
+            "Player and enemy input/logic frozen after gameOver",
+            "Camera does not crash during death transition",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-249",
+          "title": "SpikeTrap inherits GameObjects.Sprite not Physics — overlap behavior unreliable",
+          "description": "SpikeTrap extends Phaser.GameObjects.Sprite (not Physics.Arcade.Sprite), so it has no physics body. GameScene calls `physics.add.overlap(player, trap, callback)` but Phaser Arcade overlap requires at least one object to have a physics body. SpikeTrap has no body, so overlap detection relies on Phaser's internal fallback for non-physics sprites, which may use bounding box intersection without body.enable checks. This means: (1) trap.active=false does NOT prevent overlap since there's no body.enable to check; (2) behavior may differ across Phaser versions. Fix: extend Physics.Arcade.Sprite or use distance-based detection instead.",
+          "type": "code",
+          "priority": 234,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap overlap detection works reliably",
+            "Trap can be properly disabled/enabled via body.enable or active flag",
+            "No Phaser version-dependent overlap behavior",
+            "tsc + build passes"
+          ]
+        },
+        {
+          "id": "US-250",
+          "title": "TitleScene startGame → BootScene creates redundant texture regeneration",
+          "description": "TitleScene.startGame() calls `this.scene.start(\"BootScene\")` which then creates all procedural textures and animations again. On restart from ResultScene → GameScene, BootScene is NOT in the chain, so textures persist. But when coming FROM TitleScene, BootScene runs create() again. While US-116 added textures.exists() checks, BootScene still re-executes animation registration (this.anims.create) even when textures exist. Phaser anims.create with the same key throws a warning and may leak animation instances. Fix: wrap anims.create calls in `if (!this.anims.exists(key))` checks.",
+          "type": "code",
+          "priority": 235,
+          "status": "pending",
+          "dependsOn": [
+            "US-038"
+          ],
+          "acceptanceCriteria": [
+            "No Phaser console warnings about duplicate animation keys on restart",
+            "BootScene.create() is idempotent — can be called multiple times safely",
+            "All textures and animations correctly available after restart",
+            "tsc + build passes"
+          ]
         }
       ]
     }
