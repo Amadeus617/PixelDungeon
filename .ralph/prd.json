@@ -3808,6 +3808,108 @@
             "tsc + build 通过"
           ],
           "id": "US-236"
+        },
+        {
+          "id": "US-237",
+          "title": "Minimap 显示楼梯出口位置标记",
+          "description": "Minimap 当前只显示 rooms/corridors/enemies/items，但未标记楼梯出口（胜利目标）位置。玩家无法在小地图上定位通关目标。应在 exitRoom 中心绘制一个特殊图标（如白色三角形或方块）标记楼梯位置，且仅在 exitRoom 已访问后显示（fog of war 一致性）。",
+          "type": "code",
+          "priority": 222,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap 上 exitRoom 已访问时显示楼梯图标（与普通房间填充不同）",
+            "未访问 exitRoom 时不显示楼梯图标",
+            "楼梯图标视觉区分度高，不与 coin/enemy/potion 点混淆",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-238",
+          "title": "Minimap 显示 AttackBoost 道具位置",
+          "description": "Minimap 绘制了 coins/chests/potions/key 的位置点，但遗漏了 AttackBoost 道具。HUD 构造函数的 minimapEntityGetters 未包含 getAttackBoosts 回调。需要在 HUD 中传入 getAttackBoosts getter，Minimap 中用橙色点绘制 AttackBoost 位置。",
+          "type": "code",
+          "priority": 223,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 构造时传入 getAttackBoosts 回调",
+            "Minimap update() 中遍历 attackBoosts 绘制橙色点",
+            "仅在已访问房间内显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-239",
+          "title": "Minimap RenderTexture 未使用清理 — 删除死代码",
+          "description": "Minimap 构造函数创建了 renderTexture (scene.add.renderTexture) 并添加到容器，但 update() 中从未使用 renderTexture 进行绘制，所有渲染都通过 graphics 对象完成。renderTexture 分配了 GPU 内存但完全是死代码。应删除 renderTexture 相关代码。",
+          "type": "code",
+          "priority": 224,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 renderTexture 属性和相关创建代码",
+            "Minimap 功能不变（graphics 渲染正常）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-240",
+          "title": "游戏开始出生无敌保护 — 防止出生即受伤",
+          "description": "玩家在 entranceRoom 出生后立即受敌人/陷阱伤害，没有安全窗口。应添加 1.5 秒无敌保护期（出生时 invincible），给玩家时间观察环境。entranceRoom 不生成敌人，但 spike trap 理论上可放在连接走廊。",
+          "type": "code",
+          "priority": 225,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家出生后有 1500ms 无敌保护",
+            "HUD 可选显示出生保护倒计时",
+            "出生无敌与受伤无敌帧共享 invincible 机制",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-241",
+          "title": "Skeleton 追踪模式更新移动动画方向",
+          "description": "Skeleton.update() 追踪模式中计算 vx/vy 后 setVelocity 并直接 return，不更新精灵动画方向。当前只有 walk 动画（无方向区分）所以无可见 bug，但未来添加方向性动画时会不工作。应在 return 前根据 dx/dy 方向调用 this.play() 更新动画。",
+          "type": "code",
+          "priority": 226,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式 return 前根据移动方向播放正确动画",
+            "追踪→漫游模式切换时动画平滑过渡",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-242",
+          "title": "Heal 回复量视觉反馈 — 回血数字弹出",
+          "description": "Player.heal() 返回实际回复量，但 GameScene 的 potion/掉落药水 overlap 回调中未使用返回值。应利用返回值显示回血数字（如 +2、+3）浮动文字动画，让玩家感知回复效果。",
+          "type": "code",
+          "priority": 227,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "heal() 返回值用于生成浮动文字（如 +2）",
+            "文字在玩家头顶短暂显示后上浮消失",
+            "满血时不弹出（heal 返回 0）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-243",
+          "title": "Coin 在 entrance 房间生成修复 — 保证探索动力",
+          "description": "Coin 分配逻辑 `dungeonData.rooms[i % dungeonData.rooms.length]` 在 rooms.length=3 时会分配 coin 到 rooms[0]（entrance room）。应确保 coin 不生成在 entranceRoom，从 rooms[1] 开始分配。",
+          "type": "code",
+          "priority": 228,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有 coin 不在 entranceRoom 生成",
+            "coin 分配公式保证从 rooms[1] 开始",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

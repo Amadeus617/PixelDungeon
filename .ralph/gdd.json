@@ -247,6 +247,48 @@
         }
       ],
       "notes": "第 29 轮审查。聚焦于：1) 关键 bug(内存泄漏、HP bar 位置); 2) 游戏手感提升(反馈动画、音效); 3) 资源保护(满血药水)。难度缩放系统运行正常，Skeleton 速度倍率逻辑无问题。"
+    },
+    {
+      "round": 30,
+      "date": "2026-04-26",
+      "changes": [
+        {
+          "us": "US-237",
+          "desc": "Minimap 显示楼梯出口位置标记 — 玩家无法在小地图定位通关目标",
+          "rationale": "exitRoom 已访问时 Minimap 不标记楼梯位置，核心目标不可见，违反游戏设计可及性原则"
+        },
+        {
+          "us": "US-238",
+          "desc": "Minimap 显示 AttackBoost 道具位置 — minimapEntityGetters 缺少 getAttackBoosts",
+          "rationale": "Minimap 绘制了所有其他道具但遗漏 AttackBoost，信息不一致"
+        },
+        {
+          "us": "US-239",
+          "desc": "Minimap RenderTexture 死代码清理 — GPU 内存浪费",
+          "rationale": "renderTexture 创建但 update() 中从未使用，所有渲染通过 graphics 完成"
+        },
+        {
+          "us": "US-240",
+          "desc": "游戏出生无敌保护 — 1500ms 安全窗口",
+          "rationale": "玩家出生即可能受陷阱伤害（entranceRoom 不生成敌人但走廊陷阱可触及），缺少新手友好保护"
+        },
+        {
+          "us": "US-241",
+          "desc": "Skeleton 追踪模式更新动画方向 — 前瞻性修复",
+          "rationale": "追踪模式 return 前不更新动画方向，未来方向性动画将不工作"
+        },
+        {
+          "us": "US-242",
+          "desc": "Heal 回复量视觉反馈 — 回血数字弹出动画",
+          "rationale": "Player.heal() 返回值未被使用，玩家无法感知实际回复量差异（地图药水3HP vs 掉落药水2HP）"
+        },
+        {
+          "us": "US-243",
+          "desc": "Coin 在 entrance 房间生成修复 — coin 分配跳过 entranceRoom",
+          "rationale": "rooms[i % length] 分配导致 coin 出现在出生房间，降低探索动力"
+        }
+      ],
+      "notes": "第 30 轮审查。本轮聚焦于：1) Minimap 功能完整性（楼梯标记、AttackBoost、死代码清理）；2) 玩家体验保护（出生无敌）；3) 视觉反馈增强（回血数字弹出）；4) 小 bug 修复（coin 分配、动画方向）。大部分历史 bug（内存泄漏、overlap 回调、HP bar 位置等）已有对应 pending US，本轮不重复添加。"
     }
   ],
   "improvements": {
