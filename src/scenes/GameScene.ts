@@ -742,6 +742,23 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Internal end-game helper — no gameOver guard, used by death animation callback */
+  private endGameInternal(result: GameResult): void {
+    this.physics.pause();
+    this.player.setVelocity(0, 0);
+
+    const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
+    this.time.delayedCall(200, () => {
+      this.scene.start("ResultScene", {
+        result,
+        score: this.scoreSystem.score,
+        killCount: this.killCount,
+        coinCount: this.coinCount,
+        elapsedTime,
+      });
+    });
+  }
+
   private endGame(result: GameResult): void {
     if (this.gameOver) return;
     this.gameOver = true;
@@ -816,10 +833,11 @@ export class GameScene extends Phaser.Scene {
     // Check lose condition first (death takes priority)
     if (this.checkLoseCondition()) {
       if (!this.gameOver) {
+        this.gameOver = true; // block gameplay but not endGame yet
         this.player.playDeathAnimation(() => {
-          this.endGame("lose");
+          // endGame checks gameOver guard — use internal helper to bypass
+          this.endGameInternal("lose");
         });
-        this.gameOver = true; // prevent re-triggering
       }
       return;
     }

@@ -176,16 +176,29 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
-  /** Play death animation (fade out) instead of instant freeze */
+  /** Play death animation: red flash + fade out + brief delay before callback */
   playDeathAnimation(onComplete?: () => void): void {
     if (this.isDeadAnimating) return;
     this.isDeadAnimating = true;
     this.setVelocity(0, 0);
+
+    // Cancel any ongoing invincibility blink that might fight the tween
+    this.isInvincible = false;
+    this.setAlpha(1);
+
+    // Stop current animation (e.g. walk cycle)
+    this.stop();
+
+    // Phase 1: Red tint flash (0–300ms)
+    this.setTint(0xff0000);
+
+    // Phase 2: Fade out while red-tinted (200–800ms)
     this.scene.tweens.add({
       targets: this,
       alpha: 0,
-      duration: 600,
+      duration: 800,
       ease: 'Power2',
+      delay: 200,
       onComplete: () => {
         if (onComplete) onComplete();
       },
