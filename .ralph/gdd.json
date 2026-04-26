@@ -429,6 +429,38 @@
       ],
       "balanceChanges": [],
       "priority": "US-274 (takeDamage 返回值) 是最高优先级 — 阻塞 6+ 下游功能。US-270 (shutdown) 和 US-265 (ResultScene 清理) 次之 — 影响游戏稳定性。"
+    },
+    {
+      "round": 35,
+      "date": "2026-04-26",
+      "summary": "第三十五轮设计审查 — 深度代码审计聚焦核心 bug 和架构健壮性",
+      "findings": [
+        "ResultScene 使用 events.on('update') 轮询检测按键，监听器从不清理，应改为 keyboard 事件",
+        "GameScene.update() gameOver 后直接 return 导致 spikeTraps 不更新，但 endGame 当帧敌人已执行完 update",
+        "Player knockback 速度仅 125px/s（25px/200ms），敌人 300px/s，击退效果严重不对称不可感知",
+        "Skeleton 追踪模式 return 跳过 hpBar.follow() — 玩家直接可见的 HP 条脱离 bug",
+        "GameScene 无 shutdown() 方法 — player-attack/enemy-death 事件监听器 + 动态 overlap 回调在重启后累积",
+        "scoreSystem 使用类属性初始化器 new ScoreSystem()，Phaser scene 复用时可能不重新执行构造函数",
+        "PRD 中存在大量反复标记但代码仍未修复的顽固问题（takeDamage 返回值、HP bar 跟随、ResultScene 流程等）"
+      ],
+      "newUserStories": [
+        "US-275",
+        "US-276",
+        "US-277",
+        "US-278",
+        "US-279",
+        "US-280",
+        "US-281"
+      ],
+      "balanceChanges": [
+        {
+          "param": "playerKnockbackDistance",
+          "from": "25px",
+          "to": "40-50px (建议)",
+          "reason": "25px/200ms=125px/s，对比敌人 300px/s，玩家被击退几乎不可感知，战斗反馈严重不对称"
+        }
+      ],
+      "priority": "US-279 (HP bar 脱离) 和 US-280 (shutdown) 是最高优先级 — 直接可见的视觉 bug 和影响稳定性的内存泄漏"
     }
   ],
   "improvements": {
@@ -683,7 +715,7 @@
     ]
   },
   "balanceAnalysis": {
-    "date": "2026-04-25",
+    "date": "2026-04-26",
     "issues": [
       {
         "area": "敌人强度倒挂",
@@ -1224,6 +1256,16 @@
         "area": "runCount管理碎片化",
         "detail": "localStorage runCount的读取（GameScene默认1）和写入（TitleScene默认0+1=1）分散在两个scene中，默认值不一致",
         "recommendation": "统一到GameState模块管理（US-231）"
+      },
+      {
+        "area": "玩家击退效果不可感知",
+        "detail": "Player knockback 25px/200ms = 125px/s，仅 0.5 tile 位移。对比敌人 knockback 45px/150ms = 300px/s。玩家被击中几乎看不出后退，战斗反馈严重不对称",
+        "recommendation": "KNOCKBACK_DISTANCE 从 25px 增至 40-50px"
+      },
+      {
+        "area": "场景生命周期管理缺失",
+        "detail": "GameScene 无 shutdown()，ResultScene 使用 events.on('update') 轮询输入。多次重启后事件监听器累积，可能导致双倍回调触发",
+        "recommendation": "GameScene 添加 shutdown() 清理；ResultScene 改用 keyboard 事件"
       }
     ],
     "minimapCompleteness": {

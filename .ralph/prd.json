@@ -4403,6 +4403,110 @@
             "Skeleton.takeDamage 同步修改返回 boolean",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-275",
+          "title": "Slime die() 中 emit enemy-death 事件 — 掉落机制对 Slime 从未生效",
+          "description": "审查代码发现 Skeleton.die() 正确 emit(\"enemy-death\") 触发 US-033 掉落逻辑，但 Slime.die() 也已修复此问题（确认代码已包含 emit）。进一步审查发现 Slime knockback return 路径中 hpBar.follow(this) 被跳过，但代码中 knockback 分支确实没有 hpBar 跟随。这与 US-218/US-245 同类问题。需确认所有已标记 US 中是否有代码已实际修复但 PRD 状态未更新的情况。",
+          "type": "code",
+          "priority": 260,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "审查所有 pending US 中代码已修复的项目并更新 PRD 状态",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-276",
+          "title": "ResultScene 使用 events.on(\"update\") 轮询输入 — 应改为 keydown 事件",
+          "description": "ResultScene.create() 中使用 this.events.on(\"update\", callback) 轮询检测 JustDown(spaceKey/enterKey)。这导致：(1) scene 销毁时 update 监听器可能不自动清理；(2) 每帧执行不必要的 JustDown 检查。应改为 this.input.keyboard.on(\"keydown-SPACE\", callback) + \"keydown-ENTER\" 一次性监听，并在 cleanup 中 off()。同时应添加 this.scene.start(\"TitleScene\") 选项实现完整游戏流程。",
+          "type": "code",
+          "priority": 261,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 改用 keyboard 事件监听替代 events.on update",
+            "添加 shutdown 清理监听器",
+            "提供 SPACE→TitleScene + ENTER→GameScene 双选项",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-277",
+          "title": "GameScene.update() gameOver 后 return 跳过 spikeTraps update — endGame 当帧仍执行敌人逻辑",
+          "description": "分析 GameScene.update() 执行顺序：(1) gameOver=true 后直接 return 跳过所有后续逻辑；(2) 但在 checkLoseCondition 中设置 gameOver=true 后 return，此时前面已经执行了 player.update + slimes/skeletons update。这意味着 endGame 当帧：(a) 所有敌人仍执行了 update（CPU 浪费）；(b) spikeTraps 在 gameOver return 之后不会再被更新。但如果 endGame 来自 checkWinCondition，则 spikeTraps 也不更新。应统一：endGame 设置 gameOver 标志后，敌人/trap 在 update 开头检查此标志。",
+          "type": "code",
+          "priority": 262,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 后下一帧敌人/trap update 跳过执行",
+            "gameOver 标志在 update 开头统一检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-278",
+          "title": "Player knockback 速度 125px/s 与敌人 300px/s 严重不对称 — 击退效果不可感知",
+          "description": "Player.takeDamage() 中 KNOCKBACK_DISTANCE=25px / (KNOCKBACK_DURATION=200ms/1000) = 速度 125px/s，实际位移仅 25px（不到 1 个 tile）。对比 Slime/Skeleton knockback 速度 300px/s，持续 150ms，实际位移 45px。玩家被击中时几乎看不出后退，而敌人击退明显。这导致战斗反馈严重不对称。建议：KNOCKBACK_DISTANCE 从 25px 增至 40-50px，使位移达到 1 个 tile，与敌人击退视觉效果相当。",
+          "type": "code",
+          "priority": 263,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "KNOCKBACK_DISTANCE 增至 40-50px",
+            "玩家被击退位移可清晰感知",
+            "击退不会推入墙壁（physics collider 保护）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-279",
+          "title": "Skeleton 追踪模式 return 跳过 HP bar follow — 血条脱离 sprite 的直接可见 bug",
+          "description": "代码确认：Skeleton.update() 在 tracking 分支中 setVelocity(vx, vy) 后直接 return，跳过 hpBar.follow(this)。这意味着 Skeleton 追踪玩家时 HP 条停留在追踪开始的位置不动。这是玩家直接可见的视觉 bug，优先级应最高。修复：在 return 前添加 hpBar 跟随逻辑。注意 Slime 的 knockback return 也有同类问题。",
+          "type": "code",
+          "priority": 264,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式 return 前 hpBar.follow(this) 被调用",
+            "Slime knockback return 前同样添加 hpBar.follow(this)",
+            "HP 条始终跟随对应 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-280",
+          "title": "GameScene 无 shutdown() 方法 — 场景重启后事件监听器/回调残留累积",
+          "description": "代码确认 GameScene 没有 shutdown() 方法。每次 scene.start(\"GameScene\") 重启时：(1) player-attack 事件监听器可能累积；(2) enemy-death 事件监听器可能累积；(3) RoomCameraSystem 的 onRoomChanged 回调未清理；(4) spawnDropCoin/spawnDropPotion 动态注册的 overlap 回调残留。多次重启后可能导致同一事件触发多次回调（双倍伤害、双倍掉落等）。应添加 shutdown() 方法显式 off 所有事件监听器。",
+          "type": "code",
+          "priority": 265,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "player-attack/enemy-death 事件 off",
+            "RoomCameraSystem 回调置空",
+            "动态 overlap 回调清理",
+            "多次重启后回调不累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-281",
+          "title": "GameScene scoreSystem 类属性初始化器 — Phaser scene 复用时可能不重新执行",
+          "description": "GameScene 中 private scoreSystem = new ScoreSystem() 使用类属性初始化器。虽然 Phaser scene.start() 通常会创建新实例，但如果 scene 配置为复用（或未来版本行为变化），构造函数可能不重新调用。create() 中虽然没有显式重新赋值 scoreSystem，但重置了部分状态。应统一：scoreSystem 在 create() 中 new，类属性只声明类型。同样适用于其他类属性初始化器（coinCount=0, killCount=0, gameOver=false 等）。",
+          "type": "code",
+          "priority": 266,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "scoreSystem 移入 create() 初始化",
+            "所有可变状态统一在 create() 中重置",
+            "类属性只声明类型不赋值",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
