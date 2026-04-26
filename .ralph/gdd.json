@@ -654,6 +654,145 @@
         "提议 Chest 赏金: 50% coin(3-5), 30% potion, 20% attackBoost"
       ],
       "priority": "high"
+    },
+    {
+      "round": 40,
+      "date": "2026-04-26",
+      "title": "第40轮设计审查 — 核心玩法闭环修复、资源管理完善、视觉反馈增强",
+      "summary": "深入审查全部源码后发现三大类问题：(1) 核心玩法闭环断裂：胜利条件不需要key导致key-chest系统无意义、宝箱无奖励产出、Slime不掉落道具、Inventory不支持计数；(2) 资源管理缺失：满血拾取药水浪费、AudioNode泄漏、动态掉落数组残留；(3) 视觉反馈不足：Slime无闪白、Skeleton HP bar脱离、buff无视觉区分、Win无仪式感。本轮20个新US(US-316~US-335)聚焦已有设计但代码未实现的缺陷。",
+      "newUserStories": [
+        "US-316",
+        "US-317",
+        "US-318",
+        "US-319",
+        "US-320",
+        "US-321",
+        "US-322",
+        "US-323",
+        "US-324",
+        "US-325",
+        "US-326",
+        "US-327",
+        "US-328",
+        "US-329",
+        "US-330",
+        "US-331",
+        "US-332",
+        "US-333",
+        "US-334",
+        "US-335"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-318: checkWinCondition 增加 key 检查，形成 key→chest→stairs 完整闭环",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-317: Chest.open() 掉落奖励物品",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-329: Slime die() 发射 enemy-death 事件修复掉落",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-330: Player.takeDamage() 返回 boolean 基础接口修复",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-328: Skeleton HP bar 追踪模式跟随修复",
+          "priority": "P1"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-331: Slime takeDamage 闪白反馈",
+          "priority": "P1"
+        },
+        {
+          "area": "visual",
+          "change": "US-325: AttackBoost buff 视觉反馈（tint+光环）",
+          "priority": "P1"
+        },
+        {
+          "area": "visual",
+          "change": "US-335: Win 过渡胜利动画（金色粒子+渐亮）",
+          "priority": "P1"
+        },
+        {
+          "area": "balance",
+          "change": "US-320: Slime 难度缩放（HP+速度随runCount增长）",
+          "priority": "P1"
+        },
+        {
+          "area": "balance",
+          "change": "US-324: ScoreSystem 通关时间奖励实现",
+          "priority": "P1"
+        },
+        {
+          "area": "resource",
+          "change": "US-323: HealthPotion 满血拾取保护",
+          "priority": "P2"
+        },
+        {
+          "area": "resource",
+          "change": "US-319: Inventory Map<string,number> 计数支持",
+          "priority": "P2"
+        },
+        {
+          "area": "resource",
+          "change": "US-334: 动态掉落数组清理",
+          "priority": "P2"
+        },
+        {
+          "area": "stability",
+          "change": "US-327: GameScene shutdown 事件清理",
+          "priority": "P1"
+        },
+        {
+          "area": "stability",
+          "change": "US-322: BootScene anims 幂等保护",
+          "priority": "P1"
+        },
+        {
+          "area": "stability",
+          "change": "US-321: SoundManager AudioNode disconnect",
+          "priority": "P2"
+        },
+        {
+          "area": "stability",
+          "change": "US-332: ResultScene 重启返回 TitleScene",
+          "priority": "P1"
+        },
+        {
+          "area": "stability",
+          "change": "US-326: 敌人接触伤害独立500ms冷却",
+          "priority": "P2"
+        },
+        {
+          "area": "code-quality",
+          "change": "US-333: returnWorldHeight 死方法删除",
+          "priority": "P3"
+        },
+        {
+          "area": "feature",
+          "change": "US-316: Dash 冲刺碰撞检测设计",
+          "priority": "P3"
+        }
+      ],
+      "balanceChanges": [
+        {
+          "param": "slimeDifficultyScaling",
+          "from": "HP=2 fixed, Speed=60 fixed",
+          "to": "HP: min(5, 2 + floor((runCount-1)/3)), Speed: min(90, 60*(1+(runCount-1)*0.05))",
+          "reason": "Slime 在高 runCount 时一击即死且移动缓慢，与难度递增设计矛盾"
+        }
+      ],
+      "priority": "US-318 (胜利条件key检查) 和 US-330 (takeDamage返回值) 是最高优先级。US-317/US-329 次之。"
     }
   ],
   "improvements": {

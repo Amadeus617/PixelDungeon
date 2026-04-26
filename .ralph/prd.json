@@ -5029,6 +5029,372 @@
             "确认 generateDungeon 仅调用 paintCorridors",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-316",
+          "title": "Player dash 碰撞检测 — 冲刺穿墙修复",
+          "description": "US-056 描述了 dash 冲刺机制但在代码中未实现碰撞检测。当前 Player 类没有 dash 相关代码。如果未来添加 dash，需要在位移计算中检测目标位置是否为墙壁 tile，防止玩家穿过墙壁进入无效区域。同时冲刺期间应有独立无敌帧，dash 结束后恢复碰撞。",
+          "type": "code",
+          "priority": 301,
+          "status": "pending",
+          "dependsOn": [
+            "US-056"
+          ],
+          "acceptanceCriteria": [
+            "Player 类新增 dash 状态属性（isDashing, dashTimer, dashCooldownTimer）",
+            "Shift 键触发冲刺：80px 位移方向基于当前朝向",
+            "冲刺前检测目标位置是否为墙壁，是则取消冲刺或缩短距离",
+            "冲刺期间无敌（不与敌人 overlap 触发伤害）",
+            "1.5s 冷却期间 HUD 显示冲刺冷却指示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-317",
+          "title": "Chest.open() 无奖励产出 — 宝箱系统完整化",
+          "description": "当前 Chest.open() 只切换纹理 closed→open，无任何物品掉落。US-057/US-306 描述了设计但代码未实现。宝箱应掉落 3-5 金币（带弹出动画）+ 30% 概率 HealthPotion + 20% 概率 AttackBoost。掉落物使用与敌人死亡掉落相同的 spawnDropCoin/spawnDropPotion 机制。",
+          "type": "code",
+          "priority": 302,
+          "status": "pending",
+          "dependsOn": [
+            "US-057",
+            "US-306"
+          ],
+          "acceptanceCriteria": [
+            "Chest.open() 调用后生成 3-5 个 Coin 在宝箱周围",
+            "30% 概率额外掉落 HealthPotion（回复 2HP）",
+            "20% 概率额外掉落 AttackBoost",
+            "掉落物使用 popup 弧形动画（复用 handleEnemyDeathDrop 的 tween）",
+            "多个宝箱时每个独立掉落",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-318",
+          "title": "胜利条件缺少 key 检查 — 玩家可直接走到楼梯通关",
+          "description": "当前 checkWinCondition() 只检查玩家是否在楼梯附近（距离<40px），不检查是否持有 key。这导致 key-chest 系统完全可跳过。应在 checkWinCondition 中添加 inventory.has('key') 检查，接近楼梯时：有 key→通关，无 key→显示提示。",
+          "type": "code",
+          "priority": 303,
+          "status": "pending",
+          "dependsOn": [
+            "US-307"
+          ],
+          "acceptanceCriteria": [
+            "checkWinCondition 检查 player 在楼梯附近 AND inventory.has('key')",
+            "无 key 接近楼梯时 HUD 显示浮动提示 'Need a key to exit'",
+            "有 key 通关时自动消耗 key",
+            "ResultScene 胜利文案与 key-stairs 机制一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-319",
+          "title": "Inventory Set 实现导致多钥匙/多宝箱 bug",
+          "description": "Inventory 使用 Set<string> 存储，add('key') 调用两次后 Set 中只有一个 'key'，remove('key') 一次后 key 完全消失。应改为 Map<string, number> 存储道具计数，支持 US-095 多钥匙多宝箱。",
+          "type": "code",
+          "priority": 304,
+          "status": "pending",
+          "dependsOn": [
+            "US-095",
+            "US-134"
+          ],
+          "acceptanceCriteria": [
+            "Inventory 内部改为 Map<string, number>",
+            "add(id) 递增计数，remove(id) 递减计数",
+            "has(id) 检查计数 > 0",
+            "getCount(id) 返回当前计数",
+            "现有 key 拾取/使用逻辑兼容",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-320",
+          "title": "Slime 难度缩放缺失 — 后期 Slime 太弱无挑战",
+          "description": "GDD 已定义 Slime 缩放公式（HP: 2 + floor((runCount-1)/3), cap 5; Speed: 60 * (1 + (runCount-1)*0.05), cap 90）但代码从未实现。Slime 构造函数不接收 speedMultiplier/hpBonus 参数，与 Skeleton 不一致。高 runCount 时 Slime 一击即死。",
+          "type": "code",
+          "priority": 305,
+          "status": "pending",
+          "dependsOn": [
+            "US-028",
+            "US-290",
+            "US-312"
+          ],
+          "acceptanceCriteria": [
+            "Slime 构造函数接受 speedMultiplier 和 hpBonus 参数",
+            "Slime HP = min(5, 2 + floor((runCount-1)/3))",
+            "Slime 速度 = min(90, 60 * (1 + (runCount-1)*0.05))",
+            "EnemyHpBar 正确显示缩放后的 HP 值",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-321",
+          "title": "SoundManager AudioNode 不 disconnect — 长时间运行性能退化",
+          "description": "SoundManager 每个 play 方法创建 OscillatorNode/BufferSource + BiquadFilter + GainNode 但从不 disconnect。虽然 OscillatorNode stop 后被 GC，但中间节点可能保持引用。100+ 次音效后 AudioNode 累积。",
+          "type": "code",
+          "priority": 306,
+          "status": "pending",
+          "dependsOn": [
+            "US-292"
+          ],
+          "acceptanceCriteria": [
+            "所有 playXxx 方法在 source.onended 中 disconnect 中间节点",
+            "GainNode/BiquadFilter 在 stop 后 disconnect",
+            "同类型音效 50ms 节流防止高频重复",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-322",
+          "title": "BootScene anims.create 缺少幂等保护",
+          "description": "BootScene.create() 注册 12 个动画但未检查已存在。场景循环时 anims.create() 对已存在 key 可能警告或创建重复实例。textures.exists() 已用于纹理但 anims.exists() 未用于动画。",
+          "type": "code",
+          "priority": 307,
+          "status": "pending",
+          "dependsOn": [
+            "US-291",
+            "US-250"
+          ],
+          "acceptanceCriteria": [
+            "每个 anims.create 前检查 this.anims.exists(key)",
+            "已存在则跳过注册",
+            "TitleScene → BootScene → GameScene 循环 5 次无警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-323",
+          "title": "HealthPotion 满血拾取保护 — 资源浪费无反馈",
+          "description": "满血拾取 HealthPotion 实际回复 0 HP 但药水被消耗。Roguelike 核心是资源管理，应阻止满血拾取并显示 'HP Full' 提示。",
+          "type": "code",
+          "priority": 308,
+          "status": "pending",
+          "dependsOn": [
+            "US-060",
+            "US-236"
+          ],
+          "acceptanceCriteria": [
+            "overlap 回调检查 player.hp < player.maxHp",
+            "满血时不调用 collect()，药水保留",
+            "满血接近药水时显示 'HP Full' 浮动提示",
+            "对地图药水和掉落药水行为一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-324",
+          "title": "ScoreSystem 通关时间奖励从未实现",
+          "description": "GDD 定义了 timeBonusThresholds（60s→500分，120s→200分，180s→100分），endGame 已计算 elapsedTime 但 ScoreSystem 从未实现 addTimeBonus()。速通无奖励。",
+          "type": "code",
+          "priority": 309,
+          "status": "pending",
+          "dependsOn": [
+            "US-286",
+            "US-053"
+          ],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 addTimeBonus(elapsedSeconds) 方法",
+            "时间 <60s 加 500 分，<120s 加 200 分，<180s 加 100 分",
+            "endGame() 中调用 scoreSystem.addTimeBonus(elapsedTime)",
+            "ResultScene 显示时间奖励",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-325",
+          "title": "AttackBoost buff 视觉反馈缺失 — 玩家无法感知增强状态",
+          "description": "AttackBoost 拾取后 10 秒双倍伤害 buff，但角色外观无变化。HUD 有图标但游戏内角色与普通状态完全相同。应添加 tint 或光环效果。",
+          "type": "code",
+          "priority": 310,
+          "status": "pending",
+          "dependsOn": [
+            "US-309"
+          ],
+          "acceptanceCriteria": [
+            "attackBoosted=true 时 setTint(0x66ccff) 淡蓝色调",
+            "buff 结束时 clearTint()",
+            "HUD 显示剩余时间秒数",
+            "buff 结束瞬间闪光反馈",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-326",
+          "title": "敌人接触伤害无独立冷却 — 全靠玩家无敌帧",
+          "description": "敌人与玩家 overlap 回调直接调用 takeDamage()，伤害频率完全依赖 Player 1000ms 无敌帧。无敌帧设计初衷是受伤保护不是接触频率控制。应添加 enemy 端独立 500ms 冷却。",
+          "type": "code",
+          "priority": 311,
+          "status": "pending",
+          "dependsOn": [
+            "US-123"
+          ],
+          "acceptanceCriteria": [
+            "Slime/Skeleton 新增 lastContactDamageTime 属性",
+            "overlap 回调检查冷却 >= 500ms",
+            "独立于 player.invincibleDuration",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-327",
+          "title": "GameScene 无 shutdown — 事件监听器/overlap 回调泄漏",
+          "description": "GameScene 注册 player-attack 和 enemy-death 事件监听器 + 大量动态 overlap 回调，但无 shutdown() 清理。多次游戏循环后监听器累积。",
+          "type": "code",
+          "priority": 312,
+          "status": "pending",
+          "dependsOn": [
+            "US-270",
+            "US-280"
+          ],
+          "acceptanceCriteria": [
+            "GameScene 实现 shutdown() 方法",
+            "清理 player-attack/enemy-death 事件监听",
+            "清理 roomCameraSystem 回调",
+            "连续 10 局无回调累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-328",
+          "title": "Skeleton HP bar 追踪模式不跟随 — 直接可见视觉 bug",
+          "description": "Skeleton.update() 追踪分支 return 跳过 hpBar.follow()。HP bar 停留在追踪开始位置。knockback 分支同理。应将 hpBar.follow 移到所有分支之前统一执行。",
+          "type": "code",
+          "priority": 313,
+          "status": "pending",
+          "dependsOn": [
+            "US-308",
+            "US-279"
+          ],
+          "acceptanceCriteria": [
+            "hpBar.follow(this) 移到 update() 开头所有路径共享",
+            "HP bar 在追踪/knockback/wander 所有状态下跟随",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-329",
+          "title": "Slime die() 未发射 enemy-death 事件 — 掉落从未生效",
+          "description": "Skeleton.die() 正确发射事件触发掉落，但 Slime.die() 缺失。Slime 的 30% coin 和 10% potion 掉落率从未生效。",
+          "type": "code",
+          "priority": 314,
+          "status": "pending",
+          "dependsOn": [
+            "US-255",
+            "US-288"
+          ],
+          "acceptanceCriteria": [
+            "Slime.die() 在 setActive(false) 前发射 enemy-death 事件",
+            "事件数据 { x: this.x, y: this.y, type: 'slime' }",
+            "Slime 击杀后掉落正常触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-330",
+          "title": "Player.takeDamage() 返回 void — 阻塞 6+ 下游功能",
+          "description": "takeDamage 返回 void 导致调用方无法判断是否实际受伤。下游 hurt 音效/受伤统计/有效攻击判断全部受阻。被 5 轮审查确认但从未修复的基础接口缺陷。",
+          "type": "code",
+          "priority": 315,
+          "status": "pending",
+          "dependsOn": [
+            "US-252",
+            "US-274"
+          ],
+          "acceptanceCriteria": [
+            "takeDamage 返回 boolean（true=实际受伤）",
+            "isInvincible 分支返回 false，实际扣血返回 true",
+            "所有 overlap 回调使用返回值决定音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-331",
+          "title": "Slime takeDamage 缺少闪白 — 与 Skeleton 不一致",
+          "description": "Skeleton 有 setTint(0xffffff) + delayedCall 闪白效果，Slime 无任何受击视觉反馈。击打 Slime 时无法确认是否命中。",
+          "type": "code",
+          "priority": 316,
+          "status": "pending",
+          "dependsOn": [
+            "US-041",
+            "US-251"
+          ],
+          "acceptanceCriteria": [
+            "Slime.takeDamage() 添加 setTint(0xffffff) + delayedCall(100, clearTint)",
+            "闪白效果与 Skeleton 一致",
+            "die() 后 delayedCall 有 active 检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-332",
+          "title": "ResultScene 重启跳过 TitleScene — 流程不完整",
+          "description": "ResultScene SPACE/ENTER 直接 scene.start('GameScene') 跳过 TitleScene。完整循环应为 TitleScene→GameScene→ResultScene→TitleScene。同时 events.on('update') 监听器泄漏。",
+          "type": "code",
+          "priority": 317,
+          "status": "pending",
+          "dependsOn": [
+            "US-246",
+            "US-276"
+          ],
+          "acceptanceCriteria": [
+            "SPACE 返回 TitleScene（完整循环）",
+            "ENTER 可快速重开到 GameScene",
+            "改为 keyboard 事件驱动替代 update 轮询",
+            "shutdown 自动清理监听器",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-333",
+          "title": "DungeonMap.returnWorldHeight() 死方法删除",
+          "description": "returnWorldHeight() 命名不遵循 get* 惯例且与 getWorldHeight() 功能完全重复。从未被调用。",
+          "type": "code",
+          "priority": 318,
+          "status": "pending",
+          "dependsOn": [
+            "US-314",
+            "US-294"
+          ],
+          "acceptanceCriteria": [
+            "删除 returnWorldHeight() 方法",
+            "确认无引用",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-334",
+          "title": "动态掉落数组残留 — 已拾取道具未从数组移除",
+          "description": "spawnDropCoin/spawnDropPotion push 到 this.coins/healthPotions 数组，collect 后 destroy 但不从数组移除。数组持续增长，Minimap 遍历包含已销毁对象。",
+          "type": "code",
+          "priority": 319,
+          "status": "pending",
+          "dependsOn": [
+            "US-311"
+          ],
+          "acceptanceCriteria": [
+            "collect 回调中从数组移除已拾取道具",
+            "Minimap 渲染时过滤 active 对象",
+            "数组长度与可见道具数一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-335",
+          "title": "Win 过渡无仪式感 — 800ms 静止后硬跳转",
+          "description": "通关时 endGame('win') 只延迟 800ms 直接跳转。无金色粒子、无庆祝动画。与死亡动画对比，胜利体验过于突兀。",
+          "type": "code",
+          "priority": 320,
+          "status": "pending",
+          "dependsOn": [
+            "US-313"
+          ],
+          "acceptanceCriteria": [
+            "通关时播放 1.5s 胜利过渡动画",
+            "金色粒子从玩家位置爆发",
+            "画面渐亮效果",
+            "ResultScene 标题缩放弹入动画",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
