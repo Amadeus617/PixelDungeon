@@ -79,6 +79,11 @@ export class GameScene extends Phaser.Scene {
   // Game timer (US-035)
   private startTime = 0;
 
+  // Room clear tracking (US-040)
+  private clearedRooms: Set<number> = new Set();
+  private roomClearedThisFrame = false;
+  private lastCheckedRoomIndex = -1;
+
   constructor() {
     super({ key: "GameScene" });
   }
@@ -88,6 +93,7 @@ export class GameScene extends Phaser.Scene {
     this.coinCount = 0;
     this.killCount = 0;
     this.scoreSystem.reset();
+    this.clearedRooms.clear();
     this.startTime = Date.now(); // Record game start time (US-035)
     this.soundManager = new SoundManager(this);
 
@@ -568,6 +574,96 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** Check if the current room's enemies are all defeated (US-040) */
+  private checkRoomClear(): void {
+    if (this.gameOver) return;
+
+    const currentRoom = this.roomCameraSystem.getCurrentRoomIndex();
+    if (currentRoom < 0) return; // In corridor
+    if (this.clearedRooms.has(currentRoom)) return; // Already cleared
+
+    // Determine which enemies belong to this room
+    const dungeonData = this.dungeonMap.getDungeonData();
+    if (currentRoom >= dungeonData.rooms.length) return;
+    const room = dungeonData.rooms[currentRoom];
+    const px = this.dungeonMap.TILE_SIZE * 3; // tileScale = 3
+    const roomMinX = room.col * px;
+    const roomMaxX = (room.col + room.width) * px;
+    const roomMinY = room.row * px;
+    const roomMaxY = (room.row + room.height) * px;
+
+    // Check if any enemy is still alive in this room
+    const allEnemies = [...this.slimes, ...this.skeletons];
+    const hasAliveEnemyInRoom = allEnemies.some((e) => {
+      return e.active && e.x >= roomMinX && e.x <= roomMaxX && e.y >= roomMinY && e.y <= roomMaxY;
+    });
+
+    if (!hasAliveEnemyInRoom) {
+      // Check that this room actually had enemies to begin with (skip entrance)
+      if (currentRoom === 0) {
+        // Entrance room has no enemies, auto-clear
+        this.clearedRooms.add(currentRoom);
+        return;
+      }
+
+      this.clearedRooms.add(currentRoom);
+      this.scoreSystem.addRoomClearPoints();
+      this.showRoomClearText();
+    }
+  }
+
+  /** Show "Room Clear!" floating text animation (US-040) */
+  private showRoomClearText(): void {
+    const { width, height } = this.scale;
+    // Screen-centered text (scroll factor 0 so it stays on screen)
+    const text = this.add.text(width / 2, height / 2 - 40, "Room Clear!", {
+      fontSize: "32px",
+      fontFamily: "monospace",
+      color: "#ffd700",
+      stroke: "#000000",
+      strokeThickness: 4,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(500);
+    text.setScrollFactor(0);
+
+    // Animate: float up and fade out
+    this.tweens.add({
+      targets: text,
+      y: height / 2 - 100,
+      alpha: 0,
+      duration: 1500,
+      ease: "Power2",
+      onComplete: () => {
+        text.destroy();
+      },
+    });
+
+    // Also flash a brief "+100" score popup
+    const bonusText = this.add.text(width / 2, height / 2, "+100", {
+      fontSize: "20px",
+      fontFamily: "monospace",
+      color: "#44ff44",
+      stroke: "#000000",
+      strokeThickness: 3,
+    });
+    bonusText.setOrigin(0.5);
+    bonusText.setDepth(500);
+    bonusText.setScrollFactor(0);
+
+    this.tweens.add({
+      targets: bonusText,
+      y: height / 2 - 60,
+      alpha: 0,
+      duration: 1200,
+      delay: 200,
+      ease: "Power2",
+      onComplete: () => {
+        bonusText.destroy();
+      },
+    });
+  }
+
   private checkWinCondition(): boolean {
     // Win: reach the stairs in the exit room
     const stairsPos = this.dungeonMap.getStairsPos();
@@ -732,6 +828,9 @@ export class GameScene extends Phaser.Scene {
     for (const trap of this.spikeTraps) {
       trap.update(delta);
     }
+
+    // Check room clear reward (US-040)
+    this.checkRoomClear();
 
     // Check win condition: player reaches the stairs
     if (this.checkWinCondition()) {

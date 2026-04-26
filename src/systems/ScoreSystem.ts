@@ -7,6 +7,7 @@ export class ScoreSystem {
 
   static readonly COIN_POINTS = 10;
   static readonly ENEMY_POINTS = 50;
+  static readonly ROOM_CLEAR_POINTS = 100;
 
   get score(): number {
     return this._score;
@@ -20,6 +21,11 @@ export class ScoreSystem {
   /** Add points for defeating an enemy (+50). */
   addEnemyPoints(): void {
     this._score += ScoreSystem.ENEMY_POINTS;
+  }
+
+  /** Add points for clearing a room (+100). */
+  addRoomClearPoints(): void {
+    this._score += ScoreSystem.ROOM_CLEAR_POINTS;
   }
 
   /** Reset score to zero (e.g. on restart). */
