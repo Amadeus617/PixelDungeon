@@ -706,7 +706,7 @@
           "description": "当前玩家攻击时只播放 idle 动画，没有视觉上的挥剑效果。需要添加攻击动画帧或在攻击方向生成短暂挥砍特效（如弧形粒子/半透明斩击 sprite），让攻击有明确的视觉反馈。",
           "type": "code",
           "priority": 27,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "按空格攻击时显示挥砍视觉效果",
