@@ -675,7 +675,7 @@
           "description": "当前清完一个房间的敌人没有即时正反馈。添加「房间清除」奖励：消灭房间内所有敌人后，显示 \"Room Clear!\" 文字动画并奖励 100 分，增强战斗正反馈循环。",
           "type": "code",
           "priority": 25,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "检测当前房间敌人是否全部消灭",
