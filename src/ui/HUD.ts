@@ -45,6 +45,10 @@ export class HUD extends Phaser.GameObjects.Container {
   private difficultyLabel!: Phaser.GameObjects.Text;
   private difficultyBg!: Phaser.GameObjects.Rectangle;
 
+  // Room exploration progress (US-039)
+  private roomProgressLabel!: Phaser.GameObjects.Text;
+  private roomProgressBg!: Phaser.GameObjects.Rectangle;
+
   private player: Player;
   private inventory: Inventory;
   private getCoinCount: () => number;
@@ -220,6 +224,22 @@ export class HUD extends Phaser.GameObjects.Container {
     });
     this.add(this.difficultyLabel);
 
+    // --- Room exploration progress (US-039) ---
+    const totalRooms = roomCameraSystem ? roomCameraSystem.getDungeonData().rooms.length : 1;
+    const progressY = diffY + 44;
+    this.roomProgressBg = scene.add.rectangle(0, progressY, 160, 36, 0x000000, 0.6);
+    this.roomProgressBg.setOrigin(0);
+    this.add(this.roomProgressBg);
+
+    this.roomProgressLabel = scene.add.text(12, progressY + 8, `Rooms: 1/${totalRooms}`, {
+      fontSize: "14px",
+      color: "#88ccff",
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 2,
+    });
+    this.add(this.roomProgressLabel);
+
     // --- Room name overlay (centered, shown briefly on room change) ---
     const gameWidth = (scene.game.config.width as number) || 800;
     const roomNameX = gameWidth / 2 - 80;
@@ -340,6 +360,13 @@ export class HUD extends Phaser.GameObjects.Container {
     // Update minimap
     if (this.minimap) {
       this.minimap.update();
+    }
+
+    // Update room exploration progress (US-039)
+    if (this.roomCameraSystem) {
+      const visited = this.roomCameraSystem.getVisitedRooms().size;
+      const total = this.roomCameraSystem.getDungeonData().rooms.length;
+      this.roomProgressLabel.setText(`Rooms: ${visited}/${total}`);
     }
   }
 }

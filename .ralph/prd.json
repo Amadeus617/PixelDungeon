@@ -660,7 +660,7 @@
           "description": "在 HUD 上显示当前探索进度（已访问房间数/总房间数），给玩家探索目标感和成就感。配合 Minimap 的迷雾系统，增强探索体验。",
           "type": "code",
           "priority": 24,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "HUD 显示探索进度如 \"Rooms: 2/5\"",
