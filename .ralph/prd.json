@@ -691,7 +691,7 @@
           "description": "Slime.takeDamage() 当前没有任何视觉反馈，直接减血。Skeleton 有 setTint(0xffffff) + delayedCall clearTint 闪白效果。应给 Slime 添加相同的受击闪白效果，保持战斗打击感一致性。",
           "type": "code",
           "priority": 26,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime.takeDamage() 时触发 setTint(0xffffff) 闪白",
@@ -4225,6 +4225,182 @@
             "endGame 时将 clearedRooms.size 和总房间数写入 gameData",
             "ResultScene 接收并显示清除率（如 Rooms Cleared: 3/4）",
             "胜利和失败界面均显示该统计",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-265",
+          "title": "ResultScene events.on update 监听器改为 keyboard 事件 + shutdown 清理",
+          "description": "ResultScene.create() 用 events.on(\"update\", callback) 轮询检测按键输入。events.on 注册的监听器不会在 scene stop 时自动清理，多次重启后监听器累积。改为 input.keyboard.on(\"keydown-SPACE\", handler) + input.keyboard.on(\"keydown-ENTER\", handler)，并在 ResultScene 添加 shutdown() 显式 off()。同时修复重启流程：SPACE→TitleScene，ENTER→GameScene 快速重启。",
+          "type": "code",
+          "priority": 250,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 不再使用 events.on(\"update\") 轮询按键",
+            "改用 input.keyboard.on(\"keydown-SPACE\") 和 keydown-ENTER",
+            "添加 shutdown() 方法显式清理 keyboard 监听器",
+            "SPACE 键重启到 TitleScene（完整流程闭环）",
+            "ENTER 键直接重启到 GameScene（快速重玩）",
+            "tsc + build 通过",
+            "多次重启后无事件监听器泄漏"
+          ]
+        },
+        {
+          "id": "US-266",
+          "title": "HUD attackBoostLabel 非激活状态不调用 setText — 减少无效字符串创建",
+          "description": "HUD.update() 中 attackBoostIcon.setVisible(false) 后，attackBoostLabel 也 setVisible(false)，但仍执行 setText(\"ATK x2!\")。setVisible(false) 的文本仍会触发 bitmap 重绘。应在 !boosted 分支跳过 setText，只做 setVisible(false)。",
+          "type": "code",
+          "priority": 251,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "非 boost 状态下 attackBoostLabel 不调用 setText",
+            "boost 状态下仍正确显示倒计时",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-267",
+          "title": "HUD update 缓存优化 — 值未变化时跳过 setText 调用",
+          "description": "HUD.update() 每帧无条件调用 hpText.setText、coinLabel.setText、scoreLabel.setText、roomProgressLabel.setText，即使值未变化也创建新字符串并触发 bitmap 重绘。60fps 下每秒 240+ 次无效字符串分配和 bitmap 重绘。应缓存上次值，只在变化时 setText。这是 US-141 的具体实现方案。",
+          "type": "code",
+          "priority": 252,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 内部缓存上次 hp/coins/score/roomProgress 值",
+            "值未变化时跳过 setText 调用",
+            "值变化时正常更新显示",
+            "tsc + build 通过",
+            "减少每帧字符串分配和 bitmap 重绘次数"
+          ]
+        },
+        {
+          "id": "US-268",
+          "title": "Player.frozen 属性 — 统一输入冻结机制",
+          "description": "当前有 3 种速度覆盖机制：正常输入、knockback setVelocity、走廊过渡 setVelocity(0,0)。三者互相覆盖，缺少统一优先级。Player 应添加 frozen: boolean 属性和 frozenReason 枚举（knockback/transition/dead），update() 开头检查 frozen 直接跳过输入处理。走廊过渡和 knockback 都通过设置 frozen=true 来冻结，而非事后覆盖 velocity。这是 US-121/US-152 的统一方案。",
+          "type": "code",
+          "priority": 253,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player 添加 frozen: boolean 和 frozenReason 属性",
+            "frozen=true 时 update() 跳过所有输入处理（不从源头设置 velocity）",
+            "走廊过渡通过 player.freeze(\"transition\") 冻结",
+            "knockback 期间通过 player.freeze(\"knockback\") 冻结",
+            "死亡后通过 player.freeze(\"dead\") 冻结",
+            "knockback 结束/过渡结束自动解冻",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-269",
+          "title": "ScoreSystem combo 连击计分 — 快速击杀额外奖励",
+          "description": "当前计分只有金币(+10)、击杀(+50)、房间清除(+100)三个维度，缺少战斗效率奖励。添加 combo 机制：3秒内连续击杀敌人，每次击杀 combo 计数+1，得分 = ENEMY_POINTS × combo 倍率（1x/1.5x/2x/3x）。HUD 显示 combo 计数和倍率。3秒内无击杀则 combo 重置。这是 US-188 的具体实现方案。",
+          "type": "code",
+          "priority": 254,
+          "status": "pending",
+          "dependsOn": [
+            "US-065"
+          ],
+          "acceptanceCriteria": [
+            "ScoreSystem 添加 comboCount、lastKillTime、COMBO_TIMEOUT=3000ms",
+            "addEnemyPoints() 检查距离上次击杀时间，3s 内递增 combo",
+            "combo 倍率：1-2 击=1x，3-4 击=1.5x，5-6 击=2x，7+=3x",
+            "3s 无击杀 combo 重置为 0",
+            "HUD 显示 combo 计数和当前倍率",
+            "ResultScene 统计面板显示最高 combo",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-270",
+          "title": "GameScene shutdown() 统一资源清理 — 事件监听器和回调",
+          "description": "GameScene 缺少 shutdown() 方法。player-attack 事件监听器、enemy-death 事件监听器、RoomCameraSystem setOnRoomChanged 回调、HUD 回调、SpikeTrap overlap 回调在 scene 重启时可能残留。多次 restart 后事件回调累积，一次攻击/拾取触发多次。这是 US-195/210/233 的统一方案。",
+          "type": "code",
+          "priority": 255,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "shutdown 中 this.events.off(\"player-attack\")",
+            "shutdown 中 this.events.off(\"enemy-death\")",
+            "shutdown 中 roomCameraSystem.cleanup() 置空回调",
+            "shutdown 中 spikeTrap cleanup — 移除 overlap collider",
+            "shutdown 中动态掉落道具 cleanup",
+            "多次重启后无事件重复触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-271",
+          "title": "checkRoomClear 改为事件驱动 — 替代每帧轮询",
+          "description": "checkRoomClear() 在 update() 中每帧调用，每次调用 getDungeonData() + 遍历所有敌人。应改为事件驱动：enemy-death 事件触发时检查当前房间是否还有存活敌人，如果没有则触发房间清除。缓存当前房间的敌人列表，避免每帧遍历。这是 US-258 的具体方案。",
+          "type": "code",
+          "priority": 256,
+          "status": "pending",
+          "dependsOn": [
+            "US-040"
+          ],
+          "acceptanceCriteria": [
+            "checkRoomClear 不再在 update() 中每帧调用",
+            "改为在 enemy-death 事件回调中触发",
+            "创建敌人时记录其所属 roomIndex",
+            "checkRoomClear 只检查当前 roomIndex 的敌人",
+            "不再每帧调用 getDungeonData()",
+            "房间清除行为不变（+100 分 + 文字弹出）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-272",
+          "title": "清理 checkRoomClear 死代码 — roomClearedThisFrame 和 lastCheckedRoomIndex",
+          "description": "GameScene 中 roomClearedThisFrame 和 lastCheckedRoomIndex 两个属性在 create() 中初始化但从未被任何代码读取。这是 US-259 的具体清理。同时清理 create() 中 clearedRooms.clear() 后的冗余注释。",
+          "type": "code",
+          "priority": 257,
+          "status": "pending",
+          "dependsOn": [
+            "US-271"
+          ],
+          "acceptanceCriteria": [
+            "删除 roomClearedThisFrame 属性声明和初始化",
+            "删除 lastCheckedRoomIndex 属性声明和初始化",
+            "确认无任何代码引用这两个属性",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-273",
+          "title": "SpikeTrap 改为继承 Physics.Arcade.Sprite — 修复 overlap 检测可靠性",
+          "description": "SpikeTrap 继承 Phaser.GameObjects.Sprite 而非 Physics.Arcade.Sprite。GameScene 通过 physics.add.overlap(player, spikeTrap) 检测碰撞，但 overlap 要求双方都有 physics body。GameObjects.Sprite 没有 body，Phaser 的 fallback 行为不确定。应改为 extends Phaser.Physics.Arcade.Sprite，在构造函数中 scene.physics.add.existing(this)。",
+          "type": "code",
+          "priority": 258,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap 改为 extends Phaser.Physics.Arcade.Sprite",
+            "构造函数调用 scene.physics.add.existing(this)",
+            "setImmovable(true) 防止被推开",
+            "overlap 检测行为与之前兼容",
+            "trap trigger/damage/slow 行为不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-274",
+          "title": "Player.takeDamage 返回 boolean — 基础接口修复（第34轮确认）",
+          "description": "Player.takeDamage() 仍返回 void。这是 6+ 个下游 US 的共同前置依赖（US-101/131/181/202/247 hurt 音效修复、US-065 统计追踪、US-118 die 延迟销毁）。当前代码：heal() 已正确返回 number，takeDamage 应同理返回 boolean 表示是否实际受伤。实现：在 takeDamage 内部检查 isInvincible，如跳过则返回 false；实际扣血后返回 true。注意：此 US 已在 6 轮审查中反复标记（US-117/171/200/252/US-265相关），代码仍未修复。",
+          "type": "code",
+          "priority": 259,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player.takeDamage(amount, sourceX?, sourceY?) 返回 boolean",
+            "无敌帧期间跳过伤害返回 false",
+            "实际扣血返回 true",
+            "Slime.takeDamage 同步修改返回 boolean",
+            "Skeleton.takeDamage 同步修改返回 boolean",
             "tsc + build 通过"
           ]
         }

@@ -398,6 +398,37 @@
       ],
       "balanceChanges": [],
       "priority": "US-260 和 US-258 是最高优先级 — 影响 US-040 的正确性和性能"
+    },
+    {
+      "round": 34,
+      "date": "2026-04-26",
+      "summary": "第三十四轮设计审查 — 聚焦场景生命周期、性能优化、输入架构统一",
+      "findings": [
+        "ResultScene events.on(\"update\") 轮询输入导致监听器泄漏，多次重启后累积",
+        "HUD 每 240+ 次/秒无效 setText 调用，60fps 下产生大量 GC 压力",
+        "attackBoostLabel 在非激活状态仍 setText 创建无用字符串",
+        "Player 输入冻结有 3 种覆盖机制(knockback/transition/dead)互相冲突，缺少统一 frozen 属性",
+        "ScoreSystem 缺少 combo 连击计分，战斗效率无奖励维度",
+        "GameScene 无 shutdown() 方法，事件监听器/回调在 restart 后残留累积",
+        "checkRoomClear 每帧轮询 getDungeonData + 全量敌人遍历，应改为事件驱动",
+        "roomClearedThisFrame 和 lastCheckedRoomIndex 声明但从未使用（死代码）",
+        "SpikeTrap 继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite，overlap 检测不可靠",
+        "Player.takeDamage 仍返回 void，第 6+ 轮审查确认未修复，阻塞 6+ 下游 US"
+      ],
+      "newUserStories": [
+        "US-265",
+        "US-266",
+        "US-267",
+        "US-268",
+        "US-269",
+        "US-270",
+        "US-271",
+        "US-272",
+        "US-273",
+        "US-274"
+      ],
+      "balanceChanges": [],
+      "priority": "US-274 (takeDamage 返回值) 是最高优先级 — 阻塞 6+ 下游功能。US-270 (shutdown) 和 US-265 (ResultScene 清理) 次之 — 影响游戏稳定性。"
     }
   ],
   "improvements": {
