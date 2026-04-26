@@ -373,6 +373,31 @@
         }
       ],
       "notes": "第 32 轮审查。本轮聚焦于：(1) 反复标记但代码仍未修复的顽固问题（Slime 闪白、takeDamage 返回值）；(2) 发现新的 runtime bug（Slime die 无事件导致掉落失效 — 这是 US-033 从未对 Slime 生效的根因）；(3) 平衡性问题（玩家 knockback 与敌人不对称）；(4) 代码健壮性（ResultScene 监听器清理、ScoreSystem 幂等）。"
+    },
+    {
+      "date": "2026-04-26",
+      "round": 32,
+      "summary": "第三十二轮设计审查 — 聚焦 US-040 房间清除机制实现质量",
+      "findings": [
+        "US-040 checkRoomClear 每帧调用 getDungeonData() + 全量敌人遍历，性能浪费",
+        "roomClearedThisFrame 和 lastCheckedRoomIndex 两个属性声明但从未使用（死代码）",
+        "敌人房间归属基于像素坐标判定，knockback 可导致误判房间清除",
+        "走廊击杀不触发任何房间清除，与 US-055 走廊巡逻敌人计划冲突",
+        "HUD 缺少清除进度指示，玩家无法追踪清除状态",
+        "房间清除奖励仅有文字弹出，缺少掉落/音效/视觉变化等正反馈",
+        "ResultScene 未接收 clearedRooms 数据，通关面板缺少清除率统计"
+      ],
+      "newUserStories": [
+        "US-258",
+        "US-259",
+        "US-260",
+        "US-261",
+        "US-262",
+        "US-263",
+        "US-264"
+      ],
+      "balanceChanges": [],
+      "priority": "US-260 和 US-258 是最高优先级 — 影响 US-040 的正确性和性能"
     }
   ],
   "improvements": {
@@ -552,7 +577,14 @@
       "US-228: Slime knockback与onHitWall双重方向切换 — knockback期间wall collider仍触发pickDirection",
       "US-229: BootScene preload loaderror — 外部资源缺失导致动画注册崩溃",
       "US-230: Chest交互需按距离排序 — 当前遍历第一个return不支持多宝箱",
-      "US-231: runCount管理分散 — GameScene默认1与TitleScene默认0逻辑分散"
+      "US-231: runCount管理分散 — GameScene默认1与TitleScene默认0逻辑分散",
+      "US-258: checkRoomClear 性能优化 — 缓存 rooms 数据，事件驱动替代每帧轮询",
+      "US-259: 清理 US-040 死代码 — roomClearedThisFrame 和 lastCheckedRoomIndex",
+      "US-260: 敌人房间归属改用 roomIndex 数据标记（高优先）",
+      "US-261: 走廊击杀敌人归属策略设计",
+      "US-262: HUD 房间清除进度指示器",
+      "US-263: 房间清除奖励增强 — 掉落/音效/视觉",
+      "US-264: ResultScene 清除率统计传递"
     ],
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",

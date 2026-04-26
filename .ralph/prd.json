@@ -4121,6 +4121,112 @@
             "敌人/陷阱 update 开头检查此标志并跳过",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-258",
+          "title": "checkRoomClear 每帧调用 getDungeonData 和全量敌人遍历 — 缓存 room 数据优化性能",
+          "description": "US-040 的 checkRoomClear() 在 update() 中每帧执行，每帧调用 getDungeonData() 获取房间数据并遍历所有敌人做像素坐标判定。应缓存 rooms 数组引用，仅在房间切换时重新计算敌人归属，避免 O(n) 全量遍历。",
+          "type": "code",
+          "priority": 243,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "rooms 数组在 create() 中缓存为类属性，不再每帧调用 getDungeonData()",
+            "checkRoomClear 仅在当前房间切换时触发完整检查",
+            "同房间内通过敌人死亡事件触发轻量检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-259",
+          "title": "GameScene roomClearedThisFrame 和 lastCheckedRoomIndex 声明但从未使用 — 清理死代码",
+          "description": "US-040 实现中声明了 roomClearedThisFrame: boolean = false 和 lastCheckedRoomIndex: number = -1 两个类属性，但 checkRoomClear() 方法中从未读取或写入这些变量。属于死代码，应清理。",
+          "type": "code",
+          "priority": 244,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 roomClearedThisFrame 属性声明",
+            "删除 lastCheckedRoomIndex 属性声明",
+            "确认 checkRoomClear 逻辑不依赖这些变量",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-260",
+          "title": "checkRoomClear 敌人房间归属用像素坐标范围判定 — 边界敌人归属不精确",
+          "description": "当前 checkRoomClear 使用敌人像素坐标 (x,y) 与房间 tile 范围做比较来判定敌人是否属于某房间。knockback 可将敌人推出房间范围外，导致敌人'离开'房间使房间被误判为已清除。应在敌人创建时记录所属房间 index，用数据归属替代位置判定。",
+          "type": "code",
+          "priority": 245,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime/Skeleton 构造时记录 roomIndex 属性",
+            "checkRoomClear 使用 enemy.roomIndex 替代像素坐标判定",
+            "knockback 不影响敌人房间归属",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-261",
+          "title": "走廊击杀敌人不触发任何房间清除 — checkRoomClear 只检查当前房间",
+          "description": "US-055 计划在走廊添加巡逻敌人，但 checkRoomClear 仅检查 currentRoom。走廊击杀敌人不会被计入任何房间的清除判定。需要考虑走廊敌人的归属策略：分配到最近房间或独立计数。",
+          "type": "design",
+          "priority": 246,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊敌人分配到最近房间的 roomIndex",
+            "或走廊击杀使用独立计分规则",
+            "checkRoomClear 能正确处理走廊击杀场景",
+            "GDD 更新走廊敌人清除策略"
+          ]
+        },
+        {
+          "id": "US-262",
+          "title": "HUD 缺少房间清除进度指示 — 显示已清除/总房间数",
+          "description": "当前 HUD 有房间探索进度 (US-039) 和难度等级 (US-028)，但缺少房间清除进度。玩家无法直观了解还有多少房间需要清理。应在 HUD 添加 Cleared: X/Y 指示器，与 clearedRooms 同步更新。",
+          "type": "feature",
+          "priority": 247,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 显示 Cleared: X/Y 格式的清除进度",
+            "Y 为有敌人的房间总数（排除 entrance）",
+            "每次 checkRoomClear 成功后更新 HUD",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-263",
+          "title": "房间清除后缺少视觉/物质奖励 — 仅有浮动文字无掉落和特效",
+          "description": "当前房间清除仅显示浮动文字和 +100 分数弹出。建议增加：1) 清除奖励掉落（药水/金币概率掉落）；2) 房间照明变化（暗→亮表示安全）；3) 清除音效。提升清除房间的正反馈感和探索动力。",
+          "type": "feature",
+          "priority": 248,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "房间清除时概率掉落药水或金币",
+            "清除后房间亮度/色调微调表示安全",
+            "播放房间清除音效",
+            "掉落物品不阻塞走廊路径",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-264",
+          "title": "ResultScene 缺少房间清除率统计 — US-040 数据未传递到通关面板",
+          "description": "US-040 新增的 clearedRooms 数据未传递给 ResultScene。应在 gameData 中添加 clearedRoomCount 和 totalRoomCount，通关面板显示清除率。与 US-048/US-062 的统计面板扩展协同。",
+          "type": "code",
+          "priority": 249,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 时将 clearedRooms.size 和总房间数写入 gameData",
+            "ResultScene 接收并显示清除率（如 Rooms Cleared: 3/4）",
+            "胜利和失败界面均显示该统计",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
