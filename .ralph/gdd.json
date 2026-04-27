@@ -139,6 +139,15 @@
         "boss": "reserved for future boss enemy"
       },
       "note": "US-362: 房间类型分配和spawn修改器"
+    },
+    "playerAttackDamageProgression": {
+      "note": "US-409: 玩家攻击力跨局成长",
+      "formula": "min(3, 1 + floor((runCount-1)/3))",
+      "values": {
+        "run1-3": 1,
+        "run4-6": 2,
+        "run7+": 3
+      }
     }
   },
   "designLog": [
@@ -1294,6 +1303,62 @@
       ],
       "balanceChanges": [],
       "priority": "US-405（核心循环修复）是最高优先级。US-404（PRD去重）是最高元优先级 — 当前401条PRD的维护成本已严重影响开发效率。"
+    },
+    {
+      "round": 48,
+      "date": "2026-04-27",
+      "title": "第48轮设计审查 — Skeleton崩溃修复/Minimap楼梯/攻击力成长/BGM/PRD去重",
+      "summary": "审查25个源文件和406条PRD后发现5个改进机会：(1) Skeleton die()不清理delayedCall导致destroyed sprite回调崩溃(Slime已修复但Skeleton未同步)；(2) Minimap从未标记楼梯出口位置，核心游戏目标在小地图上不可见(US-237/186/079标记但从未实现)；(3) 玩家攻击力永远为1无成长感，与US-085跨局难度递增形成单向碾压；(4) 完全没有BGM背景音乐，2-5分钟地牢探索氛围空洞；(5) PRD严重膨胀至406条，同一问题重复9-11次，维护成本失控。",
+      "newUserStories": [
+        "US-407",
+        "US-408",
+        "US-409",
+        "US-410",
+        "US-411"
+      ],
+      "changes": [
+        {
+          "area": "entities/Skeleton",
+          "change": "US-407: die()清理delayedCall+killTweensOf，同步Slime修复",
+          "priority": "P0"
+        },
+        {
+          "area": "ui/Minimap",
+          "change": "US-408: stairs金色标记+已访问房间才显示",
+          "priority": "P1"
+        },
+        {
+          "area": "balance/progression",
+          "change": "US-409: 玩家攻击力 min(3, 1+floor((runCount-1)/3))",
+          "priority": "P2"
+        },
+        {
+          "area": "audio",
+          "change": "US-410: 程序化8-bit BGM循环",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-411: PRD去重合并406→~250条",
+          "priority": "meta"
+        }
+      ],
+      "balanceChanges": [
+        {
+          "param": "playerAttackDamage",
+          "from": "1 (fixed)",
+          "to": "min(3, 1 + floor((runCount-1)/3))",
+          "reason": "配合US-085跨局难度递增，玩家需要成长曲线维持战斗平衡"
+        }
+      ],
+      "fixedInReview": [
+        "US-251: Slime takeDamage闪白 — 代码确认有setTint(0xffffff)",
+        "US-255/275/288/329: Slime die()事件发射 — 代码确认emit enemy-death",
+        "US-298: 攻击slash四朝向翻转 — 代码确认已实现",
+        "US-299: Slime die()清理delayedCall — 代码确认已实现",
+        "US-044: 房间深度难度递增 — 代码确认getEnemyConfigForRoom已实现"
+      ],
+      "priority": "US-407(Skeleton崩溃)是P0。US-408(楼梯标记)和US-409(攻击力成长)是P1。US-411(PRD去重)是最高meta优先级。"
     }
   ],
   "improvements": {

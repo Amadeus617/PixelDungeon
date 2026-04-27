@@ -836,7 +836,7 @@
           "description": "当前敌人在房间切换后不会重生，玩家清完所有房间后地牢变为空城。添加机制：当玩家离开已清除房间足够远后，已清除房间的敌人有一定概率重新生成，保持持续挑战。",
           "type": "code",
           "priority": 35,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-044"
           ],
@@ -6534,6 +6534,86 @@
           "acceptanceCriteria": [
             "出生无敌期间buff计时器暂停",
             "暂停/冻结期间buff不衰减",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-407",
+          "title": "Skeleton die() 未清理 takeDamage delayedCall 定时器 — 崩溃风险",
+          "description": "Slime die() 已修复（US-299）清理 _clearTintTimer 和 tweens，但 Skeleton.die() 直接 destroy() 不清理 takeDamage 中的 delayedCall。当 Skeleton 在闪白期间被击杀时，destroyed sprite 的 clearTint 回调触发 TypeError。应同步 Slime 的清理逻辑。",
+          "type": "bug",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton.die() 清理 _clearTintTimer（如果有）",
+            "Skeleton.die() 调用 scene.tweens.killTweensOf(this)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-408",
+          "title": "Minimap 楼梯出口金色标记 — 玩家无法在小地图定位通关目标",
+          "description": "exitRoom 的 stairs tile 在 Minimap 上没有特殊标记。玩家探索全图后仍需肉眼扫描找楼梯，违背信息可见性原则。应在 exitRoom 已访问时用金色三角/星号标记 stairs 位置。此问题在 43 轮审查中以多种形式标记（US-237/US-186/US-079）但代码从未实现。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap 在 exitRoom 已访问时显示 stairs 金色标记",
+            "未访问房间不显示楼梯位置（防剧透）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-409",
+          "title": "玩家基础攻击力成长 — runCount 线性递增 +1/3runs 上限 3",
+          "description": "当前玩家攻击力始终为 1，无论通关多少次。配合 US-085 跨局难度递增（敌人越来越强），玩家应有对应的成长曲线。设计：attackDamage = 1 + floor((runCount-1)/3)，cap 3。使前期一击杀 Slime 的体验在后期仍然可能（高 runCount Slime HP 递增到 3-5）。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [
+            "US-085"
+          ],
+          "acceptanceCriteria": [
+            "Player.attackDamage 从 localStorage 读取 runCount 计算",
+            "公式: min(3, 1 + floor((runCount-1)/3))",
+            "HUD 显示当前攻击力数值",
+            "ResultScene 显示攻击力成长提示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-410",
+          "title": "游戏场景 BGM 循环 — 程序化简单旋律提升氛围",
+          "description": "当前 SoundManager 只有 SFX（攻击/受伤/拾取等），完全缺少背景音乐。地牢探索 2-5 分钟内没有 BGM 导致氛围空洞。应利用 Web Audio API 程序化生成简单 8-bit 风格循环旋律（4小节循环，方波+三角波），无需外部音频文件。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [
+            "US-023"
+          ],
+          "acceptanceCriteria": [
+            "SoundManager 添加 playBGM()/stopBGM() 方法",
+            "GameScene create() 启动 BGM，endGame() 停止",
+            "BGM 音量可调（默认 0.3）",
+            "ResultScene/TitleScene 可选择不同 BGM",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-411",
+          "title": "PRD 去重合并 — takeDamage/HPbar/ResultScene 等顽固问题统一为权威条目",
+          "description": "PRD 当前 406 条 US 中存在严重的重复膨胀：takeDamage 返回值有 9+ 个重复 US（US-117/171/200/252/274/330/367/384/388），HP bar 跟随有 11+ 个（US-136/196/209/234/244/279/308/328/375/391/397），ResultScene 流程有 8+ 个（US-127/175/199/208/246/332/370/393）。这些重复 US 应合并为 ~30 条权威条目，将总数从 406 精简到 ~250 条有效 US，降低维护成本。",
+          "type": "meta",
+          "priority": 0,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "去重后 PRD 总数 <= 280 条",
+            "每个顽固问题只有 1 个权威 US",
+            "被合并的 US 标记为 superseded-by 字段",
+            "PRD JSON 格式不变，向下兼容",
             "tsc + build 通过"
           ]
         }

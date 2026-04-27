@@ -128,6 +128,13 @@ export class GameScene extends Phaser.Scene {
   private roomClearedThisFrame = false;
   private lastCheckedRoomIndex = -1;
 
+  // Enemy respawn tracking (US-050)
+  private roomEnemyMap: Map<number, { slimes: Slime[]; skeletons: Skeleton[] }> = new Map();
+  private respawnCooldowns: Map<number, number> = new Map(); // roomIndex → lastRespawnTime
+  private readonly RESPAWN_MIN_DISTANCE_ROOMS = 1; // Player must be at least N rooms away
+  private readonly RESPAWN_COOLDOWN_MS = 30000; // 30s cooldown between respawns for same room
+  private readonly RESPAWN_BASE_CHANCE = 0.5; // 50% base chance to respawn
+
   constructor() {
     super({ key: "GameScene" });
   }
@@ -384,11 +391,32 @@ export class GameScene extends Phaser.Scene {
       this.runCount
     );
 
+    // --- Build room→enemies index (US-050) ---
+    this.roomEnemyMap.clear();
+    this.respawnCooldowns.clear();
+    for (let roomIdx = 0; roomIdx < totalRooms; roomIdx++) {
+      this.roomEnemyMap.set(roomIdx, { slimes: [], skeletons: [] });
+    }
+    for (const slime of this.slimes) {
+      const roomIdx = this.getRoomAtPosition(slime.x, slime.y);
+      if (roomIdx >= 0) this.roomEnemyMap.get(roomIdx)!.slimes.push(slime);
+    }
+    for (const skeleton of this.skeletons) {
+      const roomIdx = this.getRoomAtPosition(skeleton.x, skeleton.y);
+      if (roomIdx >= 0) this.roomEnemyMap.get(roomIdx)!.skeletons.push(skeleton);
+    }
+    // --- End room→enemies index ---
+
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
 
     // Listen for enemy death events (US-033: enemy drop loot)
     this.events.on("enemy-death", this.handleEnemyDeathDrop, this);
+
+    // Listen for room changes to trigger respawn checks (US-050)
+    this.roomCameraSystem.setOnRoomChanged((newRoomIndex: number) => {
+      this.tryRespawnClearedRooms(newRoomIndex);
+    });
   }
 
   private handlePlayerAttack(): void {
@@ -619,6 +647,119 @@ export class GameScene extends Phaser.Scene {
         this.soundManager.playPickup();
       }
     });
+  }
+
+  /** Get room index at a world pixel position, or -1 if not in any room (US-050) */
+  private getRoomAtPosition(worldX: number, worldY: number): number {
+    const dungeonData = this.dungeonMap.getDungeonData();
+    const px = this.dungeonMap.TILE_SIZE * 3; // tileScale
+    for (let i = 0; i < dungeonData.rooms.length; i++) {
+      const room = dungeonData.rooms[i];
+      const minX = room.col * px;
+      const maxX = (room.col + room.width) * px;
+      const minY = room.row * px;
+      const maxY = (room.row + room.height) * px;
+      if (worldX >= minX && worldX <= maxX && worldY >= minY && worldY <= maxY) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Try to respawn enemies in cleared rooms that are far enough from the player (US-050).
+   * Called when the player enters a new room.
+   */
+  private tryRespawnClearedRooms(currentRoomIndex: number): void {
+    const now = Date.now();
+    const dungeonData = this.dungeonMap.getDungeonData();
+    const totalRooms = dungeonData.rooms.length;
+    const wallLayer = this.dungeonMap.getWallLayer();
+
+    for (const roomIdx of this.clearedRooms) {
+      // Skip entrance room (no enemies ever)
+      if (roomIdx === 0) continue;
+      // Skip if player is in or adjacent to this room
+      if (Math.abs(roomIdx - currentRoomIndex) <= this.RESPAWN_MIN_DISTANCE_ROOMS) continue;
+
+      // Check cooldown
+      const lastRespawn = this.respawnCooldowns.get(roomIdx) ?? 0;
+      if (now - lastRespawn < this.RESPAWN_COOLDOWN_MS) continue;
+
+      // Check if room still has alive enemies
+      const entry = this.roomEnemyMap.get(roomIdx);
+      if (!entry) continue;
+      const aliveSlimes = entry.slimes.filter(s => s.active);
+      const aliveSkeletons = entry.skeletons.filter(s => s.active);
+      if (aliveSlimes.length > 0 || aliveSkeletons.length > 0) continue;
+
+      // Respawn chance: deeper rooms have higher chance
+      const depth = roomIdx / Math.max(1, totalRooms - 1);
+      const chance = this.RESPAWN_BASE_CHANCE + depth * 0.3; // 50%–80%
+      if (Math.random() > chance) continue;
+
+      // Respawn enemies for this room
+      const room = dungeonData.rooms[roomIdx];
+      const config = getEnemyConfigForRoom(roomIdx, totalRooms);
+
+      const newSlimes: Slime[] = [];
+      const newSkeletons: Skeleton[] = [];
+
+      for (let s = 0; s < config.slimeCount; s++) {
+        const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
+        const slime = new Slime(this, spos.x, spos.y);
+        this.physics.add.collider(slime, wallLayer, () => {
+          slime.onHitWall();
+        });
+        newSlimes.push(slime);
+        this.slimeGroup.add(slime);
+      }
+
+      for (let s = 0; s < config.skeletonCount; s++) {
+        const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
+        const skeleton = new Skeleton(this, spos.x, spos.y, this.skeletonSpeedMultiplier);
+        skeleton.setPlayerRef(this.player);
+        this.physics.add.collider(skeleton, wallLayer, () => {
+          skeleton.onHitWall();
+        });
+        newSkeletons.push(skeleton);
+        this.skeletonGroup.add(skeleton);
+      }
+
+      // Update tracking
+      this.slimes.push(...newSlimes);
+      this.skeletons.push(...newSkeletons);
+      this.roomEnemyMap.set(roomIdx, { slimes: newSlimes, skeletons: newSkeletons });
+
+      // Re-register overlap for new enemies
+      this.physics.add.overlap(
+        this.player,
+        this.slimeGroup,
+        (_playerObj, slimeObj) => {
+          const wasHurt = this.player.alive;
+          this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
+          if (wasHurt && this.player.hp < this.player.maxHp) {
+            this.soundManager.playHurt();
+          }
+        }
+      );
+      this.physics.add.overlap(
+        this.player,
+        this.skeletonGroup,
+        (_playerObj, skeletonObj) => {
+          this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
+          if (this.player.hp < this.player.maxHp) {
+            this.soundManager.playHurt();
+          }
+        }
+      );
+
+      // Un-clear the room so it can be cleared again for bonus points
+      this.clearedRooms.delete(roomIdx);
+
+      // Set cooldown
+      this.respawnCooldowns.set(roomIdx, now);
+    }
   }
 
   /** Check if the current room's enemies are all defeated (US-040) */
