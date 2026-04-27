@@ -853,7 +853,7 @@
           "description": "当玩家靠近宝箱但没有钥匙时，没有反馈。应显示提示文字（如\"需要钥匙\"），帮助新玩家理解道具系统。当前宝箱交互逻辑在 GameScene.handleChestInteraction() 中，需在 Player 靠近 Chest 且无 key 时显示浮动提示。",
           "type": "code",
           "priority": 36,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "靠近宝箱无钥匙时显示 \"需要钥匙\" 浮动提示",
@@ -6614,6 +6614,55 @@
             "每个顽固问题只有 1 个权威 US",
             "被合并的 US 标记为 superseded-by 字段",
             "PRD JSON 格式不变，向下兼容",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-412",
+          "title": "PRD去重合并 — 406→~150条权威US",
+          "description": "PRD膨胀至411条US，其中361条pending。同一问题被重复编号多次：takeDamage返回值(US-117/171/200/252/274/330/367/384/388共9条)、HP bar跟随(US-136/196/209/234/244/279/308/328/375/391/397共11条)、checkWinCondition key检查(US-307/318/372/381/387/401共6条)、GameScene shutdown(US-195/210/233/270/280/327/369/390/400共9条)、ResultScene流程(US-127/175/199/208/246/332/370/393共8条)。应合并为单一权威条目，将总数从411精简至约150条去重后的有效US。",
+          "type": "code",
+          "priority": 397,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个问题只保留一条权威US（取描述最完整的版本）",
+            "所有重复US合并入权威条目，保留原始US编号作为参考",
+            "去重后pending US数量<200条",
+            "tsc + build 通过（仅修改prd.json无代码影响）"
+          ]
+        },
+        {
+          "id": "US-413",
+          "title": "Minimap楼梯出口金色脉冲标记实现",
+          "description": "Minimap.update()中已遍历所有实体类型但从未标记stairs位置。exitRoom已知(dungeonData.exitRoom)，stairs像素位置可通过dungeonMap.getStairsPos()获取。应在visited exit room内显示金色脉冲圆点(类似player的pulse效果但用STAIRS_COLOR=0xffd700)，让玩家在小地图上定位通关目标。getStairsPos在Minimap构造时传入或通过getter回调。此US是US-408的具体实现版本，含完整技术方案。",
+          "type": "code",
+          "priority": 398,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap构造时接收getStairsPos: ()=>{x,y}|null回调",
+            "已访问exit room内stairs显示金色脉冲圆点(radius=3, color=0xffd700)",
+            "未访问exit room不显示stairs标记(保持fog of war)",
+            "脉冲动画: sin(time/300)*0.3+0.7 alpha",
+            "Minimap RenderTexture死代码同步清理(US-239)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-414",
+          "title": "难度曲线精调 — 3-5房间地牢中期空洞问题",
+          "description": "分析getEnemyConfigForRoom发现：3房间地牢只有room[1]一个战斗房间（2 slime 0 skeleton），room[2]是最后房间(1 slime 3 skeleton)。4房间地牢有room[1](2 slime 0 skel), room[2](2 slime 1 skel), room[3](1 slime 3 skel)。问题：(1) 3房间地牢战斗房间太少，难度从0直接跳到4个skeleton；(2) Slime数量在最后房间反而减少(2→1)，与越深越难设计矛盾；(3) 4+房间时depth<0.4的区间全是纯slime房间，缺乏skeleton变化。建议改为连续递增公式：slimeCount=max(1,2+floor(depth)), skeletonCount=floor(depth*3), 确保中期房间有slime+skeleton混合。",
+          "type": "code",
+          "priority": 399,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "3房间地牢至少2个战斗房间有不同难度梯度",
+            "最后房间slime数量>=2（不再递减）",
+            "skeleton从第2个战斗房间开始出现（非仅最后房间）",
+            "总敌人数随depth单调递增",
+            "GDD balance部分更新反映新公式",
             "tsc + build 通过"
           ]
         }

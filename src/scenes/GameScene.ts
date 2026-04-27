@@ -128,6 +128,10 @@ export class GameScene extends Phaser.Scene {
   private roomClearedThisFrame = false;
   private lastCheckedRoomIndex = -1;
 
+  // Chest hint (US-051)
+  private chestHintText: Phaser.GameObjects.Text | null = null;
+  private chestHintTimer: Phaser.Time.TimerEvent | null = null;
+
   // Enemy respawn tracking (US-050)
   private roomEnemyMap: Map<number, { slimes: Slime[]; skeletons: Skeleton[] }> = new Map();
   private respawnCooldowns: Map<number, number> = new Map(); // roomIndex → lastRespawnTime
@@ -486,11 +490,105 @@ export class GameScene extends Phaser.Scene {
     for (const chest of this.chests) {
       if (chest.isOpen) continue;
       if (!chest.isInRange(this.player.x, this.player.y)) continue;
-      if (!this.inventory.has("key")) continue;
+      if (!this.inventory.has("key")) {
+        // Show hint: need key (US-051)
+        this.showChestHint(chest.x, chest.y, "\u{1F511} \u9700\u8981\u94A5\u5319!");
+        return;
+      }
       this.inventory.remove("key");
       chest.open();
       this.soundManager.playChestOpen();
       return; // Only open one chest per press
+    }
+  }
+
+  /** Show a floating hint near a chest (US-051) */
+  private showChestHint(worldX: number, worldY: number, message: string): void {
+    // Remove existing hint if any
+    this.clearChestHint();
+
+    this.chestHintText = this.add.text(worldX, worldY - 30, message, {
+      fontSize: "16px",
+      fontFamily: "monospace",
+      color: "#ffaa00",
+      stroke: "#000000",
+      strokeThickness: 3,
+      backgroundColor: "#000000aa",
+      padding: { x: 6, y: 3 },
+    });
+    this.chestHintText.setOrigin(0.5);
+    this.chestHintText.setDepth(500);
+
+    // Fade out after 1.5 seconds
+    this.chestHintTimer = this.time.delayedCall(1500, () => {
+      if (this.chestHintText && this.chestHintText.active) {
+        this.tweens.add({
+          targets: this.chestHintText,
+          alpha: 0,
+          y: this.chestHintText.y - 20,
+          duration: 500,
+          onComplete: () => {
+            this.clearChestHint();
+          },
+        });
+      }
+      this.chestHintTimer = null;
+    });
+  }
+
+  /** Clear any active chest hint (US-051) */
+  private clearChestHint(): void {
+    if (this.chestHintTimer) {
+      this.chestHintTimer.remove();
+      this.chestHintTimer = null;
+    }
+    if (this.chestHintText && this.chestHintText.active) {
+      this.chestHintText.destroy();
+    }
+    this.chestHintText = null;
+  }
+
+  /** Show a passive hint when near a closed chest (US-051) */
+  private proximityHint: Phaser.GameObjects.Text | null = null;
+
+  private updateChestProximityHint(): void {
+    let nearChest: Chest | null = null;
+    for (const chest of this.chests) {
+      if (chest.isOpen) continue;
+      if (chest.isInRange(this.player.x, this.player.y)) {
+        nearChest = chest;
+        break;
+      }
+    }
+
+    if (nearChest) {
+      const hasKey = this.inventory.has("key");
+      const msg = hasKey ? "[Space] \u{1F511} \u5F00\u7BB1" : "[Space] \u{1F512} \u9700\u8981\u94A5\u5319";
+
+      if (!this.proximityHint || !this.proximityHint.active) {
+        this.proximityHint = this.add.text(nearChest.x, nearChest.y - 45, msg, {
+          fontSize: "13px",
+          fontFamily: "monospace",
+          color: hasKey ? "#44ff44" : "#ffaa00",
+          stroke: "#000000",
+          strokeThickness: 3,
+          backgroundColor: "#000000bb",
+          padding: { x: 5, y: 2 },
+        });
+        this.proximityHint.setOrigin(0.5);
+        this.proximityHint.setDepth(400);
+      } else {
+        // Update position and text if already showing
+        this.proximityHint.setPosition(nearChest.x, nearChest.y - 45);
+        this.proximityHint.setText(msg);
+        this.proximityHint.setColor(hasKey ? "#44ff44" : "#ffaa00");
+      }
+    } else {
+      // Remove hint if no longer near a chest
+      if (this.proximityHint && this.proximityHint.active) {
+        this.proximityHint.destroy();
+      }
+      this.proximityHint = null;
     }
   }
 
@@ -1015,6 +1113,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.hud.update();
+
+    // Check proximity to chest — show interactive hint (US-051)
+    this.updateChestProximityHint();
 
     // Update room camera system (detects room changes)
     this.roomCameraSystem.update(this.player.x, this.player.y);
