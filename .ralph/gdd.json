@@ -1140,6 +1140,118 @@
         }
       ],
       "priority": "US-381 (key检查) + US-383 (宝箱交互时序) + US-382 (宝箱奖励) 三个US一起修复核心游戏循环。US-384 (takeDamage) 是基础设施修复阻塞面最广。US-379 (难度缩放) 是游戏重复可玩性的关键。"
+    },
+    {
+      "round": 45,
+      "date": "2026-04-27",
+      "title": "第45轮设计审查 — 核心游戏循环断裂+顽固Bug+生命周期管理",
+      "summary": "全面审查25个源文件后，发现3大类共8个改进机会：(1) 核心游戏循环断裂：checkWinCondition不检查key/宝箱状态导致key→chest→win回路完全不工作，宝箱开启无奖励产出形成功能死胡同；(2) 顽固代码Bug：takeDamage返回void阻塞6+下游功能(43轮反复标记)、HP bar在knockback/chase分支脱离(43轮反复标记)、endGame后敌人update不冻结、gameOver后HUD冻结；(3) 架构健壮性：GameScene无shutdown导致事件监听器泄漏、ResultScene用update轮询按键导致监听器累积且流程不完整。",
+      "newUserStories": [
+        "US-387",
+        "US-388",
+        "US-389",
+        "US-390",
+        "US-391",
+        "US-392",
+        "US-393",
+        "US-394"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-387: checkWinCondition 增加 key/chest 条件 — 核心游戏循环修复",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-388: takeDamage 返回 boolean — 6+下游US共同前置依赖（第45轮确认）",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-389: Chest.open() 奖励掉落 — 宝箱系统完整化",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-390: GameScene shutdown() — 事件监听器/overlap回调泄漏",
+          "priority": "P1"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-391: Skeleton/Slime HP bar knockback/chase 跟随 — 43轮顽固视觉bug",
+          "priority": "P0"
+        },
+        {
+          "area": "performance",
+          "change": "US-392: endGame 后敌人 update 冻结 — 消除无效 CPU 开销",
+          "priority": "P2"
+        },
+        {
+          "area": "stability",
+          "change": "US-393: ResultScene keyboard 事件替代 update 轮询 — 泄漏+流程闭环",
+          "priority": "P1"
+        },
+        {
+          "area": "visual",
+          "change": "US-394: gameOver 后 HUD 继续更新 — 死亡动画期间分数冻结",
+          "priority": "P2"
+        }
+      ],
+      "priority": "US-387 (checkWinCondition key检查) 是最高优先级 — 核心游戏循环 key→chest→stairs 目前完全不工作。US-388 (takeDamage返回值) 阻塞面最广(6+下游)。US-391 (HP bar) 是 43 轮反复标记的顽固视觉 bug。"
+    },
+    {
+      "round": 46,
+      "date": "2026-04-27",
+      "title": "第46轮设计审查 — 顽固Bug根因分析+代码一致性审计",
+      "summary": "深度审查全部25个源文件后，发现7个改进机会。本轮聚焦于：(1) 敌人knockback与wallCollider的异步竞争条件(Slime onHitWall不保护knockback)；(2) Skeleton die()未清理delayedCall定时器的崩溃风险(Slime已修复但Skeleton未同步)；(3) Skeleton HP bar chase分支脱离(43+轮反复标记的最顽固视觉bug)；(4) Player对角线方向判定精度不足；(5) Coin生成位置含entrance房间降低探索动力；(6) GameScene事件监听器泄漏(多次restart累积)；(7) 核心游戏循环checkWinCondition不检查key导致key-chest系统无意义。本轮新增US-395~US-401。",
+      "newUserStories": [
+        "US-395",
+        "US-396",
+        "US-397",
+        "US-398",
+        "US-399",
+        "US-400",
+        "US-401"
+      ],
+      "changes": [
+        {
+          "area": "entities/Slime",
+          "change": "US-395: onHitWall添加isKnockedBack保护",
+          "priority": "P0"
+        },
+        {
+          "area": "entities/Skeleton",
+          "change": "US-396: die()清理takeDamage delayedCall定时器",
+          "priority": "P0"
+        },
+        {
+          "area": "entities/Skeleton",
+          "change": "US-397: chase分支return前hpBar.follow()",
+          "priority": "P0"
+        },
+        {
+          "area": "entities/Player",
+          "change": "US-398: 对角线direction基于最后按键轴",
+          "priority": "P2"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-399: Coin分配改为(i+1)%length跳过entrance",
+          "priority": "P2"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-400: shutdown()清理player-attack/enemy-death事件",
+          "priority": "P1"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-401: checkWinCondition增加key/chest条件",
+          "priority": "P0"
+        }
+      ],
+      "priority": "US-401(checkWinCondition)是核心游戏循环修复的最高优先级。US-395/US-396/US-397是runtime bug修复。"
     }
   ],
   "improvements": {

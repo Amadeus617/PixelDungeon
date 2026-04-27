@@ -805,7 +805,7 @@
           "description": "通关后 ResultScene 显示详细统计：击杀敌人数、收集金币数、使用药水数、通关用时、探索房间数。目前只显示 Final Score，缺少详细数据让玩家了解自己的游戏过程。",
           "type": "code",
           "priority": 33,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-035"
           ],
@@ -6232,6 +6232,234 @@
             "scene shutdown 时无残留监听器",
             "多次重启后按键响应正常（无重复触发）",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-387",
+          "title": "checkWinCondition 增加 key 持有检查 — 核心游戏循环断裂修复",
+          "description": "checkWinCondition() 仅检查玩家到楼梯的距离，不检查是否持有 key。这导致 key→chest→stairs 的核心游戏循环断裂：玩家可以跳过找钥匙/开宝箱直接走到楼梯通关。修复：checkWinCondition 应同时检查 inventory.has(\"key\") 已被消费（即宝箱已开启），或改为检查宝箱开启状态。同时更新 ResultScene 胜利文案反映完整的通关路径。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 在 stairs 距离检查之外增加 chest 已开启条件",
+            "未开宝箱时走到楼梯不触发胜利",
+            "ResultScene 胜利文案反映「找到钥匙→开启宝箱→到达出口」完整路径",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-388",
+          "title": "Player.takeDamage() 返回 boolean — 基础接口修复（第45轮确认）",
+          "description": "Player.takeDamage() 当前返回 void，调用方无法判断是否实际受伤。代码第157行: takeDamage(amount, sourceX?, sourceY?): void。应改为返回 boolean：实际受伤返回 true，被无敌帧/死亡状态拦截返回 false。这是 6+ 个下游 US（hurt音效条件US-101/131/176/202/247/386、受伤统计US-065、死亡回顾US-365）的共同前置依赖。已有 43 轮审查反复标记但代码仍未修复。heal() 已正确返回 number，takeDamage 应同理。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 签名改为 takeDamage(amount, sourceX?, sourceY?): boolean",
+            "isInvincible 或 !alive 时 return false",
+            "实际受伤时 return true",
+            "所有调用方可基于返回值做音效/统计/反馈判断",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-389",
+          "title": "Chest.open() 添加奖励掉落 — 宝箱系统完整化",
+          "description": "当前 Chest.open() 仅设置 isOpen=true，不产出任何物品。玩家消耗钥匙打开宝箱后一无所获，形成功能死胡同。修复：宝箱开启时随机掉落 3-5 金币(30%概率额外掉落药水/AttackBoost)。掉落物品使用 y 轴弹出动画(类似 US-033 掉落机制)。同时宝箱视觉上播放开启动画(scale弹跳+金色闪光)。注意 Chest.ts 的 open() 方法目前是空的，需要完整实现。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 生成 3-5 Coin 掉落在宝箱周围",
+            "30% 概率额外掉落 HealthPotion 或 AttackBoost",
+            "掉落物品有 y 轴弹出动画(200ms)",
+            "宝箱开启有 scale 弹跳 + 金色闪光动画",
+            "掉落物品加入对应数组(healthPotions/attackBoosts)并注册 overlap",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-390",
+          "title": "GameScene shutdown() 统一资源清理 — 防止事件监听器泄漏",
+          "description": "GameScene 注册了 player-attack (L388) 和 enemy-death (L391) 事件监听器，但没有 shutdown() 方法清理。Phaser scene.start 重启时如果复用 scene 实例，事件监听器会累积，导致同一攻击触发多次回调。RoomCameraSystem 的 setOnRoomChanged 回调也持有旧 HUD 引用。修复：添加 shutdown() 方法，显式 off 所有事件监听器，清理动态 overlap collider，置空回调引用。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "shutdown() 中 this.events.off(player-attack) 和 this.events.off(enemy-death)",
+            "RoomCameraSystem 回调置空",
+            "动态创建的 overlap collider 清理",
+            "多次重启后无事件监听器累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-391",
+          "title": "Skeleton/Slime knockback 和 chase 分支 HP bar 跟随修复",
+          "description": "Skeleton.update() 中：(1) knockback 分支(L137) return 跳过 L153 hpBar.follow()，击退时 HP bar 停在原地；(2) chase 分支(L147) return 也跳过 hpBar.follow()，追踪时 HP bar 脱离。Slime.update() 同理：knockback 分支(L143) return 跳过 L152 hpBar.follow()。这是 43 轮审查反复标记但代码仍未修复的顽固视觉 bug。修复：在所有 early-return 路径前添加 hpBar.follow() 调用，或统一将 hpBar.follow() 移到 update() 顶部(在 active 检查之后)。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton knockback 分支 return 前 hpBar.follow()",
+            "Skeleton chase 分支 return 前 hpBar.follow()",
+            "Slime knockback 分支 return 前 hpBar.follow()",
+            "所有状态下 HP bar 始终跟随 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-392",
+          "title": "endGame 后敌人 update 冻结 — 消除无效 CPU 开销",
+          "description": "GameScene.update() 中敌人 update(L853-858) 在 gameOver 检查(L885-893)之前执行。endGame 设置 gameOver=true 的那帧，敌人已经执行完 update。后续帧由于 gameOver 检查在末尾 return，但敌人 update 在开头已经执行过了。修复：在敌人 update 循环前添加 gameOver 守卫，或 endGame 中标记 enemiesFrozen=true 跳过敌人更新。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 后敌人 update() 不再被调用",
+            "endGame 当帧立即生效，无残留一帧",
+            "SpikeTrap update 同步冻结",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-393",
+          "title": "ResultScene 键盘事件替代 update 轮询 — 监听器泄漏修复",
+          "description": "ResultScene 使用 events.on(update) 轮询检测按键输入，监听器从不清理。多次 scene 重启后监听器累积，可能触发多次跳转。同时 ResultScene 直接重启 GameScene 跳过 TitleScene，游戏流程不完整。修复：(1) 改用 input.keyboard.on(keydown-SPACE, callback) 替代 update 轮询；(2) SPACE 返回 TitleScene 而非直接重启 GameScene，完成 TitleScene→GameScene→ResultScene→TitleScene 完整流程闭环。",
+          "type": "code",
+          "priority": 7,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 使用 keyboard.on 替代 events.on(update)",
+            "SPACE 键返回 TitleScene",
+            "可选 Enter 键快速重启 GameScene",
+            "多次重启无监听器累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-394",
+          "title": "gameOver 后 HUD 继续更新 — 死亡动画期间分数冻结修复",
+          "description": "GameScene.update() 中 gameOver 检查(L885) 后 return(L893) 跳过了 hud.update()(L877)。从死亡动画开始(800ms)到 ResultScene 转场期间，HUD 分数/状态不再刷新，玩家看到的最后分数可能不包含死亡前最后一刻的得分变化。修复：将 hud.update() 移到 gameOver 检查之前，或在 gameOver return 之前单独调用 hud.update()。",
+          "type": "code",
+          "priority": 8,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gameOver=true 后 HUD 仍继续更新直到 scene 切换",
+            "死亡动画期间分数/状态实时刷新",
+            "HUD 不显示异常数据(如负数)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-395",
+          "title": "Slime onHitWall在knockback期间覆盖击退方向 — 击退未结束就切回随机移动",
+          "description": "Slime.update()中knockback分支return跳过后续逻辑，但wallCollider回调onHitWall()是异步触发的不受return保护。如果Slime被击退到墙壁：1) takeDamage设置knockback速度；2) 物理碰撞触发onHitWall->pickDirection覆盖击退速度；3) 下一帧update()中isKnockedBack=true但速度已被pickDirection替换。US-099标记过同类问题但未修复。当前Slime已清理_clearTintTimer，但onHitWall仍缺少isKnockedBack保护。",
+          "type": "code",
+          "priority": 380,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall()检查isKnockedBack跳过pickDirection",
+            "击退期间碰墙不改变速度方向",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-396",
+          "title": "Skeleton die()未清理takeDamage的delayedCall闪白定时器 — destroyed sprite回调崩溃",
+          "description": "Skeleton.takeDamage()中this.scene.time.delayedCall(100, () => { if(this.active) this.clearTint() })创建的定时器在die()时未被取消。如果Skeleton在takeDamage->die()的同一调用栈中被击杀：delayedCall在destroy后执行，this.active为false但this.clearTint()可能访问已destroyed的对象属性。Slime已正确清理_clearTintTimer，但Skeleton缺少同类保护。",
+          "type": "code",
+          "priority": 381,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton.takeDamage中delayedCall引用存入实例变量",
+            "die()中移除pending的clearTint timer",
+            "击杀后无console错误",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-397",
+          "title": "Skeleton chase分支缺少HP bar follow — 追踪时血条原地不动(第46轮确认)",
+          "description": "Skeleton.update()在chase分支中直接return，跳过wander分支的hpBar.follow()调用。这意味着Skeleton追踪玩家时血条停留在起始位置不跟随。43+轮审查反复标记(US-136/196/209/234/244/279/308/328/375/391)但代码仍未修复。根因：chase分支的return语句需在return前添加hpBar.follow(this)。",
+          "type": "code",
+          "priority": 382,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton追踪模式return前调用hpBar.follow(this)",
+            "追踪期间血条始终跟随sprite",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-398",
+          "title": "Player斜向移动时direction精度 — 归一化后总取vy轴方向",
+          "description": "Player.update()中direction判定：if(Math.abs(vx)>Math.abs(vy))取水平，else if(vy!==0)取垂直。归一化后|vx|==|vy|时总进入else分支取垂直方向，玩家同时按W+D时永远面朝上/下而非右。这不是新问题但之前的修复方案(US-113)建议基于最后按键方向，实际代码未改。更优方案：同时按对角时保持上一次非对角方向，或引入lastDominantAxis追踪。",
+          "type": "code",
+          "priority": 383,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "对角线移动(同时按WD/WA/SD/SA)时direction为最后按下的轴",
+            "单轴移动不受影响",
+            "攻击方向与视觉朝向一致",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-399",
+          "title": "Coin分配跳过entrance房间 — coins分配i从0开始含entrance",
+          "description": "GameScene中coins分配用rooms[i % rooms.length]，i从0开始所以第一个Coin分配到rooms[0]=entranceRoom。US-108/US-212/US-243均标记但未修复。修复：改为rooms[(i+1) % rooms.length]。",
+          "type": "code",
+          "priority": 384,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin不生成在entranceRoom(index 0)",
+            "Coin分布在所有非entrance房间中",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-400",
+          "title": "GameScene shutdown清理事件监听器 — restart后监听器累积",
+          "description": "GameScene.create()中this.events.on(player-attack,...)和this.events.on(enemy-death,...)注册事件监听器但无对应shutdown清理。US-166/US-195/US-210/US-233/US-270/US-280/US-327/US-390均标记但未实现shutdown。每次restart新create注册新监听器。最直接修复：添加shutdown()方法off所有事件。",
+          "type": "code",
+          "priority": 385,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown()方法清理player-attack和enemy-death事件",
+            "restart后不触发重复回调",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-401",
+          "title": "胜利条件checkWinCondition不检查key — 核心游戏循环key->chest->stairs断裂",
+          "description": "GameScene.checkWinCondition()仅检查玩家到楼梯距离，不检查是否持有key或是否已开宝箱。导致玩家可以直接走到出口通关，key和chest系统完全无意义。30+轮审查反复标记(US-307/US-318/US-372/US-381/US-387)但代码从未修复。修复：checkWinCondition增加this.inventory.has(key)检查，或增加chest已开启检查。",
+          "type": "code",
+          "priority": 386,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition检查玩家持有key或chest已开启",
+            "未满足条件时无法通关",
+            "满足条件后靠近楼梯触发胜利",
+            "tsc + build通过"
           ]
         }
       ]
