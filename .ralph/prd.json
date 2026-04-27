@@ -4769,7 +4769,7 @@
           "description": "US-042攻击动画的slash sprite使用setFlipX处理朝向，但上下朝向（up/down）应使用不同的翻转组合或旋转。当前down朝向无翻转但视觉效果应与up区分。",
           "type": "code",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "slash sprite 根据四个朝向正确翻转/旋转",
