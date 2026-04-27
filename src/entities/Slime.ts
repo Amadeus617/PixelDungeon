@@ -28,6 +28,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
   private hpBar!: EnemyHpBar;
+  private _clearTintTimer: Phaser.Time.TimerEvent | null = null;
 
   get hp(): number {
     return this._hp;
@@ -82,7 +83,13 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
 
     // Flash white on hit
     this.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => {
+    // Cancel any previous clear-tint timer
+    if (this._clearTintTimer) {
+      this._clearTintTimer.remove();
+      this._clearTintTimer = null;
+    }
+    this._clearTintTimer = this.scene.time.delayedCall(100, () => {
+      this._clearTintTimer = null;
       if (this.active) this.clearTint();
     });
 
@@ -106,6 +113,13 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   }
 
   private die(): void {
+    // Cancel pending clear-tint timer to prevent callback on destroyed object
+    if (this._clearTintTimer) {
+      this._clearTintTimer.remove();
+      this._clearTintTimer = null;
+    }
+    // Stop all tweens to prevent post-destroy callbacks
+    this.scene.tweens.killTweensOf(this);
     if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
 
