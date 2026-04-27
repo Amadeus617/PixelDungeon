@@ -774,7 +774,7 @@
           "description": "US-030 将 AttackBoost 改为 10s 限时 buff，但当前 HUD 的 attackBoostLabel 只显示 \"ATK x2!\"。需要在 buff 激活期间显示剩余秒数（如 \"ATK x2 [8s]\"），让玩家感知 buff 时效，增强紧迫感和策略性。",
           "type": "code",
           "priority": 31,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-030"
           ],
