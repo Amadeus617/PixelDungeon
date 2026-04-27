@@ -105,6 +105,7 @@ export class GameScene extends Phaser.Scene {
   private spikeTraps: SpikeTrap[] = [];
   private coinCount = 0;
   private killCount = 0;
+  private potionUsedCount = 0;
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
@@ -135,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.coinCount = 0;
     this.killCount = 0;
+    this.potionUsedCount = 0;
     this.scoreSystem.reset();
     this.clearedRooms.clear();
     this.startTime = Date.now(); // Record game start time (US-035)
@@ -284,6 +286,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.overlap(this.player, potion, () => {
         if (potion.collect()) {
           this.player.heal(HEALTH_POTION_HEAL);
+          this.potionUsedCount++;
           this.soundManager.playPickup();
         }
       });
@@ -612,6 +615,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, potion, () => {
       if (potion.collect()) {
         this.player.heal(DROP_POTION_HEAL);
+        this.potionUsedCount++;
         this.soundManager.playPickup();
       }
     });
@@ -791,6 +795,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
 
     const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
+    const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
     this.time.delayedCall(200, () => {
       this.scene.start("ResultScene", {
         result,
@@ -798,6 +803,8 @@ export class GameScene extends Phaser.Scene {
         killCount: this.killCount,
         coinCount: this.coinCount,
         elapsedTime,
+        potionUsedCount: this.potionUsedCount,
+        roomsExplored,
       });
     });
   }
@@ -812,6 +819,7 @@ export class GameScene extends Phaser.Scene {
 
     // Transition to result scene after a short delay
     const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // seconds (US-035)
+    const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
     this.time.delayedCall(800, () => {
       this.scene.start("ResultScene", {
         result,
@@ -819,6 +827,8 @@ export class GameScene extends Phaser.Scene {
         killCount: this.killCount,
         coinCount: this.coinCount,
         elapsedTime,
+        potionUsedCount: this.potionUsedCount,
+        roomsExplored,
       });
     });
   }

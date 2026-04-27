@@ -6053,6 +6053,186 @@
             "不在宝箱附近时正常攻击",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-375",
+          "title": "Skeleton 追踪模式 HP bar 不跟随 — chase 分支 return 前 hpBar.follow 缺失",
+          "description": "Skeleton.update() 在追踪分支(chase)中直接 return，跳过 hpBar.follow(this) 调用。当 Skeleton 追踪玩家时，HP bar 停留在进入追踪范围前的位置不动。这是43轮审查中反复标记(US-136/196/208/244/267/279/308/328)但代码仍未修复的最顽固视觉 bug。修复方案：在 chase 分支的 setVelocity 后、return 前调用 hpBar.follow(this)。",
+          "type": "code",
+          "priority": 360,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式下 HP bar 跟随 sprite 位置",
+            "wander 模式 HP bar 继续正常跟随",
+            "knockback 模式 HP bar 跟随（US-245 同理）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-376",
+          "title": "Slime knockback 分支 HP bar 不跟随 — isKnockedBack return 跳过 follow",
+          "description": "Slime.update() 在 isKnockedBack 分支中直接 return，跳过 hpBar.follow(this) 调用。被击退时 HP bar 原地不动。修复方案：在 knockback 分支 return 前添加 hpBar.follow(this)。",
+          "type": "code",
+          "priority": 361,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime knockback 期间 HP bar 跟随 sprite",
+            "正常移动时 HP bar 继续跟随",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-377",
+          "title": "HUD update 每帧无差别 setText — 添加 dirty flag 缓存优化",
+          "description": "HUD.update() 每帧调用 setText 更新 HP/金币/分数/buff 标签，即使值未变。60fps 下每秒 240+ 次 setText 调用产生大量字符串对象和 BitmapText 重绘。应添加简单缓存：记录上次值，只在变化时更新。",
+          "type": "code",
+          "priority": 362,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HP 文本仅在 HP 变化时更新",
+            "金币/分数文本仅在值变化时更新",
+            "buff 倒计时每秒更新一次(非每帧)",
+            "60fps 下 setText 调用减少 80%+",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-378",
+          "title": "Coin/HealthPotion/AttackBoost/KeyItem 缺少 physics body — overlap 检测不可靠",
+          "description": "Coin/HealthPotion/AttackBoost/KeyItem 继承 Phaser.GameObjects.Sprite 而非 Physics.Arcade.Sprite，没有 physics body。GameScene 使用 physics.add.overlap 检测拾取，但无 body 的 sprite 的 overlap 行为依赖 Phaser 内部 fallback（基于坐标和 display size），不如有 body 的对象可靠。修复方案：改为继承 Physics.Arcade.Sprite 或在构造器中调用 scene.physics.add.existing(this)。",
+          "type": "code",
+          "priority": 363,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有可拾取道具拥有 physics body",
+            "overlap 拾取检测基于 AABB collider",
+            "浮动动画不影响 overlap 精度",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-379",
+          "title": "getEnemyConfigForRoom 未接入 runCount — 难度缩放体系断裂",
+          "description": "getEnemyConfigForRoom() 仅基于 roomIndex 决定敌人配置，完全忽略 runCount。GDD 中定义了 Slime HP 缩放(2 + floor((runCount-1)/3), cap 5)和速度缩放(60*(1+(runCount-1)*0.05), cap 90)，但代码中 Slime 构造器不接受任何 multiplier 参数。Skeleton 的 speedMultiplier 仅在构造器中设置，但 HP 始终固定为 4。修复方案：(1) getEnemyConfigForRoom 接受 runCount 参数；(2) Slime/Skeleton 构造器接受 hpMultiplier 和 speedMultiplier；(3) 在 GameScene create 中传入 runCount 相关缩放值。",
+          "type": "code",
+          "priority": 364,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom 接受 runCount 并返回含 multiplier 的配置",
+            "Slime 构造器接受 speedMultiplier 和 hpMultiplier 参数",
+            "Skeleton HP 随 runCount 递增",
+            "难度参数与 gdd.json balance 配置一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-380",
+          "title": "玩家受击 knockback 速度仅 125px/s — 敌人击退 300px/s 严重不对称",
+          "description": "Player KNOCKBACK_DISTANCE=25px, KNOCKBACK_DURATION=200ms → 速度仅 125px/s。而 Slime/Skeleton KNOCKBACK_SPEED=300px/s。玩家被击中时几乎看不到后退，战斗反馈严重不对称。建议将玩家 knockback 提升至 40-50px/200ms(200-250px/s)或直接与敌人持平。",
+          "type": "code",
+          "priority": 365,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家被击退位移至少 40px",
+            "击退视觉效果清晰可辨",
+            "击退不将玩家推入墙壁内部",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-381",
+          "title": "checkWinCondition 不检查 key — 核心游戏循环 key→chest→stairs 断裂",
+          "description": "当前 checkWinCondition() 仅检测玩家是否在楼梯附近(距离<40px)，不检查是否持有 key。这导致 key-chest 系统完全无意义——玩家可以直接跑到楼梯通关。GDD coreLoop 定义'到达宝箱→通关'但实际代码不需要 key 也不需要开宝箱。这是43轮审查反复标记(US-307/318/372)的最关键设计缺陷。修复方案：checkWinCondition 中添加 !this.inventory.has('key') → return false。",
+          "type": "code",
+          "priority": 366,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家未持 key 时无法通关",
+            "HUD 提示需要 key 才能使用楼梯",
+            "持 key 后到达楼梯正常通关",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-382",
+          "title": "Chest.open() 无奖励产出 — 宝箱开启是功能死胡同",
+          "description": "Chest.open() 仅切换纹理为 chest_open，无任何奖励产出。玩家花时间找 key、开宝箱、结果什么都没得到，严重挫伤探索动力。修复方案：Chest.open() 触发奖励掉落——50% 概率 3-5 金币、30% 概率 HealthPotion、20% 概率 AttackBoost，使用与 enemy-death 相同的弹出动画。",
+          "type": "code",
+          "priority": 367,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱开启时产生随机奖励掉落",
+            "掉落物品有弹出动画",
+            "掉落物品可正常拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-383",
+          "title": "Space JustDown 时序导致宝箱交互永远失效 — 攻击先消费按键",
+          "description": "GameScene.update() 中先调用 player.update(delta, time)（消费 Space JustDown 触发攻击），再检查宝箱 JustDown（此时 JustDown 已被消费返回 false）。玩家永远无法通过 Space 键打开宝箱。这是 US-061/US-102/US-110/US-374 反复标记的根因 bug。修复方案：将宝箱检测移到 player.update() 之前，或改用独立按键状态机。",
+          "type": "code",
+          "priority": 368,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Space 键可正常打开宝箱",
+            "Space 键仍可正常攻击（无宝箱在附近时）",
+            "宝箱在附近时 Space 优先交互而非攻击",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-384",
+          "title": "Player.takeDamage() 返回 void — 6+ 下游功能被阻塞的基础接口",
+          "description": "Player.takeDamage() 返回 void 而非 boolean，导致调用方无法判断是否实际受伤（无敌帧期间 return 不扣血但调用方不知道）。下游阻塞：hurt 音效误播(US-101/131/176/181/202/247/252)、受伤统计不准确、受击反馈不一致。heal() 已正确返回 number，takeDamage 应返回 boolean 表示是否实际受到伤害。43轮审查中反复标记(US-117/171/200/252/330/367)但代码仍未修复。",
+          "type": "code",
+          "priority": 369,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage() 返回 boolean（true=实际受伤，false=无敌帧跳过）",
+            "所有 overlap 回调使用返回值判断是否播放 hurt 音效",
+            "heal() 返回 number 保持不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-385",
+          "title": "Slime 8方向含斜向在3-tile走廊频繁撞墙抖动 — 改为4方向为主",
+          "description": "Slime DIRECTIONS 包含8个方向(4正+4斜)，在3-tile宽走廊中斜向移动几乎立刻撞墙触发 onHitWall→pickDirection→可能又斜向→再撞墙。表现为走廊中 Slime 抖动不走。建议 80% 概率选4正方向，20% 概率选斜向。",
+          "type": "code",
+          "priority": 370,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊中 Slime 抖动频率显著降低",
+            "房间中 Slime 仍偶尔斜向移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-386",
+          "title": "ResultScene events.on('update') 轮询输入 — 监听器从不清理导致内存泄漏",
+          "description": "ResultScene.create() 使用 this.events.on('update', callback) 轮询检测按键，此监听器在 scene shutdown 时不会自动清理。多次重启后监听器累积，每次按键触发多个回调。应改为 this.input.keyboard.on('keydown-SPACE', callback) 或 this.events.once('shutdown', cleanup)。",
+          "type": "code",
+          "priority": 371,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 使用 keyboard 事件替代 update 轮询",
+            "scene shutdown 时无残留监听器",
+            "多次重启后按键响应正常（无重复触发）",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

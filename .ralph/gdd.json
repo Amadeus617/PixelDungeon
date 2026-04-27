@@ -1057,6 +1057,89 @@
         "US-329: Slime die() enemy-death — 代码验证通过"
       ],
       "priority": "US-372 (key检查) + US-374 (宝箱交互) + US-373 (宝箱奖励) 是最高优先级 — 三个US一起修复核心游戏循环。US-367 (takeDamage) 是基础设施修复，阻塞面最广。"
+    },
+    {
+      "round": 44,
+      "date": "2026-04-27",
+      "title": "第44轮设计审查 — 顽固Bug确认+核心循环断裂+难度缩放断裂+性能优化",
+      "summary": "全面审查25个源文件后，发现12个改进机会分为4大类：(1) 顽固视觉Bug：Skeleton/Slime HP bar在knockback/chase分支不跟随(43轮反复标记仍未修)；(2) 核心游戏循环断裂：checkWinCondition不需key、Chest.open无奖励、Space时序bug导致宝箱永远无法交互——三个问题串联导致key→chest→win回路完全不工作；(3) 难度缩放体系断裂：getEnemyConfigForRoom不接入runCount、Slime构造器不接受multiplier参数、玩家knockback与敌人严重不对称；(4) 性能/稳定性：HUD每帧240+次无效setText、可拾取道具无physics body、ResultScene监听器泄漏。本轮新增US-375~US-386。",
+      "newUserStories": [
+        "US-375",
+        "US-376",
+        "US-377",
+        "US-378",
+        "US-379",
+        "US-380",
+        "US-381",
+        "US-382",
+        "US-383",
+        "US-384",
+        "US-385",
+        "US-386"
+      ],
+      "changes": [
+        {
+          "area": "visual-bug",
+          "change": "US-375: Skeleton chase 分支 HP bar follow — 43轮反复标记的顽固bug",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-376: Slime knockback 分支 HP bar follow — 与Skeleton同类问题",
+          "priority": "P0"
+        },
+        {
+          "area": "performance",
+          "change": "US-377: HUD dirty flag 缓存 — 每帧240+无效setText优化",
+          "priority": "P1"
+        },
+        {
+          "area": "physics",
+          "change": "US-378: 可拾取道具 physics body — overlap检测可靠性",
+          "priority": "P1"
+        },
+        {
+          "area": "balance",
+          "change": "US-379: getEnemyConfigForRoom接入runCount — 难度缩放体系完整化",
+          "priority": "P0"
+        },
+        {
+          "area": "balance",
+          "change": "US-380: 玩家knockback 125px/s提升至200+ — 与敌人300px/s对称",
+          "priority": "P1"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-381: checkWinCondition增加key检查 — 核心游戏循环修复",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-382: Chest.open()奖励掉落 — 宝箱系统完整化",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-383: Space JustDown时序修复 — 宝箱交互在player.update之前",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-384: takeDamage返回boolean — 6+下游US共同前置依赖",
+          "priority": "P0"
+        },
+        {
+          "area": "ai",
+          "change": "US-385: Slime方向改为4方向为主 — 走廊抖动修复",
+          "priority": "P2"
+        },
+        {
+          "area": "stability",
+          "change": "US-386: ResultScene keyboard事件替代update轮询 — 内存泄漏修复",
+          "priority": "P1"
+        }
+      ],
+      "priority": "US-381 (key检查) + US-383 (宝箱交互时序) + US-382 (宝箱奖励) 三个US一起修复核心游戏循环。US-384 (takeDamage) 是基础设施修复阻塞面最广。US-379 (难度缩放) 是游戏重复可玩性的关键。"
     }
   ],
   "improvements": {
@@ -1311,8 +1394,46 @@
     ]
   },
   "balanceAnalysis": {
-    "date": "2026-04-26",
+    "date": "2026-04-27",
     "issues": [
+      {
+        "area": "难度缩放体系断裂",
+        "severity": "critical",
+        "description": "getEnemyConfigForRoom仅基于roomIndex，完全忽略runCount。Slime构造器不接受speedMultiplier/hpMultiplier。GDD定义的Slime HP缩放和速度缩放从未接入代码。",
+        "affectedUS": [
+          "US-336",
+          "US-337",
+          "US-338",
+          "US-339",
+          "US-350",
+          "US-379"
+        ],
+        "fix": "getEnemyConfigForRoom接受runCount参数，Slime/Skeleton构造器接受multiplier参数"
+      },
+      {
+        "area": "核心游戏循环断裂",
+        "severity": "critical",
+        "description": "checkWinCondition不需key、Chest.open无奖励、Space时序bug导致宝箱永远无法交互。三个问题串联导致key→chest→win探索回路完全不工作。",
+        "affectedUS": [
+          "US-307",
+          "US-318",
+          "US-372",
+          "US-381"
+        ],
+        "fix": "checkWinCondition增加key检查 + Chest.open掉落奖励 + Space时序修复"
+      },
+      {
+        "area": "玩家knockback严重不足",
+        "severity": "medium",
+        "description": "Player knockback 25px/200ms=125px/s，敌人 300px/s。玩家被击中几乎看不到后退，战斗反馈严重不对称。",
+        "affectedUS": [
+          "US-149",
+          "US-254",
+          "US-277",
+          "US-380"
+        ],
+        "fix": "将KNOCKBACK_DISTANCE提升至40-50px或KNOCKBACK_SPEED提升至200+px/s"
+      },
       {
         "area": "敌人强度倒挂",
         "detail": "Slime(普通AI) 3HP > Skeleton(追踪AI) 2HP，后期敌人反而更弱",
