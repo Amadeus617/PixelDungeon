@@ -821,7 +821,7 @@
           "description": "当前玩家受伤时只有 alpha 闪烁(0.4/1.0 交替)。改进为：受伤瞬间红闪 tint，无敌期间保持半透明闪烁。增强受伤感知，避免玩家不知道自己被打。",
           "type": "code",
           "priority": 34,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "受伤瞬间 setTint(0xff0000) 红闪 150ms",
@@ -6460,6 +6460,81 @@
             "未满足条件时无法通关",
             "满足条件后靠近楼梯触发胜利",
             "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-402",
+          "title": "checkLoseCondition 死亡检测竞态 — update 中 gameOver=true 后仍执行 spikeTraps 和 checkRoomClear",
+          "description": "GameScene.update() 中 gameOver=true 后 return 跳过了后续逻辑，但 gameOver 的设置在 checkLoseCondition 中。然而 endGame(win) 在 update 末尾，如果同时满足 win 和 lose（理论上不可能但代码无防护），endGame(win) 可能在 endGame(lose) 的 delayedCall 200ms 内触发。更重要的是：gameOver=true 后 return，spikeTraps.update() 和 checkRoomClear() 永远不会执行。这意味着：(1) 活跃陷阱的视觉状态在游戏结束后冻结（可能是激活态）；(2) 房间清除检查被跳过。",
+          "type": "code",
+          "priority": 387,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gameOver后spikeTraps更新一次到安全状态",
+            "gameOver不影响已完成的房间清除",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-403",
+          "title": "handlePlayerAttack 击杀积分可能在同一帧重复计算 — attack范围覆盖多个敌人时 wasDead/isDead 边界",
+          "description": "handlePlayerAttack 对每个 slime/skeleton 独立判断 wasDead = slime.isDead，然后 takeDamage，然后检查 !wasDead && slime.isDead。如果 attack range 覆盖同一帧内已被其他逻辑标记为 dead 的敌人（如 overlap 伤害），可能误判。虽然概率低（单次攻击通常只命中1-2个敌人），但 filter dead 的逻辑在 attack 循环中间执行，数组在循环中被修改是潜在的并发修改风险。",
+          "type": "code",
+          "priority": 388,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "attack循环使用副本迭代",
+            "killCount准确无重复计数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-404",
+          "title": "PRD 去重清理 — 10+ 个反复重述的顽固问题应合并为单一权威 US",
+          "description": "PRD 中存在严重的 US 重复膨胀问题。同一问题被反复重新编号添加：\n- takeDamage 返回 boolean: US-117/171/200/252/274/330/367/384/388 (9个重复)\n- checkWinCondition key 检查: US-307/318/372/381/387/401 (6个重复)\n- HP bar chase 不跟随: US-136/196/209/234/244/279/308/328/375/391/397 (11个重复)\n- ResultScene 返回 TitleScene: US-127/175/199/208/246/332/370/393 (8个重复)\n- GameScene shutdown: US-112/195/233/270/280/327/369/390/400 (9个重复)\n- endGame 冻结敌人: US-106/174/205/257/277/392 (6个重复)\n- Slime die 事件: US-255/275/288/329 (4个重复)\n- SpikeTrap Physics: US-222/249/273/371 (4个重复)\n\n这些重复 US 导致 PRD 膨胀到 401 条，极大增加了维护成本和混淆度。应合并为每个问题一条权威 US，保留最详细的 acceptance criteria。",
+          "type": "code",
+          "priority": 389,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "重复US合并为~30条权威US",
+            "保留最详细的acceptance criteria",
+            "PRD从401条精简至~250条有效US",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-405",
+          "title": "核心游戏循环三重断裂一次性修复 — key检查+宝箱奖励+胜利条件",
+          "description": "三个问题形成因果链：\n1. checkWinCondition() 只检查玩家是否靠近楼梯，不检查是否拥有key或已开宝箱\n2. Chest.open() 只切换纹理，不掉落任何奖励物品\n3. handleChestInteraction() 消耗key后调用 chest.open() 但无后续效果\n\n结果：key→chest→win 的核心游戏循环完全不工作。玩家可以直接走到楼梯通关（跳过 key 和 chest），而找到 key 和 chest 没有任何奖励。\n\n这是一个 P0 级别的核心游戏设计断裂。之前 US-307/318/372/381/387/401 和 US-119/317/382/389 分别标记了各个子问题，但从未作为整体修复。\n\n修复方案：\n1. checkWinCondition 增加 hasOpenedChest 条件\n2. Chest.open() 触发奖励掉落（参考 spawnDropCoin 的 popup 动画）\n3. GameScene 追踪 chestOpened 状态",
+          "type": "code",
+          "priority": 390,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 需同时满足到达楼梯 + 已开宝箱",
+            "Chest.open() 掉落 3-5 金币 + 30% 药水",
+            "key→chest→stairs 形成完整游戏循环",
+            "无 key 时无法通关",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-406",
+          "title": "玩家出生保护期间 AttackBoost 计时器仍递减 — 出生无敌与 buff 计时器冲突",
+          "description": "如果实现 US-240（1500ms 出生无敌保护），Player.update() 中 _attackBoostTimer 在 !alive return 之前递减。但如果出生时立刻拾取到 AttackBoost，1500ms 无敌期间 buff 已经消耗了 15% 时长。对于限时 buff 设计（10s），出生无敌不应消耗 buff 时间。\n\n更一般地：Player.update() 中 attackBoost timer 的递减应在 frozen/invincible 状态下暂停，或在计时逻辑中补偿无敌/暂停时间。",
+          "type": "code",
+          "priority": 391,
+          "status": "pending",
+          "dependsOn": [
+            "US-240"
+          ],
+          "acceptanceCriteria": [
+            "出生无敌期间buff计时器暂停",
+            "暂停/冻结期间buff不衰减",
+            "tsc + build 通过"
           ]
         }
       ]

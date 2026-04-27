@@ -160,8 +160,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.isInvincible = true;
     this.invincibleTimer = INVINCIBLE_DURATION;
 
-    // Flash effect
-    this.setAlpha(0.5);
+    // US-049: Red tint flash on hit (150ms), then blink during invincibility
+    this.setTint(0xff0000);
+    this.scene.time.delayedCall(150, () => {
+      // Only clear tint if still invincible (not dead and not already cleared)
+      if (this.active && this.isInvincible) {
+        this.clearTint();
+      }
+    });
 
     // Knockback: push away from damage source
     if (sourceX !== undefined && sourceY !== undefined) {
@@ -270,10 +276,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private updateInvincibility(delta: number): void {
     if (!this.isInvincible) return;
     this.invincibleTimer -= delta;
-    // Blink effect
+    // US-049: Blink effect during invincibility (alpha flicker)
     this.setAlpha(Math.floor(this.invincibleTimer / 100) % 2 === 0 ? 1 : 0.4);
     if (this.invincibleTimer <= 0) {
       this.isInvincible = false;
+      this.clearTint();
       this.setAlpha(1);
     }
   }

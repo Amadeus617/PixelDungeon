@@ -1252,6 +1252,48 @@
         }
       ],
       "priority": "US-401(checkWinCondition)是核心游戏循环修复的最高优先级。US-395/US-396/US-397是runtime bug修复。"
+    },
+    {
+      "round": 47,
+      "date": "2026-04-27",
+      "title": "第47轮设计审查 — PRD去重元问题+核心循环断裂整体修复+出生buff冲突",
+      "summary": "审查25个源文件和401条PRD后发现：(1) PRD存在严重重复膨胀 — 同一问题被重复编号9-11次（如takeDamage返回值有9个US、HP bar跟随有11个US），应合并为~30条权威US将总数从401精简至~250条有效US；(2) 核心游戏循环三重断裂（checkWinCondition不需key/chest、Chest.open无奖励、key消耗无效果）应作为单一P0修复而非分散在6+个重复US中；(3) handlePlayerAttack中击杀积分边界条件和数组并发修改风险；(4) gameOver后spikeTrap视觉冻结和checkRoomClear被跳过；(5) 未来出生无敌保护与buff计时器的潜在冲突。",
+      "newUserStories": [
+        "US-402",
+        "US-403",
+        "US-404",
+        "US-405",
+        "US-406"
+      ],
+      "changes": [
+        {
+          "area": "meta",
+          "change": "US-404: PRD去重 — 10+个顽固问题各自有4-11个重复US，应合并为权威条目",
+          "priority": "meta"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-405: 核心循环三重断裂一次性修复 — key检查+宝箱奖励+胜利条件联动",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-402: gameOver后spikeTrap状态冻结+checkRoomClear被跳过",
+          "priority": "P1"
+        },
+        {
+          "area": "correctness",
+          "change": "US-403: handlePlayerAttack击杀积分边界+数组并发修改风险",
+          "priority": "P2"
+        },
+        {
+          "area": "future-proofing",
+          "change": "US-406: 出生无敌期间buff计时器暂停",
+          "priority": "P3"
+        }
+      ],
+      "balanceChanges": [],
+      "priority": "US-405（核心循环修复）是最高优先级。US-404（PRD去重）是最高元优先级 — 当前401条PRD的维护成本已严重影响开发效率。"
     }
   ],
   "improvements": {
