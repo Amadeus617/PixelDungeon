@@ -9,6 +9,29 @@ export class KeyItem extends Phaser.GameObjects.Sprite {
     scene.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Floating hover animation
+    this._startFloatTween();
+  }
+
+  private _startFloatTween(): void {
+    if (!this.scene || !this.scene.tweens) return;
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y - 6,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.scene.tweens.add({
+      targets: this,
+      angle: { from: -10, to: 10 },
+      duration: 1400,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   /** Returns true if this is the first collection. */

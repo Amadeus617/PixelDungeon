@@ -1799,5 +1799,88 @@
         "US-341"
       ]
     }
-  ]
+  ],
+  "visualFeedback": {
+    "damageNumbers": {
+      "enabled": true,
+      "duration": 800,
+      "types": {
+        "playerDamage": "红色，显示-1/-2",
+        "enemyDamage": "红色，在敌人位置",
+        "healing": "绿色，显示+3",
+        "attackBoost": "金色文字'ATK UP!'"
+      },
+      "animation": "上浮+淡出"
+    },
+    "enemyDeathParticles": {
+      "slime": {
+        "color": "绿色",
+        "count": "8-12",
+        "duration": 300
+      },
+      "skeleton": {
+        "color": "白色/灰色",
+        "count": "10-15",
+        "duration": 300
+      },
+      "bat": {
+        "color": "深紫色",
+        "count": "6-8",
+        "duration": 250
+      }
+    },
+    "playerHitEffects": {
+      "screenFlash": "红色vignette，200ms淡出",
+      "screenShake": "3px，150ms",
+      "hpBarFlash": "快速闪红",
+      "lowHpWarning": "HP≤3时红色脉动边缘，HP≤1时加速脉动",
+      "healFlash": "绿色闪光"
+    },
+    "roomTransition": {
+      "type": "淡入淡出黑屏",
+      "duration": 600,
+      "breakdown": "300ms淡出+300ms淡入",
+      "nameOverlay": "过渡完成后显示1.5秒",
+      "exitIndicator": "距离出口<30px时显示方向箭头"
+    },
+    "hudAutoFade": {
+      "roomName": "3秒后淡出",
+      "difficultyLabel": "房间切换后3秒淡出",
+      "minimap": "战斗中缩至70%，清除后恢复",
+      "scorePopup": "scale 1→1.3→1弹跳动画200ms",
+      "lowHpPulse": "HP≤3时HP条脉动，越低越快"
+    }
+  },
+  "tutorialSystem": {
+    "triggerCondition": "localStorage中无pixeldungeon_tutorial_done标记",
+    "steps": [
+      {
+        "trigger": "第1个房间",
+        "text": "WASD移动",
+        "dismissOn": "玩家移动"
+      },
+      {
+        "trigger": "首次遭遇敌人",
+        "text": "J键攻击",
+        "dismissOn": "玩家攻击"
+      },
+      {
+        "trigger": "首次拾取金币",
+        "text": "收集金币获得分数",
+        "dismissOn": "拾取金币"
+      },
+      {
+        "trigger": "首次拾取药水",
+        "text": "恢复生命值",
+        "dismissOn": "拾取药水"
+      },
+      {
+        "trigger": "首次遭遇陷阱",
+        "text": "注意地面尖刺!",
+        "dismissOn": "避开或踩中陷阱"
+      }
+    ],
+    "completionFlag": "pixeldungeon_tutorial_done",
+    "animation": "淡入淡出，执行操作后1秒消失"
+  }
 }

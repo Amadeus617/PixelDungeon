@@ -9,6 +9,29 @@ export class Coin extends Phaser.GameObjects.Sprite {
     scene.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Floating hover animation
+    this._startFloatTween();
+  }
+
+  private _startFloatTween(): void {
+    if (!this.scene || !this.scene.tweens) return;
+    this.scene.tweens.add({
+      targets: this,
+      y: this.y - 6,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.scene.tweens.add({
+      targets: this,
+      angle: { from: -8, to: 8 },
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   /** Returns true if this is the first collection. */
