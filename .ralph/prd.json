@@ -758,7 +758,7 @@
           "description": "所有拾取道具（金币、药水、钥匙、攻击提升）当前静止不动，在像素风地牢中容易被忽略。应添加上下浮动动画 (y ±3-5px, 周期 800-1200ms)，让道具更有存在感和吸引力。可使用 Phaser tweens 实现。",
           "type": "code",
           "priority": 30,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Coin、HealthPotion、KeyItem、AttackBoost 创建时添加 y 轴浮动 tween",
@@ -5724,6 +5724,209 @@
             "HP≤3时屏幕边缘持续显示微弱红色脉动",
             "HP≤1时红色脉动加速（心跳效果）",
             "拾取药水恢复HP时显示短暂绿色闪光",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-354",
+          "title": "Seed 可复现地牢 — rng 函数统一接入 seeded PRNG",
+          "description": "dungeonData.ts 已支持 rng 参数但 GameScene 调用 generateDungeon 时仍传 Math.random。同时 drop 逻辑(Math.random)也需统一。实现：(1) 创建 SeedableRNG 类(seed→序列);(2) TitleScene 支持输入种子;(3) generateDungeon和所有drop使用同一rng实例。种子显示在 HUD。",
+          "type": "code",
+          "priority": 339,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "相同种子生成完全相同的地牢布局+道具分布+掉落",
+            "TitleScene 可选输入种子，空则随机",
+            "HUD 显示当前种子",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-355",
+          "title": "Drop 药水与地图药水视觉区分 — 不同颜色/大小 sprite",
+          "description": "DROP_POTION_HEAL=2 vs HEALTH_POTION_HEAL=3 但两者使用相同纹理。玩家无法区分回复量差异。方案：地图药水用绿色大瓶，掉落药水用蓝色小瓶，或添加 heal 数量浮动文字。同时修正 HealthPotion.ts 注释(仍写 Restores 1 HP)。",
+          "type": "code",
+          "priority": 340,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "地图药水和掉落药水有不同视觉表现",
+            "HealthPotion.ts 注释与实际回复量一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-356",
+          "title": "敌人 contact damage 独立冷却 — 每个敌人 500ms 冷却计数器",
+          "description": "当前敌人接触伤害完全依赖玩家无敌帧(1000ms)。多敌人同时接触时只在第一次触发伤害。应给每个敌人添加 lastContactDamageTime，500ms 内不重复造成接触伤害。这解决了重叠3个敌人只受1次伤害的不公平问题，也让无敌帧结束后立即被不同敌人伤害成为可能。",
+          "type": "code",
+          "priority": 341,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个敌人有独立 contactDamageCooldown",
+            "500ms 冷却期(可配置)",
+            "多敌人重叠不再只造成1次伤害",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-357",
+          "title": "ScoreSystem combo 连击计分 — 3秒内连续击杀倍率递增",
+          "description": "当前击杀得分固定50分，缺少战斗效率奖励。添加 combo 机制：(1) 每次击杀记录时间戳;(2) 距上次击杀<3秒则 comboCount++;(3) 得分 = baseScore × (1 + comboCount × 0.5);(4) 3秒无击杀 combo 重置;(5) HUD 显示 combo 数字和倍率。鼓励积极战斗而非逃避。",
+          "type": "code",
+          "priority": 342,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem.addKill 支持 combo 计算",
+            "HUD 显示 combo 计数和倍率",
+            "combo 倍率上限 3x(可配置)",
+            "3秒超时重置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-358",
+          "title": "Player 冲刺/闪避实现 — Shift 短距离无敌位移",
+          "description": "战斗系统缺少闪避维度。实现 Shift 冲刺：(1) 向当前朝向方向位移 80px;(2) 持续 150ms，期间无敌;(3) 冷却 1500ms;(4) 冷却期间 HUD 图标灰化;(5) 冲刺有尾迹粒子效果。需解决碰撞保护(不穿墙)。",
+          "type": "code",
+          "priority": 343,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Shift 触发冲刺位移",
+            "冲刺期间无敌",
+            "1500ms 冷却有视觉反馈",
+            "不穿过墙壁",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-359",
+          "title": "Hitstop/Freeze Frame 攻击命中反馈 — 命中瞬间暂停30ms增强打击感",
+          "description": "攻击命中敌人时，游戏冻结30ms（hitstop），然后恢复正常。这是动作游戏的核心手感技术：短暂的帧冻结让玩家感受到\"冲击力\"。需在handlePlayerAttack中takeDamage后设置hitstopTimer，update中检测跳过所有逻辑。",
+          "type": "code",
+          "priority": 344,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "近战攻击命中敌人时游戏冻结30ms",
+            "hitstop期间无敌人移动/玩家输入",
+            "hitstop结束后正常恢复",
+            "多敌人同时命中只触发一次hitstop",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-360",
+          "title": "Camera Shake 受伤反馈 — 玩家受伤时屏幕抖动增强冲击感",
+          "description": "Player.takeDamage实际扣血时（非无敌帧跳过），触发camera shake(50ms, intensity 0.003-0.005)。当前受伤反馈仅有alpha闪烁(US-049)和红闪(US-253)，缺少screen-level物理冲击感。需在overlap回调中基于takeDamage返回值触发cam.shake()。",
+          "type": "code",
+          "priority": 345,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家实际受伤时camera shake 50ms",
+            "无敌帧期间不触发shake",
+            "shake强度适中不影响游戏性",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-361",
+          "title": "BGM 背景音乐系统 — 程序化循环音乐生成",
+          "description": "当前只有音效（SoundManager），无背景音乐。地牢探索缺少氛围感。利用Web Audio API生成简单的8-bit风格循环BGM：低频bass drone + 简单旋律loop(2-4小节)，TitleScene用欢快主题，GameScene用紧张主题，ResultScene用胜利/失败变奏。",
+          "type": "code",
+          "priority": 346,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene播放循环BGM，不阻塞游戏",
+            "TitleScene和ResultScene各有独立音乐",
+            "音量适中可被音效盖过",
+            "暂停时BGM暂停，恢复时继续",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-362",
+          "title": "房间类型分化 — 宝藏房/陷阱房/安全房标注与差异化生成",
+          "description": "当前所有非入口房间生成逻辑相同（仅敌人数量/类型随深度变化）。应为房间分配类型标签：treasure（多金币+药水，少敌人）、danger（多陷阱+强敌）、safe（无敌人，有回血喷泉）、boss（最后房间，未来boss用）。类型影响spawn逻辑和视觉效果（地板tile颜色/装饰差异）。",
+          "type": "code",
+          "priority": 347,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "dungeonData房间定义包含type字段",
+            "至少3种房间类型有差异化spawn逻辑",
+            "HUD/Minimap用颜色区分房间类型",
+            "房间类型分配算法确保每局至少1个treasure",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-363",
+          "title": "Potion 毒药陷阱 — 敌人掉落绿色\"毒药\"伪装药水",
+          "description": "增加策略深度：敌人死亡掉落中有10%概率是绿色毒药(potion_sprite tint green)，拾取后扣2HP而非回复。外观与红色药水相似但颜色不同，玩家需注意区分。与US-355（掉落/地图药水视觉区分）互补：红色=回复，绿色=毒药，蓝色=大回复。",
+          "type": "code",
+          "priority": 348,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "敌人掉落10%概率生成毒药（绿色tint）",
+            "拾取毒药扣2HP而非回复",
+            "毒药有独立的flash反馈（紫色闪）",
+            "HUD显示毒药图标警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-364",
+          "title": "Input Buffer 输入缓冲 — 攻击冷却期间预存指令",
+          "description": "当前攻击冷却400ms内按空格完全无响应。动作游戏标准做法是input buffer：冷却期间按下的攻击指令缓存，冷却结束后自动执行。window=100ms（冷却结束前100ms内的输入有效）。大幅提升连招手感和操作流畅度。",
+          "type": "code",
+          "priority": 349,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击冷却期间空格输入缓存",
+            "冷却结束后100ms内自动执行缓存攻击",
+            "多次按键只保留最后一次",
+            "buffer攻击与正常攻击效果完全一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-365",
+          "title": "Death Recap 死亡回顾 — 显示死亡原因统计面板",
+          "description": "失败时ResultScene显示死亡回顾：受到总伤害/来源分布（Slime X次/Skeleton Y次/Trap Z次）、最致命房间（受伤最多的房间）、存活时长、最远房间深度。帮助玩家理解失败原因并改进策略。需在GameScene中累积damageSource统计。",
+          "type": "code",
+          "priority": 350,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene追踪每类伤害来源及次数",
+            "ResultScene失败时显示伤害分布统计",
+            "显示最致命房间编号和受伤量",
+            "数据通过scene data传递无遗漏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-366",
+          "title": "HUD Toggle 信息显示切换 — H键切换HUD/Minimap显隐",
+          "description": "当前HUD和Minimap始终显示占用屏幕空间。部分玩家（特别是熟悉游戏后）可能想要更沉浸的无UI体验。添加H键切换：全显→仅Minimap→仅HUD→全隐→循环。状态持久化到localStorage。",
+          "type": "code",
+          "priority": 351,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "H键循环4种HUD显隐模式",
+            "每种模式正确显示/隐藏对应元素",
+            "暂停菜单中显示当前模式和切换提示",
+            "设置持久化到localStorage",
             "tsc + build 通过"
           ]
         }

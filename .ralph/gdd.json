@@ -91,6 +91,54 @@
         },
         "runCountMultiplier": "1.0 + (runCount - 1) * 0.05, capped at 2.0"
       }
+    },
+    "comboSystem": {
+      "note": "US-357: 连击计分机制",
+      "comboWindowMs": 3000,
+      "multiplierPerCombo": 0.5,
+      "maxMultiplier": 3.0,
+      "baseKillScore": 50
+    },
+    "hitstop": {
+      "durationMs": 30,
+      "note": "US-359: 攻击命中时全局冻结时间"
+    },
+    "cameraShake": {
+      "durationMs": 50,
+      "intensity": 0.003,
+      "note": "US-360: 玩家受伤时camera shake参数"
+    },
+    "inputBuffer": {
+      "windowMs": 100,
+      "note": "US-364: 攻击输入缓冲窗口，冷却结束前有效"
+    },
+    "poisonPotion": {
+      "dropRate": 0.1,
+      "damage": 2,
+      "note": "US-363: 敌人掉落毒药的概率和伤害"
+    },
+    "roomTypes": {
+      "types": [
+        "normal",
+        "treasure",
+        "danger",
+        "safe",
+        "boss"
+      ],
+      "distribution": {
+        "treasure": "max 1 per floor, 0.25 probability",
+        "danger": "max 1 per floor, 0.2 probability",
+        "safe": "max 1 per floor, 0.15 probability",
+        "boss": "always last room",
+        "normal": "remaining rooms"
+      },
+      "spawnModifiers": {
+        "treasure": "coins x3, potions x2, enemies x0.5",
+        "danger": "traps x2, enemies x1.5, no potions",
+        "safe": "no enemies, 1 healing fountain",
+        "boss": "reserved for future boss enemy"
+      },
+      "note": "US-362: 房间类型分配和spawn修改器"
     }
   },
   "designLog": [
@@ -805,6 +853,144 @@
         }
       ],
       "priority": "US-318 (胜利条件key检查) 和 US-330 (takeDamage返回值) 是最高优先级。US-317/US-329 次之。"
+    },
+    {
+      "round": 41,
+      "date": "2026-04-27",
+      "title": "第41轮设计审查 — Seed系统/drop视觉区分/contact冷却/combo计分/冲刺闪避",
+      "summary": "审查代码发现5个新改进机会：(1) dungeonData.ts已支持rng参数但调用侧未统一接入seeded PRNG，drop逻辑仍用Math.random；(2) 掉落药水(heal=2)与地图药水(heal=3)使用相同sprite，无视觉区分且注释过时；(3) 敌人接触伤害完全依赖玩家无敌帧，多敌人重叠时伤害判定不公平；(4) ScoreSystem缺少combo连击机制，战斗效率无奖励维度；(5) 冲刺闪避(US-056)仅有设计参数但从未实现。同时确认：Slime die()事件已修复、checkWinCondition仍无key检查(US-318 pending)、takeDamage仍返回void(US-330 pending)。",
+      "newUserStories": [
+        "US-354",
+        "US-355",
+        "US-356",
+        "US-357",
+        "US-358"
+      ],
+      "changes": [
+        {
+          "area": "map/seed",
+          "change": "US-354: Seed 可复现地牢 — rng 函数统一接入 seeded PRNG，TitleScene 支持种子输入",
+          "priority": "P2"
+        },
+        {
+          "area": "entities/visual",
+          "change": "US-355: 掉落药水与地图药水视觉区分 + HealthPotion 注释修正",
+          "priority": "P3"
+        },
+        {
+          "area": "combat",
+          "change": "US-356: 敌人 contact damage 独立 500ms 冷却",
+          "priority": "P1"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-357: Combo 连击计分 — 3秒窗口倍率递增，HUD 显示",
+          "priority": "P2"
+        },
+        {
+          "area": "combat/movement",
+          "change": "US-358: Shift 冲刺闪避实现 — 80px位移/150ms无敌/1.5s冷却",
+          "priority": "P1"
+        }
+      ],
+      "priority": "US-356 (contact冷却) 和 US-358 (冲刺闪避) 是最高优先级 — 前者影响战斗公平性，后者是 US-056 的具体实现方案。"
+    },
+    {
+      "round": 42,
+      "date": "2026-04-27",
+      "title": "第42轮设计审查 — 游戏手感/氛围/策略深度/信息架构",
+      "summary": "在358个已有US基础上，深入代码审查发现8个全新维度的改进机会：(1) Hitstop命中冻结(动作游戏核心手感技术)；(2) Camera Shake受伤反馈(screen-level冲击感)；(3) BGM背景音乐(氛围基础缺失)；(4) 房间类型分化(探索策略深度)；(5) 毒药陷阱(资源识别策略)；(6) Input Buffer输入缓冲(操作手感优化)；(7) Death Recap死亡回顾(学习反馈)；(8) HUD Toggle显隐切换(信息架构)。本轮聚焦于之前42轮审查从未覆盖的游戏手感和氛围维度。",
+      "newUserStories": [
+        "US-359",
+        "US-360",
+        "US-361",
+        "US-362",
+        "US-363",
+        "US-364",
+        "US-365",
+        "US-366"
+      ],
+      "changes": [
+        {
+          "area": "combat/feel",
+          "change": "US-359: Hitstop 30ms命中冻结 — 动作游戏打击感核心技术",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-360: Camera Shake 50ms受伤抖动 — screen-level物理反馈",
+          "priority": "P1"
+        },
+        {
+          "area": "audio/atmosphere",
+          "change": "US-361: BGM 程序化8-bit循环音乐 — 游戏氛围基础",
+          "priority": "P2"
+        },
+        {
+          "area": "exploration/strategy",
+          "change": "US-362: 房间类型分化(treasure/danger/safe) — 探索决策深度",
+          "priority": "P2"
+        },
+        {
+          "area": "combat/strategy",
+          "change": "US-363: 毒药陷阱(绿色掉落扣HP) — 资源识别策略",
+          "priority": "P3"
+        },
+        {
+          "area": "controls/feel",
+          "change": "US-364: Input Buffer 100ms攻击预存 — 操作手感流畅度",
+          "priority": "P1"
+        },
+        {
+          "area": "feedback/learning",
+          "change": "US-365: Death Recap死亡原因统计 — 失败学习反馈",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/information",
+          "change": "US-366: HUD Toggle H键显隐切换 — 信息架构灵活度",
+          "priority": "P3"
+        }
+      ],
+      "balanceChanges": [
+        {
+          "param": "hitstopDuration",
+          "from": "N/A",
+          "to": "30ms",
+          "reason": "动作游戏标准命中冻结时长，太短无感太长影响流畅"
+        },
+        {
+          "param": "cameraShakeOnHit",
+          "from": "N/A",
+          "to": "duration=50ms, intensity=0.003",
+          "reason": "受伤屏幕抖动参数，参考Celeste/Hollow Knight等像素动作游戏"
+        },
+        {
+          "param": "inputBufferWindow",
+          "from": "N/A",
+          "to": "100ms",
+          "reason": "标准输入缓冲窗口，覆盖攻击冷却最后100ms内的预输入"
+        },
+        {
+          "param": "poisonDropRate",
+          "from": "N/A",
+          "to": "10% of potion drops",
+          "reason": "敌人掉落药水中有10%概率为毒药，增加资源识别压力"
+        },
+        {
+          "param": "poisonDamage",
+          "from": "N/A",
+          "to": "2 HP",
+          "reason": "毒药拾取扣血量，与回复药水heal=2/3形成对称"
+        },
+        {
+          "param": "roomTypes",
+          "from": "N/A (all same)",
+          "to": "treasure/danger/safe/normal/boss",
+          "reason": "房间类型分化增加探索策略和每局体验变化"
+        }
+      ],
+      "priority": "US-359 (Hitstop) 和 US-364 (Input Buffer) 是最高优先级 — 直接影响战斗手感核心。US-360 (Camera Shake) 和 US-361 (BGM) 次之 — 影响整体氛围体验。"
     }
   ],
   "improvements": {
