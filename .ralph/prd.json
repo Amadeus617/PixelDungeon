@@ -791,7 +791,7 @@
           "description": "当前 ResultScene 胜利时显示 \"You defeated all enemies and claimed the treasure!\" 但实际胜利条件是到达出口楼梯（checkWinCondition: player reaches stairs）。文案与逻辑不一致，需改为 \"You found the exit and escaped the dungeon!\" 或类似措辞。",
           "type": "code",
           "priority": 32,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "胜利文案描述「到达出口」而非「击败所有敌人」",
@@ -4026,7 +4026,7 @@
           "description": "Slime.takeDamage() 直接扣血无 setTint(0xffffff)，US-041 标记为 pending 但代码中 Slime 仍未添加闪白效果。Skeleton 有 setTint(0xffffff)+delayedCall(100)+clearTint，Slime 应一致。",
           "type": "code",
           "priority": 236,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime.takeDamage() 添加 setTint(0xffffff)",
@@ -4084,7 +4084,7 @@
           "description": "Skeleton.die() 先 emit \"enemy-death\" 事件（触发掉落）再 destroy，但 Slime 代码中 die() 缺少 enemy-death 事件发射。这意味着击杀 Slime 永远不掉落金币和药水，只有 Skeleton 会掉落。US-033 的掉落机制只对 Skeleton 生效。",
           "type": "code",
           "priority": 240,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime.die() 在 destroy 前发射 enemy-death 事件",
@@ -4410,7 +4410,7 @@
           "description": "审查代码发现 Skeleton.die() 正确 emit(\"enemy-death\") 触发 US-033 掉落逻辑，但 Slime.die() 也已修复此问题（确认代码已包含 emit）。进一步审查发现 Slime knockback return 路径中 hpBar.follow(this) 被跳过，但代码中 knockback 分支确实没有 hpBar 跟随。这与 US-218/US-245 同类问题。需确认所有已标记 US 中是否有代码已实际修复但 PRD 状态未更新的情况。",
           "type": "code",
           "priority": 260,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "审查所有 pending US 中代码已修复的项目并更新 PRD 状态",
@@ -4615,7 +4615,7 @@
           "description": "US-255 标记 Slime die() 未发射 enemy-death 事件导致 US-033 掉落从未对 Slime 生效。但查看当前代码，Slime.die() 中实际已包含 this.scene.events.emit('enemy-death', {x, y, type: 'slime'})。US-255 的标记可能基于旧版代码。本 US 用于确认：验证当前代码确实发射事件，如果已修复则更新 US-255 状态为 done；如果仍有问题则定位具体原因。",
           "type": "code",
           "priority": 273,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-255"
           ],
@@ -5277,7 +5277,7 @@
           "description": "Skeleton.die() 正确发射事件触发掉落，但 Slime.die() 缺失。Slime 的 30% coin 和 10% potion 掉落率从未生效。",
           "type": "code",
           "priority": 314,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-255",
             "US-288"
@@ -5927,6 +5927,130 @@
             "每种模式正确显示/隐藏对应元素",
             "暂停菜单中显示当前模式和切换提示",
             "设置持久化到localStorage",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-367",
+          "title": "Player.takeDamage() 返回 boolean — 基础接口修复（第43轮确认）",
+          "description": "Player.takeDamage() 仍返回 void，阻塞 6+ 下游 US（hurt音效条件、受伤统计、contact damage 冷却、Death Recap、combo判定）。修改：hp 实际减少时 return true，invincible/已dead 时 return false。此接口是 US-101/131/176/181/202/330/356/365 的共同前置依赖。",
+          "type": "code",
+          "priority": 352,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 在 hp 实际减少时返回 true",
+            "invincible 期间返回 false",
+            "已 dead 时返回 false",
+            "现有 overlap 回调编译通过",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-368",
+          "title": "Slime/Skeleton onHitWall() knockback 保护（第43轮确认）",
+          "description": "Slime.onHitWall() 和 Skeleton.onHitWall() 不检查 isKnockedBack，导致被玩家击退时碰墙立即覆盖击退速度。两个类的 onHitWall() 开头需添加 if (this.isKnockedBack) return; 保护。US-099/100/172/207 已标记但代码未修复。",
+          "type": "code",
+          "priority": 353,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 在 isKnockedBack 时不切换方向",
+            "Skeleton.onHitWall() 在 isKnockedBack 时不切换方向",
+            "正常碰墙时仍正确切换方向",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-369",
+          "title": "GameScene shutdown() 统一资源清理（第43轮确认）",
+          "description": "GameScene 没有 shutdown() 方法。player-attack/enemy-death 事件监听器、动态 overlap 回调、RoomCameraSystem 事件在场景重启后残留累积。US-195/210/233/270/280/327 已标记但代码未修复。需添加 shutdown() 方法显式清理所有事件监听器和回调。",
+          "type": "code",
+          "priority": 354,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "player-attack 事件 off",
+            "enemy-death 事件 off",
+            "RoomCameraSystem 回调置空",
+            "多次重启后无内存泄漏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-370",
+          "title": "ResultScene 重启返回 TitleScene 流程闭环（第43轮确认）",
+          "description": "ResultScene.events.on(\"update\") 轮询检测按键后直接 scene.start(\"GameScene\") 跳过 TitleScene。应改为：(1) SPACE → TitleScene 完整流程； (2) events.on(\"update\") 改为 input.keyboard.on(\"keydown\") 避免监听器泄漏。US-127/175/199/208/246/332 已标记但代码未修复。",
+          "type": "code",
+          "priority": 355,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SPACE 按键重启到 TitleScene",
+            "ENTER 按键可快速重启到 GameScene（可选）",
+            "不使用 events.on(\"update\") 轮询",
+            "监听器在 shutdown 时自动清理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-371",
+          "title": "SpikeTrap 改为继承 Physics.Arcade.Sprite（第43轮确认）",
+          "description": "SpikeTrap 继承 GameObjects.Sprite 无 physics body，physics.add.overlap 对无 body 对象行为不可靠。US-222/249/273 已标记但代码未修复。改为继承 Physics.Arcade.Sprite 或在构造时 enableBody。",
+          "type": "code",
+          "priority": 356,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap 有有效的 physics body",
+            "overlap 检测可靠",
+            "陷阱视觉和功能不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-372",
+          "title": "checkWinCondition 增加 key 检查 — 核心游戏循环修复（第43轮确认）",
+          "description": "checkWinCondition() 只检测玩家到楼梯的距离，不检查是否持有 key。导致 key-chest 系统无意义，玩家可直接走到楼梯通关。US-307/318 已标记但代码未修复。修改：if (!this.inventory.has(\"key\")) return false;",
+          "type": "code",
+          "priority": 357,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "没有 key 时无法通关",
+            "持有 key 且到达楼梯时触发胜利",
+            "HUD 显示 key 获取状态提示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-373",
+          "title": "Chest.open() 无奖励产出 — 宝箱系统完整化（第43轮确认）",
+          "description": "Chest.open() 只设置 isOpen=true 和播放音效，不生成任何掉落物品。宝箱开启无奖励导致探索回路断裂。US-057/119/306/317 已标记但代码未修复。需在 open() 后调用 GameScene 的掉落逻辑：3-5 Coin + 30% HealthPotion + 弹出动画。",
+          "type": "code",
+          "priority": 358,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱开启后掉落 3-5 Coin",
+            "30% 概率掉落 HealthPotion",
+            "掉落物品有弹出动画",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-374",
+          "title": "Space JustDown 宝箱交互时序根因修复 — 移入 player.update 之前",
+          "description": "GameScene.update() 中宝箱交互检测在 player.update() 之后执行。player.update() 内部用 JustDown(spaceKey) 触发攻击并消费 JustDown 标记。后续 GameScene 中的 JustDown(spaceKey) 永远返回 false。US-061/102/110 已标记根因但代码未修复。修复：将宝箱 JustDown 检测移到 player.update() 调用之前。",
+          "type": "code",
+          "priority": 359,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱 JustDown 检测在 player.update() 之前执行",
+            "同时按 Space 且靠近宝箱时触发宝箱交互而非攻击",
+            "不在宝箱附近时正常攻击",
             "tsc + build 通过"
           ]
         }

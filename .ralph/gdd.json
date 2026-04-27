@@ -991,6 +991,72 @@
         }
       ],
       "priority": "US-359 (Hitstop) 和 US-364 (Input Buffer) 是最高优先级 — 直接影响战斗手感核心。US-360 (Camera Shake) 和 US-361 (BGM) 次之 — 影响整体氛围体验。"
+    },
+    {
+      "round": 43,
+      "date": "2026-04-27",
+      "title": "第43轮设计审查 — 顽固bug确认+核心游戏循环修复",
+      "summary": "全面审查25个源文件，确认5个US已由代码修复但PRD未更新（US-251 Slime闪白、US-255/275/288/329 Slime die事件），标记为done。发现8个核心问题仍存在于代码中：(1) takeDamage返回void阻塞6+下游功能；(2) 敌人onHitWall不保护knockback；(3) GameScene无shutdown内存泄漏；(4) ResultScene流程不完整+监听器泄漏；(5) SpikeTrap非Physics类型；(6) checkWinCondition不需key导致核心循环断裂；(7) 宝箱无奖励产出；(8) Space JustDown时序bug导致宝箱交互永远无法触发。本轮新增US-367~US-374，聚焦43轮审查中反复标记但代码仍未修复的最顽固问题。",
+      "newUserStories": [
+        "US-367",
+        "US-368",
+        "US-369",
+        "US-370",
+        "US-371",
+        "US-372",
+        "US-373",
+        "US-374"
+      ],
+      "changes": [
+        {
+          "area": "interface",
+          "change": "US-367: takeDamage 返回 boolean — 6+下游US的共同前置依赖",
+          "priority": "P0"
+        },
+        {
+          "area": "combat",
+          "change": "US-368: 敌人 onHitWall knockback 保护 — 击退效果被碰墙覆盖",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-369: GameScene shutdown — 事件监听器/overlap回调泄漏",
+          "priority": "P0"
+        },
+        {
+          "area": "flow",
+          "change": "US-370: ResultScene → TitleScene 重启 + events.on update 替换",
+          "priority": "P1"
+        },
+        {
+          "area": "physics",
+          "change": "US-371: SpikeTrap Physics.Arcade.Sprite — overlap 检测可靠性",
+          "priority": "P1"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-372: checkWinCondition key 检查 — 核心游戏循环修复",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-373: Chest.open() 掉落奖励 — 宝箱系统完整化",
+          "priority": "P0"
+        },
+        {
+          "area": "input",
+          "change": "US-374: Space JustDown 时序修复 — 宝箱交互在 player.update 之前",
+          "priority": "P0"
+        }
+      ],
+      "fixedInReview": [
+        "US-251: Slime takeDamage 闪白反馈 — 代码已有 setTint(0xffffff)",
+        "US-255: Slime die() 发射 enemy-death 事件 — 代码验证确认",
+        "US-275: Slime die() emit enemy-death — 代码验证确认",
+        "US-288: Slime die() 事件发射 — 代码验证通过",
+        "US-329: Slime die() enemy-death — 代码验证通过"
+      ],
+      "priority": "US-372 (key检查) + US-374 (宝箱交互) + US-373 (宝箱奖励) 是最高优先级 — 三个US一起修复核心游戏循环。US-367 (takeDamage) 是基础设施修复，阻塞面最广。"
     }
   ],
   "improvements": {
