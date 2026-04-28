@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件变更（US-422 规划中）\n当前: 玩家靠近楼梯即通关。\n规划: 玩家必须开启至少一个宝箱后才能通过楼梯通关，强制 key→chest→stairs 探索闭环。",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件变更（US-422 规划中）\n当前: 玩家靠近楼梯即通关。\n规划: 玩家必须开启至少一个宝箱后才能通过楼梯通关，强制 key→chest→stairs 探索闭环。\n\n### 核心循环修复计划（US-431 + US-432）\n当前问题: Chest.open() 不产出战利品，checkWinCondition 不检查宝箱。\n计划: (1) 宝箱开启生成掉落物品（金币/药水/AttackBoost）；(2) checkWinCondition 增加宝箱开启检查。形成 key→chest(loot)→stairs 完整闭环。",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -1433,6 +1433,104 @@
         "PRD 债务: 414 条 US 中大量重复（takeDamage 返回值 6+ 条，HP bar 8+ 条），阻塞开发",
         "场景重启泄漏: GameScene 无 shutdown()，多次游戏后监听器累积"
       ]
+    },
+    {
+      "date": "2026-04-28",
+      "author": "agent-review",
+      "change": "第50轮设计审查：新增6个US（US-425~US-430）。识别出关键缺失功能：1)战争迷雾—增强探索紧张感 2)Boss敌人—终结感缺失 3)多层地牢—重复可玩性不足 4)成就系统—meta progression动力 5)难度选择—玩家自主调节。6)PRD去重—366条pending中大量重复需清理。",
+      "reason": "定期设计审查发现：游戏核心循环完整但缺少长期吸引力和终结体验。玩家可轻松走到楼梯通关无挑战感（无Boss门控），重玩价值低（无层数递进/成就），新手和老手无差异化体验（无难度选择），PRD管理债务严重（366条pending含大量重复）"
+    },
+    {
+      "round": 51,
+      "date": "2026-04-28",
+      "title": "第51轮设计审查 — 核心循环修复+PRD去重meta+HP bar权威条目+shutdown泄漏",
+      "summary": "全面审查25个源文件和430条PRD后发现5个改进机会：(1) Chest.open()不生成任何战利品，key→chest探索循环是功能死胡同；(2) checkWinCondition不检查宝箱是否开启，玩家可无视key/chest直接通关，核心游戏循环完全断裂；(3) PRD严重膨胀至430条US，同一问题重复4-11次，维护成本失控需去重至~80条权威条目；(4) Skeleton chase分支return跳过hpBar.follow()是43+轮反复标记的最顽固视觉bug（PRD中11个重复条目）；(5) GameScene无shutdown()导致事件监听器在多次重启后累积泄漏。本轮刻意只新增5个权威US，每个明确标注所有重复条目编号。",
+      "newUserStories": [
+        "US-431",
+        "US-432",
+        "US-433",
+        "US-434",
+        "US-435"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-431: Chest.open() 战利品产出 — 宝箱开启生成掉落物品",
+          "priority": "P0",
+          "duplicates": [
+            "US-057",
+            "US-119",
+            "US-263",
+            "US-306",
+            "US-317",
+            "US-373",
+            "US-382",
+            "US-389",
+            "US-405"
+          ]
+        },
+        {
+          "area": "core-loop",
+          "change": "US-432: checkWinCondition 宝箱检查 — key→chest→stairs 闭环",
+          "priority": "P0",
+          "duplicates": [
+            "US-307",
+            "US-318",
+            "US-372",
+            "US-381",
+            "US-387",
+            "US-401",
+            "US-405",
+            "US-422"
+          ]
+        },
+        {
+          "area": "meta",
+          "change": "US-433: PRD去重合并 430→~80条权威条目",
+          "priority": "meta-P0",
+          "duplicates": [
+            "US-404",
+            "US-411",
+            "US-412",
+            "US-416",
+            "US-430"
+          ]
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-434: Skeleton/Slime HP bar chase/knockback 跟随修复",
+          "priority": "P0",
+          "duplicates": [
+            "US-136",
+            "US-234",
+            "US-244",
+            "US-279",
+            "US-308",
+            "US-328",
+            "US-375",
+            "US-391",
+            "US-397",
+            "US-241"
+          ]
+        },
+        {
+          "area": "stability",
+          "change": "US-435: GameScene shutdown() 事件监听器清理",
+          "priority": "P0",
+          "duplicates": [
+            "US-195",
+            "US-233",
+            "US-270",
+            "US-280",
+            "US-327",
+            "US-390",
+            "US-400",
+            "US-424"
+          ]
+        }
+      ],
+      "balanceChanges": [],
+      "priority": "US-431 + US-432 是最高优先级 — 两个 US 一起修复核心游戏循环。US-433 (PRD去重) 是最高 meta 优先级 — 430 条 PRD 已严重影响开发效率。"
     }
   ],
   "improvements": {
@@ -2572,5 +2670,136 @@
     ],
     "completionFlag": "pixeldungeon_tutorial_done",
     "animation": "淡入淡出，执行操作后1秒消失"
+  },
+  "fogOfWar": {
+    "note": "US-425: 战争迷雾/视野系统",
+    "visibilityRadius": 5,
+    "tilesUnit": "tiles",
+    "unexplored": "完全黑暗，不可见",
+    "exploredButNotInView": "低亮度（alpha 0.3），保留地形记忆",
+    "inView": "全亮，正常渲染",
+    "implementationNote": "使用Phaser Graphics遮罩层或RenderTexture，每帧以玩家位置为中心绘制可见区域"
+  },
+  "boss": {
+    "note": "US-426: Boss敌人系统",
+    "name": "Skeleton King",
+    "hp": 12,
+    "size": "3x scale",
+    "attacks": [
+      {
+        "type": "chase",
+        "speed": 70,
+        "description": "缓慢追踪玩家"
+      },
+      {
+        "type": "charge",
+        "speed": 200,
+        "duration": 500,
+        "cooldown": 3000,
+        "description": "向玩家位置冲锋，路径上造成2点伤害"
+      }
+    ],
+    "drops": "击败后掉落大量金币(10-15)和1个随机道具",
+    "gateStairs": true,
+    "spriteNote": "可复用skeleton spritesheet，放大+着色为金色/红色区分"
+  },
+  "multiFloor": {
+    "note": "US-427: 多层地牢系统",
+    "floorProgression": {
+      "roomCount": "base 3 + floor_number - 1, cap 7",
+      "enemyHpMultiplier": "1 + (floor - 1) * 0.1, cap 2.0",
+      "enemySpeedMultiplier": "1 + (floor - 1) * 0.05, cap 1.5",
+      "newEnemyTypes": "floor 3+: Bat spawn, floor 5+: elite enemies"
+    },
+    "floorTransition": {
+      "type": "黑屏淡入+层数文字显示",
+      "duration": "2000ms",
+      "preserves": "HP/inventory/score",
+      "resets": "room layout/enemy spawns/items"
+    },
+    "scoreMultiplier": "floor * 1.0 (floor 2 = 2x, floor 3 = 3x)",
+    "hudDisplay": "左上角显示 \"B1\" \"B2\" 等层数标识"
+  },
+  "achievements": {
+    "note": "US-428: 成就系统",
+    "storage": "localStorage key: pixeldungeon_achievements",
+    "definitions": [
+      {
+        "id": "first_kill",
+        "name": "初次狩猎",
+        "condition": "首次击杀敌人"
+      },
+      {
+        "id": "first_clear",
+        "name": "地牢征服者",
+        "condition": "首次通关"
+      },
+      {
+        "id": "speedrun",
+        "name": "速度恶魔",
+        "condition": "60秒内通关一层"
+      },
+      {
+        "id": "no_damage",
+        "name": "无伤通关",
+        "condition": "一层内未受伤"
+      },
+      {
+        "id": "combo_5",
+        "name": "连击大师",
+        "condition": "单局5连击"
+      },
+      {
+        "id": "coins_500",
+        "name": "金币大亨",
+        "condition": "累计收集500金币"
+      },
+      {
+        "id": "kills_100",
+        "name": "百人斩",
+        "condition": "累计击杀100敌人"
+      },
+      {
+        "id": "floor_5",
+        "name": "深层探索者",
+        "condition": "到达第5层"
+      }
+    ],
+    "toast": {
+      "duration": 2000,
+      "animation": "slide in from top + scale bounce",
+      "sound": "playPickup() variant"
+    }
+  },
+  "difficultySelect": {
+    "note": "US-429: 难度选择",
+    "modes": {
+      "easy": {
+        "label": "简单",
+        "enemyHpMultiplier": 0.7,
+        "enemySpeedMultiplier": 0.8,
+        "potionBonus": 2,
+        "invincibleDuration": 1500,
+        "description": "适合新手玩家"
+      },
+      "normal": {
+        "label": "普通",
+        "enemyHpMultiplier": 1.0,
+        "enemySpeedMultiplier": 1.0,
+        "potionBonus": 0,
+        "invincibleDuration": 1000,
+        "description": "标准体验"
+      },
+      "hard": {
+        "label": "困难",
+        "enemyHpMultiplier": 1.5,
+        "enemySpeedMultiplier": 1.3,
+        "potionBonus": -1,
+        "invincibleDuration": 0,
+        "description": "硬核挑战"
+      }
+    },
+    "uiNote": "TitleScene三个按钮并排，Normal默认高亮",
+    "highScoreSplit": "按难度分别存储高分"
   }
 }
