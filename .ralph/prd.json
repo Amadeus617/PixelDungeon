@@ -6240,7 +6240,7 @@
           "description": "checkWinCondition() 仅检查玩家到楼梯的距离，不检查是否持有 key。这导致 key→chest→stairs 的核心游戏循环断裂：玩家可以跳过找钥匙/开宝箱直接走到楼梯通关。修复：checkWinCondition 应同时检查 inventory.has(\"key\") 已被消费（即宝箱已开启），或改为检查宝箱开启状态。同时更新 ResultScene 胜利文案反映完整的通关路径。",
           "type": "code",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "checkWinCondition 在 stairs 距离检查之外增加 chest 已开启条件",
@@ -7346,6 +7346,82 @@
             "显示本局 Slime 数量和 Skeleton 速度倍率",
             "难度信息在统计面板中有独立区域",
             "数据正确反映本局实际参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-457",
+          "title": "endGameInternal/endGame 代码重复消除 — 统一为单一 endGame 方法",
+          "description": "endGameInternal 和 endGame 两个方法执行几乎相同的逻辑 (physics.pause + score breakdown + scene.start)，唯一差异是延迟时间 (200ms vs 800ms)。死亡路径通过 endGameInternal 绕过 gameOver guard。应统一为 endGame(result, delay) 单一方法，消除代码重复。",
+          "type": "code",
+          "priority": 442,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGameInternal 删除，endGame 接受 delay 参数",
+            "死亡路径调用 endGame(\"lose\", 200)",
+            "胜利路径调用 endGame(\"win\", 800)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-458",
+          "title": "Space JustDown 宝箱交互竞态根因确认 — player.update 先消费按键",
+          "description": "GameScene.update 第1211行 player.update(delta, time) 先执行，Player.update 内部 JustDown(this.spaceKey) 消费按键触发攻击。然后第1235行 GameScene 的 chest interaction JustDown 检查因 key 已被消费永远为 false。代码注释声称 intercept before attack 但实际顺序相反。修复：chest JustDown 检查移到 player.update 之前，或 Player.update 中 nearChest 时跳过 attack。",
+          "type": "code",
+          "priority": 443,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Space 按下时优先检测宝箱交互",
+            "靠近宝箱时 Space 触发开箱而非攻击",
+            "不在宝箱附近时 Space 正常触发攻击",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-459",
+          "title": "攻击锥形 dot threshold 0.25(约151度) 与注释 0.5(120度) 不一致",
+          "description": "Player.isEnemyInDirection 中 dot < 0.25 对应约151度攻击锥形。注释写 cos(60)=0.5 但实际用 0.25。US-069 建议改为 0.5(120度)但代码未修改。玩家几乎可以打到背后敌人，削弱攻击方向选择的意义。",
+          "type": "code",
+          "priority": 444,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "dot threshold 从 0.25 调整为 0.5（120度锥形）",
+            "注释与代码一致",
+            "玩家不再能打到背后范围的敌人",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-460",
+          "title": "ScoreSystem.addTimeBonus 实现验证 — breakdown.timeBonus 数据完整性",
+          "description": "endGame/endGameInternal 中先调用 scoreSystem.addTimeBonus(elapsedTime)，然后立即读取 this.scoreSystem.breakdown。需验证 addTimeBonus 是否正确更新了 breakdown.timeBonus 字段。当前 US-324(通关时间奖励)标记 pending 但 addTimeBonus 方法已存在 — 需确认其是否真正实现了时间分档奖励或仅返回0。",
+          "type": "code",
+          "priority": 445,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "addTimeBonus 正确实现 GDD 中定义的分档奖励(60s=500, 120s=200, 180s=100)",
+            "breakdown.timeBonus 在 scene.start 前包含正确数值",
+            "ResultScene 正确显示 timeBonus",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-461",
+          "title": "GDD 参数与代码实际值全面同步验证",
+          "description": "GDD 记录 healthPotionHeal=3、dropPotionHeal=2，但代码中实际常量值需逐一验证。playerKnockback 在 GDD 中无独立记录(25px/200ms=125px/s)。需系统性地比对所有 GDD balance 参数与代码常量，确保一致性。",
+          "type": "code",
+          "priority": 446,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GDD healthPotionHeal 与代码一致",
+            "GDD dropPotionHeal 与代码一致",
+            "GDD 新增 playerKnockbackDistance 和 playerKnockbackDuration",
+            "所有 balance 参数双向一致",
             "tsc + build 通过"
           ]
         }

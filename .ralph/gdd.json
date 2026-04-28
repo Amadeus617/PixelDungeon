@@ -71,10 +71,14 @@
         },
         {
           "underSeconds": 120,
-          "bonus": 200
+          "bonus": 300
         },
         {
           "underSeconds": 180,
+          "bonus": 200
+        },
+        {
+          "underSeconds": 300,
           "bonus": 100
         }
       ]
@@ -1707,6 +1711,53 @@
         ]
       },
       "priority": "US-437(核心循环)是最高优先级——当前key->chest->stairs闭环完全不工作。US-436(PRD去重)是meta层面最高优先级——386条pending严重影响开发效率。"
+    },
+    {
+      "round": 55,
+      "date": "2026-04-28",
+      "title": "第55轮设计审查 — Space JustDown竞态根因确认 + endGame代码重复 + 攻击锥形参数",
+      "summary": "第55轮设计审查。深入分析 GameScene.update 执行顺序后发现 Space JustDown 宝箱交互竞态的真正根因：player.update() 先消费 JustDown，GameScene 的 chest check 在之后执行永远为 false。这是 43+ 轮审查中 US-374/383 等多次标记 但从未定位到具体执行顺序的根因。同时发现 endGameInternal/endGame 代码重复、攻击锥形 dot=0.25 与注释 0.5 不一致、ScoreSystem.addTimeBonus 实现需验证、GDD 参数需全面同步验证。本轮新增 5 个 US(US-457~US-461)。 注意：发现 GDD timeBonusThresholds 与代码 ScoreSystem.TIME_BONUS_TIERS 不一致，已同步 GDD 为代码实际值(60s=500, 120s=300, 180s=200, 300s=100)。",
+      "newUserStories": [
+        "US-457",
+        "US-458",
+        "US-459",
+        "US-460",
+        "US-461"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-458: Space JustDown 竞态根因 — player.update 先消费按键导致宝箱交互永远失效",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-457: endGameInternal/endGame 合并消除代码重复",
+          "priority": "P2"
+        },
+        {
+          "area": "combat",
+          "change": "US-459: 攻击锥形 dot 0.25→0.5 收窄至120度",
+          "priority": "P1"
+        },
+        {
+          "area": "systems",
+          "change": "US-460: ScoreSystem.addTimeBonus 实现验证",
+          "priority": "P2"
+        },
+        {
+          "area": "gdd",
+          "change": "US-461: GDD 参数全面同步验证",
+          "priority": "P2"
+        }
+      ],
+      "criticalStatus": {
+        "coreLoopBroken": true,
+        "reason": "checkWinCondition 不检查 key/chest，Chest.open 不产出战利品，Space JustDown 被攻击先消费。key->chest->stairs 闭环完全不工作。",
+        "prdBloat": "461 条 US，395+ pending。大量重复未清理。",
+        "stickyBugs": "takeDamage 返回 void(US-252/330/367/384/388)，HP bar chase 分支(US-134/234/244/279/308/328/375/391/397/434)，GameScene 无 shutdown(US-195/233/270/280/327/390/400/424/435)"
+      },
+      "priority": "US-458(Space竞态根因) 和 US-459(攻击锥形) 是最高优先级"
     }
   ],
   "improvements": {

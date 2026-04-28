@@ -140,6 +140,9 @@ export class GameScene extends Phaser.Scene {
   private chestHintText: Phaser.GameObjects.Text | null = null;
   private chestHintTimer: Phaser.Time.TimerEvent | null = null;
 
+  // Stairs proximity hint (US-387)
+  private stairsHintText: Phaser.GameObjects.Text | null = null;
+
   // Enemy respawn tracking (US-050)
   private roomEnemyMap: Map<number, { slimes: Slime[]; skeletons: Skeleton[] }> = new Map();
   private respawnCooldowns: Map<number, number> = new Map(); // roomIndex → lastRespawnTime
@@ -688,6 +691,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Show hint near stairs if chest not yet opened (US-387) */
+  private updateStairsProximityHint(): void {
+    const stairsPos = this.dungeonMap.getStairsPos();
+    const dx = this.player.x - stairsPos.x;
+    const dy = this.player.y - stairsPos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    const hasOpenedChest = this.chests.some((c) => c.isOpen);
+    const nearStairs = dist < STAIRS_REACH_DISTANCE * 2; // wider radius for hint
+
+    if (nearStairs && !hasOpenedChest) {
+      const msg = "\uD83D\uDD12 \u627E\u5230\u94A5\u5319\u5F00\u542F\u5B9D\u7BB1\u540E\u624D\u80FD\u901A\u5173!";
+      if (!this.stairsHintText || !this.stairsHintText.active) {
+        this.stairsHintText = this.add.text(stairsPos.x, stairsPos.y - 40, msg, {
+          fontSize: "13px",
+          fontFamily: "monospace",
+          color: "#ff8844",
+          stroke: "#000000",
+          strokeThickness: 3,
+          backgroundColor: "#000000bb",
+          padding: { x: 5, y: 2 },
+        });
+        this.stairsHintText.setOrigin(0.5);
+        this.stairsHintText.setDepth(400);
+      }
+    } else {
+      if (this.stairsHintText && this.stairsHintText.active) {
+        this.stairsHintText.destroy();
+      }
+      this.stairsHintText = null;
+    }
+  }
+
   /** Get a random floor position within a corridor segment (world pixels) */
   private getCorridorFloorPos(corridor: { start: { col: number; row: number }; end: { col: number; row: number } }): { x: number; y: number } | null {
     const tiles = this.dungeonMap.getDungeonData().tiles;
@@ -1047,12 +1083,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkWinCondition(): boolean {
-    // Win: reach the stairs in the exit room
+    // Win: reach the stairs in the exit room AND at least one chest opened (US-387)
+    // This ensures the key→chest→stairs game loop is enforced
     const stairsPos = this.dungeonMap.getStairsPos();
     const dx = this.player.x - stairsPos.x;
     const dy = this.player.y - stairsPos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    return dist < STAIRS_REACH_DISTANCE;
+    if (dist >= STAIRS_REACH_DISTANCE) return false;
+
+    // Require at least one chest to be opened
+    const hasOpenedChest = this.chests.some((c) => c.isOpen);
+    return hasOpenedChest;
   }
 
   private checkLoseCondition(): boolean {
@@ -1269,7 +1310,10 @@ export class GameScene extends Phaser.Scene {
     // Check room clear reward (US-040)
     this.checkRoomClear();
 
-    // Check win condition: player reaches the stairs
+    // Stairs proximity hint — remind player to open chest first (US-387)
+    this.updateStairsProximityHint();
+
+    // Check win condition: player reaches the stairs (requires chest opened)
     if (this.checkWinCondition()) {
       this.endGame("win");
     }
