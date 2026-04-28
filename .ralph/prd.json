@@ -901,7 +901,7 @@
           "description": "当前 generateDungeon() 使用 Math.random()，无法复现同一地牢。改为支持传入 seed，使用 seeded RNG。便于：调试特定地牢布局、分享种子挑战、测试稳定性。影响 dungeonData.ts 的 generateDungeon 和所有 Math.random 调用点。",
           "type": "code",
           "priority": 39,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "generateDungeon 接受可选 seed 参数",
@@ -7422,6 +7422,123 @@
             "GDD dropPotionHeal 与代码一致",
             "GDD 新增 playerKnockbackDistance 和 playerKnockbackDuration",
             "所有 balance 参数双向一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-462",
+          "title": "Chest.open() 战利品掉落实现 — 核心游戏循环奖励闭环缺失",
+          "description": "US-387 已修复 checkWinCondition 增加宝箱开启检查，但 Chest.open() 仍然只切换贴图不产出任何物品。玩家拿到钥匙→开宝箱→什么都没发生→走到楼梯通关。探索奖励循环是空壳。Chest.open() 应在开启时生成随机掉落：50%金币(3-5个)、30%药水、20%AttackBoost。掉落物需加入对应数组以支持 Minimap 显示和 overlap 拾取。",
+          "type": "code",
+          "priority": 447,
+          "status": "pending",
+          "dependsOn": [
+            "US-387"
+          ],
+          "acceptanceCriteria": [
+            "Chest.open() 成功时在宝箱位置生成 1-2 个随机掉落物",
+            "金币掉落加入 coins 数组并设置 physics overlap",
+            "药水掉落加入 healthPotions 数组并设置 physics overlap",
+            "AttackBoost 掉落加入 attackBoosts 数组并设置 physics overlap",
+            "掉落物有弹出动画(向上抛出后落地)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-463",
+          "title": "Skeleton chase 分支 return 前补充 hpBar.follow() — 顽固视觉bug第55轮",
+          "description": "Skeleton.update() 追踪模式：当 dist <= TRACK_RANGE 时计算 chase velocity 并 return，跳过底部的 hpBar.follow()。导致 Skeleton 追踪玩家时 HP bar 停留在旧位置不动。Slime 的 hpBar.follow() 在 knockback return 之后不会执行（同理）。修复：在 chase return 前和 knockback return 前都调用 hpBar.follow(this)。",
+          "type": "code",
+          "priority": 448,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 return 前调用 hpBar.follow(this)",
+            "Skeleton knockback 分支 return 前调用 hpBar.follow(this)",
+            "Slime knockback 分支 return 前调用 hpBar.follow(this)",
+            "追踪和击退状态下 HP bar 不脱离 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-464",
+          "title": "Slime/Skeleton onHitWall() 添加 isKnockedBack 守卫 — 击退被碰墙覆盖",
+          "description": "Slime.onHitWall() 无条件调用 pickDirection() 覆盖 knockback velocity。Skeleton.onHitWall() 同理。当敌人被击退撞墙时，onHitWall 立即切换到随机方向，击退效果被吞掉。修复：onHitWall 首先检查 isKnockedBack，如果正在击退则不改变方向。",
+          "type": "code",
+          "priority": 449,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 添加 if(this.isKnockedBack) return 守卫",
+            "Skeleton.onHitWall() 添加 if(this.isKnockedBack) return 守卫",
+            "击退撞墙时速度方向不被覆盖",
+            "击退结束后正常恢复随机移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-465",
+          "title": "Player.takeDamage() 返回 boolean — 基础接口修复（第55轮确认）",
+          "description": "Player.takeDamage() 当前返回 void。6+ 下游功能依赖返回值判断是否实际受伤：hurt 音效播放、ScoreSystem 击杀积分、endGame 触发条件、受伤视觉反馈。改为返回 boolean（true=本次受伤，false=无敌帧/已死亡被跳过）。所有 overlap 回调中的音效/统计逻辑应基于返回值。",
+          "type": "code",
+          "priority": 450,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 返回 boolean: true=受伤, false=未受伤(invincible/dead)",
+            "Slime overlap hurt 音效基于返回值",
+            "Skeleton overlap hurt 音效基于返回值",
+            "SpikeTrap overlap 伤害基于返回值",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-466",
+          "title": "GameScene shutdown() 事件监听器+overlap回调统一清理",
+          "description": "GameScene 注册了 player-attack 和 enemy-death 事件监听器(通过 events.on)、多个 physics overlap 回调、RoomCameraSystem 事件回调，但没有 shutdown() 方法。Phaser scene restart 不保证调用 destroy，导致监听器在多次游戏后累积。同一事件触发多次回调：重复伤害、重复掉落、重复积分。修复：添加 shutdown() 方法，移除所有事件监听器和清理回调引用。",
+          "type": "code",
+          "priority": 451,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 移除 player-attack 和 enemy-death 事件监听",
+            "shutdown 清理 RoomCameraSystem 回调引用",
+            "shutdown 清理 HUD 引用",
+            "多次 scene restart 后无监听器累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-467",
+          "title": "ResultScene 改用 keyboard 事件监听 + 重启返回 TitleScene",
+          "description": "ResultScene 用 events.on(\"update\") 轮询检测按键输入，监听器从不清理导致内存泄漏。且 scene.start(\"GameScene\") 跳过 TitleScene，游戏流程不完整。修复：(1) 改用 input.keyboard.on(\"keydown-SPACE\", callback)；(2) 重启改为 scene.start(\"TitleScene\")； (3) shutdown 中 off 所有键盘监听。",
+          "type": "code",
+          "priority": 452,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 用 input.keyboard.on 替代 events.on update 轮询",
+            "重启跳转 TitleScene 而非 GameScene",
+            "shutdown 中移除键盘事件监听",
+            "游戏流程: TitleScene→GameScene→ResultScene→TitleScene 完整闭环",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-468",
+          "title": "SpikeTrap + 可拾取道具改用 Physics.Arcade.Sprite — overlap 检测可靠性",
+          "description": "SpikeTrap 继承 GameObjects.Sprite，KeyItem/Coin/HealthPotion/AttackBoost 也继承 GameObjects.Sprite，都没有 physics body。当前 overlap 检测依赖 Phaser 内部 fallback 行为（非 physics sprite 的 overlap），行为不确定且可能在 Phaser 版本更新后失效。修复：所有需要 overlap 检测的实体统一改为继承 Physics.Arcade.Sprite。",
+          "type": "code",
+          "priority": 453,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap extends Physics.Arcade.Sprite",
+            "KeyItem extends Physics.Arcade.Sprite",
+            "Coin extends Physics.Arcade.Sprite",
+            "HealthPotion extends Physics.Arcade.Sprite",
+            "AttackBoost extends Physics.Arcade.Sprite",
+            "所有 overlap 检测行为与修改前一致",
             "tsc + build 通过"
           ]
         }

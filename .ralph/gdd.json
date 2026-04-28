@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件变更（US-422 规划中）\n当前: 玩家靠近楼梯即通关。\n规划: 玩家必须开启至少一个宝箱后才能通过楼梯通关，强制 key→chest→stairs 探索闭环。\n\n### 核心循环修复计划（US-431 + US-432）\n当前问题: Chest.open() 不产出战利品，checkWinCondition 不检查宝箱。\n计划: (1) 宝箱开启生成掉落物品（金币/药水/AttackBoost）；(2) checkWinCondition 增加宝箱开启检查。形成 key→chest(loot)→stairs 完整闭环。",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（US-387 已实现）\n当前: 玩家必须在已开启至少一个宝箱的前提下到达楼梯才能通关。\n实现: checkWinCondition 检查 hasOpenedChest = this.chests.some(c => c.isOpen)。\n\n### 核心循环缺口（US-462 待实现）\n问题: Chest.open() 成功后只切换贴图，不生成任何掉落物品。玩家完成 key→chest 探索后获得零奖励。\n计划: Chest.open() 时生成随机战利品（50%金币/30%药水/20%AttackBoost），形成 key→chest(loot)→stairs 完整奖励闭环。",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -1758,6 +1758,70 @@
         "stickyBugs": "takeDamage 返回 void(US-252/330/367/384/388)，HP bar chase 分支(US-134/234/244/279/308/328/375/391/397/434)，GameScene 无 shutdown(US-195/233/270/280/327/390/400/424/435)"
       },
       "priority": "US-458(Space竞态根因) 和 US-459(攻击锥形) 是最高优先级"
+    },
+    {
+      "round": 55,
+      "date": "2026-04-28",
+      "title": "第55轮设计审查 — US-387验证+核心循环奖励缺失+顽固bug第55轮确认",
+      "summary": "验证最近3次提交(US-387/US-407/US-053)后确认：(1) checkWinCondition已正确要求chest opened，但Chest.open()仍不产出战利品，核心循环奖励闭环断裂；(2) Skeleton chase分支return跳过hpBar.follow()是43+轮顽固bug，代码仍未修复；(3) Slime/Skeleton onHitWall()不检查isKnockedBack，击退被碰墙覆盖；(4) Player.takeDamage仍返回void阻塞6+下游；(5) GameScene无shutdown()事件泄漏；(6) ResultScene仍用update轮询+直接重启GameScene；(7) SpikeTrap/可拾取道具仍继承GameObjects.Sprite无physics body。新增7个US(US-462~US-468)。",
+      "newUserStories": [
+        "US-462",
+        "US-463",
+        "US-464",
+        "US-465",
+        "US-466",
+        "US-467",
+        "US-468"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-462: Chest.open()战利品掉落实现 — 奖励闭环",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-463: Skeleton/Slime HP bar chase/knockback跟随 — 55轮顽固bug",
+          "priority": "P0"
+        },
+        {
+          "area": "combat",
+          "change": "US-464: onHitWall isKnockedBack守卫 — 击退不被碰墙覆盖",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-465: takeDamage返回boolean — 基础接口第55轮确认",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-466: GameScene shutdown()事件清理",
+          "priority": "P1"
+        },
+        {
+          "area": "flow",
+          "change": "US-467: ResultScene keyboard事件+TitleScene重启",
+          "priority": "P1"
+        },
+        {
+          "area": "physics",
+          "change": "US-468: Physics.Arcade.Sprite统一 — overlap可靠性",
+          "priority": "P1"
+        }
+      ],
+      "fixedInReview": [
+        "US-387: checkWinCondition增加chest opened检查 — 代码确认已修复(36ef5e4)",
+        "US-407: Skeleton die()清理delayedCall — 代码确认已修复(fdda61b)",
+        "US-053: ScoreSystem房间清除+时间奖励+ResultScene明细 — 代码确认已修复(181ddfd)"
+      ],
+      "criticalStatus": {
+        "coreLoopPartiallyFixed": true,
+        "reason": "checkWinCondition已要求chest opened，但Chest.open()不产出战利品。key→chest(空壳)→stairs 循环 technically works but rewards nothing。US-462是完成核心循环的最后一步。",
+        "stickyBugs55": "以下问题55轮反复标记但代码从未修复：takeDamage返回void(9+个重复US), HP bar chase分支(11+个重复US), onHitWall knockback保护(14+个涉及), GameScene shutdown(8+个重复US), ResultScene流程(6+个重复US)",
+        "prdBloat": "462条US，估计仅~90条独立有效。PRD去重(US-436/412/433)仍是最高meta优先级。"
+      },
+      "priority": "P0: US-462(Chest奖励) > US-463(HP bar) > US-464(knockback守卫) > US-465(takeDamage)。P1: US-466(shutdown) > US-467(ResultScene) > US-468(Physics)"
     }
   ],
   "improvements": {
