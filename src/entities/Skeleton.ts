@@ -20,6 +20,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private knockbackTimer: number = 0;
   private hpBar!: EnemyHpBar;
   private speedMultiplier: number = 1.0;
+  private _clearTintTimer: Phaser.Time.TimerEvent | null = null;
 
   get hp(): number {
     return this._hp;
@@ -77,7 +78,13 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
     this._hp = Math.max(0, this._hp - amount);
     // Flash white on hit
     this.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => {
+    // Cancel any previous clear-tint timer
+    if (this._clearTintTimer) {
+      this._clearTintTimer.remove();
+      this._clearTintTimer = null;
+    }
+    this._clearTintTimer = this.scene.time.delayedCall(100, () => {
+      this._clearTintTimer = null;
       if (this.active) this.clearTint();
     });
 
@@ -101,6 +108,13 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   }
 
   private die(): void {
+    // Cancel pending clear-tint timer to prevent callback on destroyed object
+    if (this._clearTintTimer) {
+      this._clearTintTimer.remove();
+      this._clearTintTimer = null;
+    }
+    // Stop all tweens to prevent post-destroy callbacks
+    this.scene.tweens.killTweensOf(this);
     if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
 

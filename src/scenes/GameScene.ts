@@ -9,7 +9,7 @@ import { HealthPotion } from "@/entities/HealthPotion";
 import { AttackBoost } from "@/entities/AttackBoost";
 import { SpikeTrap } from "@/entities/SpikeTrap";
 import { DungeonMap } from "@/map";
-import { isWall } from "@/map/dungeonData";
+import { isWall, createRng } from "@/map/dungeonData";
 import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
@@ -120,6 +120,14 @@ export class GameScene extends Phaser.Scene {
   private slimeCount = BASE_SLIME_COUNT;
   private skeletonSpeedMultiplier = 1.0;
 
+  // Seed for deterministic dungeon generation (US-054)
+  private seed: number | undefined;
+
+  /** Set the dungeon seed for reproducible generation (US-054) */
+  setSeed(seed: number | undefined): void {
+    this.seed = seed;
+  }
+
   // Game timer (US-035)
   private startTime = 0;
 
@@ -162,7 +170,7 @@ export class GameScene extends Phaser.Scene {
     );
     // --- End difficulty scaling ---
 
-    this.dungeonMap = new DungeonMap(this);
+    this.dungeonMap = new DungeonMap(this, this.seed);
 
     const worldW = this.dungeonMap.getWorldWidth();
     const worldH = this.dungeonMap.getWorldHeight();

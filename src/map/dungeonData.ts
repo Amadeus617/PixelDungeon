@@ -56,11 +56,38 @@ export function isWall(tileIndex: number): boolean {
   );
 }
 
+// ─── Seeded PRNG (mulberry32) ───────────────────────────────────────────────
+
+/**
+ * Create a seeded pseudo-random number generator.
+ * Returns a function that produces values in [0, 1), identical to Math.random() API.
+ * Uses the mulberry32 algorithm — fast, 32-bit, good distribution.
+ */
+export function createRng(seed: number): () => number {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Hash a string into a 32-bit integer for seed derivation */
+export function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + ch) | 0;
+  }
+  return hash;
+}
+
 /** Floor tile indices for random selection */
 const FLOOR_TILES = [T.FLOOR_1, T.FLOOR_2, T.FLOOR_3, T.FLOOR_4, T.FLOOR_MOSS, T.FLOOR_FILL];
 
-function pickFloor(): number {
-  return FLOOR_TILES[Math.floor(Math.random() * FLOOR_TILES.length)];
+function pickFloor(rng: () => number): number {
+  return FLOOR_TILES[Math.floor(rng() * FLOOR_TILES.length)];
 }
 
 // ─── Room Generation ────────────────────────────────────────────────────────
@@ -225,7 +252,7 @@ function buildCorridor(
 }
 
 /** Paint a room onto the tile grid */
-function paintRoom(tiles: number[][], room: RoomDef): void {
+function paintRoom(tiles: number[][], room: RoomDef, rng: () => number): void {
   for (let r = 0; r < room.height; r++) {
     for (let c = 0; c < room.width; c++) {
       const gridRow = room.row + r;
@@ -250,7 +277,7 @@ function paintRoom(tiles: number[][], room: RoomDef): void {
       } else if (c === room.width - 1) {
         tiles[gridRow][gridCol] = T.WALL_RIGHT;
       } else {
-        tiles[gridRow][gridCol] = pickFloor();
+        tiles[gridRow][gridCol] = pickFloor(rng);
       }
     }
   }
@@ -277,12 +304,12 @@ function paintCorridors(
     // Carve L-shaped corridor
     if (rng() > 0.5) {
       // Horizontal first, then vertical
-      carveHorizontal(tiles, fromCCol, toCCol, fromCRow, halfW);
-      carveVertical(tiles, fromCRow, toCRow, toCCol, halfW);
+      carveHorizontal(tiles, fromCCol, toCCol, fromCRow, halfW, rng);
+      carveVertical(tiles, fromCRow, toCRow, toCCol, halfW, rng);
     } else {
       // Vertical first, then horizontal
-      carveVertical(tiles, fromCRow, toCRow, fromCCol, halfW);
-      carveHorizontal(tiles, fromCCol, toCCol, toCRow, halfW);
+      carveVertical(tiles, fromCRow, toCRow, fromCCol, halfW, rng);
+      carveHorizontal(tiles, fromCCol, toCCol, toCRow, halfW, rng);
     }
 
     corridors.push({
@@ -396,7 +423,8 @@ function carveHorizontal(
   fromCol: number,
   toCol: number,
   row: number,
-  halfWidth: number
+  halfWidth: number,
+  rng: () => number
 ): void {
   const startCol = Math.min(fromCol, toCol);
   const endCol = Math.max(fromCol, toCol);
@@ -405,7 +433,7 @@ function carveHorizontal(
     for (let dr = -halfWidth; dr <= halfWidth; dr++) {
       const r = row + dr;
       if (r >= 0 && r < tiles.length && c >= 0 && c < tiles[0].length) {
-        tiles[r][c] = pickFloor();
+        tiles[r][c] = pickFloor(rng);
       }
     }
   }
@@ -417,7 +445,8 @@ function carveVertical(
   fromRow: number,
   toRow: number,
   col: number,
-  halfWidth: number
+  halfWidth: number,
+  rng: () => number
 ): void {
   const startRow = Math.min(fromRow, toRow);
   const endRow = Math.max(fromRow, toRow);
@@ -426,7 +455,7 @@ function carveVertical(
     for (let dc = -halfWidth; dc <= halfWidth; dc++) {
       const c = col + dc;
       if (r >= 0 && r < tiles.length && c >= 0 && c < tiles[0].length) {
-        tiles[r][c] = pickFloor();
+        tiles[r][c] = pickFloor(rng);
       }
     }
   }
@@ -436,8 +465,13 @@ function carveVertical(
  * Generate a complete multi-room dungeon tilemap.
  * Returns the full dungeon data including rooms, corridors, and entrance/exit.
  */
-export function generateDungeon(): DungeonData {
-  const rng = Math.random;
+/**
+ * Generate a complete multi-room dungeon tilemap.
+ * Returns the full dungeon data including rooms, corridors, and entrance/exit.
+ * @param seed Optional seed for deterministic generation. Pass undefined for random behavior.
+ */
+export function generateDungeon(seed?: number): DungeonData {
+  const rng = seed !== undefined ? createRng(seed) : Math.random;
   const roomCount = ROOM_COUNT_MIN + Math.floor(rng() * (ROOM_COUNT_MAX - ROOM_COUNT_MIN + 1));
 
   // Initialize grid with walls
@@ -472,7 +506,7 @@ export function generateDungeon(): DungeonData {
 
   // Paint rooms
   for (const room of rooms) {
-    paintRoom(tiles, room);
+    paintRoom(tiles, room, rng);
   }
 
   // Paint corridors between sequential rooms
@@ -509,14 +543,16 @@ export function generateDungeon(): DungeonData {
 
 /**
  * Get a random floor position within a specific room.
+ * @param rng Optional RNG function. Defaults to Math.random for backward compatibility.
  */
 export function getRandomFloorInRoom(
   tiles: number[][],
-  room: { col: number; row: number; width: number; height: number }
+  room: { col: number; row: number; width: number; height: number },
+  rng: () => number = Math.random
 ): { col: number; row: number } {
   for (let attempt = 0; attempt < 1000; attempt++) {
-    const col = room.col + 1 + Math.floor(Math.random() * (room.width - 2));
-    const row = room.row + 1 + Math.floor(Math.random() * (room.height - 2));
+    const col = room.col + 1 + Math.floor(rng() * (room.width - 2));
+    const row = room.row + 1 + Math.floor(rng() * (room.height - 2));
     const tile = tiles[row]?.[col];
     if (tile !== undefined && !isWall(tile)) {
       return { col, row };
@@ -535,7 +571,7 @@ export function getRandomFloorInRoom(
  * Generate a 16x16 dungeon room tilemap.
  * Returns a flat array of tile indices (row-major).
  */
-export function generateRoom(): number[][] {
+export function generateRoom(rng: () => number = Math.random): number[][] {
   const map: number[][] = [];
 
   // Row 0: top wall
@@ -545,7 +581,7 @@ export function generateRoom(): number[][] {
   for (let r = 1; r <= 14; r++) {
     const row: number[] = [T.WALL_LEFT];
     for (let c = 1; c <= 14; c++) {
-      row.push(pickFloor());
+      row.push(pickFloor(rng));
     }
     row.push(T.WALL_RIGHT);
     map.push(row);

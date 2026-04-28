@@ -1,17 +1,19 @@
 import Phaser from "phaser";
-import { generateDungeon, isWall, type DungeonData, getRandomFloorInRoom } from "./dungeonData";
+import { generateDungeon, isWall, createRng, type DungeonData, getRandomFloorInRoom } from "./dungeonData";
 
 export class DungeonMap {
   readonly TILE_SIZE = 16;
   private dungeonData!: DungeonData;
+  private rng!: () => number;
 
   private tilemap!: Phaser.Tilemaps.Tilemap;
   private wallLayer!: Phaser.Tilemaps.TilemapLayer;
   private collideIndices: number[] = [];
   private scale: number = 3;
 
-  constructor(scene: Phaser.Scene) {
-    this.dungeonData = generateDungeon();
+  constructor(scene: Phaser.Scene, seed?: number) {
+    this.rng = seed !== undefined ? createRng(seed) : Math.random;
+    this.dungeonData = generateDungeon(seed);
     this.buildCollideIndices();
 
     // Create tilemap programmatically
@@ -90,14 +92,14 @@ export class DungeonMap {
   /** Get a random floor tile center position in world pixels (any room) */
   getRandomFloorPos(scene: Phaser.Scene): { x: number; y: number } {
     const room = this.dungeonData.rooms[
-      Math.floor(Math.random() * this.dungeonData.rooms.length)
+      Math.floor(this.rng() * this.dungeonData.rooms.length)
     ];
     return this.getRandomFloorPosInRoom(room);
   }
 
   /** Get a random floor position in a specific room (world pixels) */
   getRandomFloorPosInRoom(room: { col: number; row: number; width: number; height: number }): { x: number; y: number } {
-    const pos = getRandomFloorInRoom(this.dungeonData.tiles, room);
+    const pos = getRandomFloorInRoom(this.dungeonData.tiles, room, this.rng);
     return {
       x: (pos.col * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,
       y: (pos.row * this.TILE_SIZE + this.TILE_SIZE / 2) * this.scale,

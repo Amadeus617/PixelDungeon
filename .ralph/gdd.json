@@ -30,7 +30,7 @@
     "enemyContactDamage": 1,
     "coinCount": 5,
     "healthPotionCount": 3,
-    "healthPotionHeal": 1,
+    "healthPotionHeal": 3,
     "attackBoostCount": 2,
     "coinPoints": 10,
     "enemyKillPoints": 50,
@@ -171,6 +171,66 @@
         "2": "runCount 6-8: 敌人 HP 1.5x",
         "3": "runCount 9+: +1 skeleton + HP 1.5x"
       }
+    },
+    "dropPotionHeal": 2,
+    "lowHpWarning": {
+      "triggerThreshold": 3,
+      "criticalThreshold": 1,
+      "normalPulsePeriodMs": 800,
+      "criticalPulsePeriodMs": 400,
+      "overlayAlpha": 0.3,
+      "note": "US-447: 屏幕边缘红色脉动遮罩参数"
+    },
+    "healVfx": {
+      "tintColor": "0x00ff00",
+      "tintDurationMs": 200,
+      "floatTextDurationMs": 500,
+      "floatTextYOffset": -20,
+      "note": "US-448: 回血绿色闪烁 + 浮动数字参数"
+    },
+    "collectParticles": {
+      "count": "6-8",
+      "durationMs": 300,
+      "spreadRadius": 15,
+      "colors": {
+        "coin": "0xffd700",
+        "potion": "0x00ff00",
+        "key": "0xffff00",
+        "attackBoost": "0x4488ff"
+      },
+      "note": "US-449: 拾取物品粒子爆发参数"
+    },
+    "playerHurtCameraShake": {
+      "durationMs": 100,
+      "intensity": 0.003,
+      "note": "US-451: 玩家受伤镜头震动"
+    },
+    "enemyDeathParticles": {
+      "count": "8-12",
+      "durationMs": 400,
+      "spreadRadius": 20,
+      "colors": {
+        "slime": "0x44cc44",
+        "skeleton": "0xdddddd"
+      },
+      "note": "US-452: 敌人死亡粒子消散参数"
+    },
+    "volumeControl": {
+      "muteToggleKey": "M",
+      "localStorageKey": "pixeldungeon_muted",
+      "note": "US-453: M 键静音切换"
+    },
+    "coinMagnet": {
+      "attractRange": 30,
+      "attractSpeed": 20,
+      "note": "US-455: 金币磁吸效果，仅对金币生效"
+    },
+    "roomEnterBanner": {
+      "displayDurationMs": 800,
+      "fadeOutMs": 300,
+      "showRoomType": true,
+      "showEnemyCount": true,
+      "note": "US-454: 房间进入信息横幅"
     }
   },
   "designLog": [
@@ -1556,6 +1616,97 @@
       ],
       "balanceChanges": [],
       "priority": "P0: US-437(核心循环) > US-438(基础接口) > US-436(PRD去重) > US-439(生命周期) > US-440(敌人) > US-441(难度)"
+    },
+    {
+      "round": 53,
+      "date": "2026-04-28",
+      "title": "第53轮设计审查 — Slime knockback根因+死亡帧时序边界",
+      "summary": "在441条US基础上进行第53轮代码审查。本轮刻意不重复添加已有US覆盖的顽固问题（takeDamage返回值、HP bar跟随、checkWinCondition key检查等），仅新增2个52轮审查首次发现的独立改进点：(1) Slime onHitWall()在knockback期间无条件覆盖velocity是击退效果消失的根因——之前14个US标记了knockback相关问题但从未定位到onHitWall这个具体代码路径；(2) GameScene update中checkRoomClear在checkLoseCondition之前执行，导致玩家最后一帧死亡时可能同时触发房间清除奖励弹窗——这是一个时序边界问题。",
+      "newUserStories": [
+        "US-442",
+        "US-443"
+      ],
+      "changes": [
+        {
+          "area": "entities/Slime",
+          "change": "US-442: onHitWall添加isKnockedBack守卫 — 击退碰墙不覆盖velocity",
+          "priority": "P0",
+          "rationale": "52轮审查中14个US涉及knockback问题但从未定位到onHitWall这个根因代码路径"
+        },
+        {
+          "area": "GameScene/lifecycle",
+          "change": "US-443: checkRoomClear gameOver防护 — 死亡帧不应触发清除奖励",
+          "priority": "P1",
+          "rationale": "checkRoomClear在checkLoseCondition之前执行，最后一帧可能同时死亡+清除"
+        }
+      ],
+      "criticalStatus": {
+        "coreLoopBroken": true,
+        "reason": "checkWinCondition不检查key/chest，Chest.open不产出战利品，Space JustDown被攻击先消费。key->chest->stairs闭环完全不工作。US-437/431/432/374标记但代码从未修复。",
+        "prdBloat": "443条US，估计仅80条独立有效。takeDamage返回值9+个重复US，HP bar 11+个，checkWinCondition 8+个。US-436去重任务仍pending。",
+        "stickyBugs": "以下问题43+轮反复标记但代码从未修复：takeDamage返回void(US-252/330/367/384/388)，HP bar chase分支(US-134/234/244/279/308/328/375/391/397/434)，GameScene shutdown(US-195/233/270/280/327/390/400/424/435)"
+      },
+      "priority": "P0: US-437(核心循环修复) > US-442(knockback根因) > US-436(PRD去重)"
+    },
+    {
+      "round": 54,
+      "date": "2026-04-28",
+      "title": "第54轮设计审查 — GDD参数同步+PRD健康度诊断+实施路线图",
+      "summary": "第54轮设计审查。审查446条US（60 done/386 pending）、25个源文件、GDD参数。发现3个改进机会：(1) GDD healthPotionHeal=1与代码HEALTH_POTION_HEAL=3不一致（US-037已实现但GDD未同步）；(2) DROP_POTION_HEAL=2掉落药水参数在GDD中完全缺失；(3) PRD完成率仅13.4%（60/446），386条pending中大量重复需实施路线图。新增3个US(US-444~US-446)。同时修正GDD参数。",
+      "newUserStories": [
+        "US-444",
+        "US-445",
+        "US-446"
+      ],
+      "changes": [
+        {
+          "area": "balance/gdd-sync",
+          "change": "healthPotionHeal: 1→3 (同步US-037代码实现)",
+          "priority": "P2"
+        },
+        {
+          "area": "balance/gdd-sync",
+          "change": "新增 dropPotionHeal: 2 (记录代码中的掉落药水回复量)",
+          "priority": "P3"
+        }
+      ],
+      "balanceChanges": [
+        {
+          "param": "healthPotionHeal",
+          "from": 1,
+          "to": 3,
+          "reason": "US-037已将代码中HEALTH_POTION_HEAL从1改为3，GDD未同步"
+        },
+        {
+          "param": "dropPotionHeal",
+          "from": "N/A",
+          "to": 2,
+          "reason": "代码中DROP_POTION_HEAL=2从未记录在GDD中"
+        }
+      ],
+      "prdHealthDiagnosis": {
+        "totalUS": 446,
+        "done": 60,
+        "pending": 386,
+        "completionRate": "13.4%",
+        "duplicateEstimate": "~300条重复（实际独立US约60-80条）",
+        "topDuplicates": {
+          "takeDamage返回值": "9+条重复 (US-117/171/200/252/330/367/384/388/438)",
+          "HP_bar跟随": "11+条重复 (US-136/234/244/279/308/328/375/391/397/434)",
+          "checkWinCondition_key": "8+条重复 (US-307/318/372/381/387/401/405/422/432)",
+          "GameScene_shutdown": "8+条重复 (US-195/233/270/280/327/390/400/424/435)",
+          "ResultScene流程": "7+条重复 (US-127/175/199/208/246/332/370/393)"
+        },
+        "criticalPath": [
+          "P0: US-437 核心循环一次性修复 (checkWinCondition key + Chest奖励 + Space时序)",
+          "P0: US-438 Player基础接口统一 (takeDamage boolean + knockback + dash碰撞)",
+          "P1: US-439 场景生命周期 (shutdown + ResultScene流程 + 事件清理)",
+          "P1: US-440 敌人系统 (HP bar跟随 + knockback保护 + contact冷却)",
+          "P2: US-441 难度曲线 (roomCount + runCount + Slime缩放)",
+          "meta: US-436 PRD去重 (386→≤60条权威US)"
+        ]
+      },
+      "priority": "US-437(核心循环)是最高优先级——当前key->chest->stairs闭环完全不工作。US-436(PRD去重)是meta层面最高优先级——386条pending严重影响开发效率。"
     }
   ],
   "improvements": {
@@ -1807,7 +1958,12 @@
       "endGame后敌人仍在思考：GameScene.endGame()只调用 this.physics.pause()，不停止scene update。每个Slime/Skeleton的update(delta)继续执行——dirTimer递增、pickDirection调用setVelocity（被physics.pause吞掉所以无效果）、knockback timer到期触发pickDirection。虽然不影响视觉，但：(1)CPU浪费在无用计算上；(2)如果未来enemy update添加了副作用（如音效、粒子），会在游戏结束后触发(US-106)",
       "敌人永远不静止：Slime构造函数调用pickDirection()开始移动，之后每1.5-3.5秒换方向，但从不进入idle。Skeleton在wander模式下同理。BootScene注册了slime-idle(帧0-1,4fps)和skeleton-idle(帧0-1,4fps)但从未使用。自然的敌人行为应包含偶尔停顿——20%概率在换向时进入1-2秒idle，给玩家观察和规划的安全窗口(US-107)",
       "Coin spawn位置是唯一不跳过entrance的道具：HealthPotion用 `(i+1)%length`，AttackBoost用 `(i+1)%length`，Slime用 `1+(i%(length-1))`，Skeleton用 `2+(i%max(1,length-2))`——只有Coin用 `i%length` 允许i=0时落在entrance。玩家出生就看到金币减弱了探索驱动力(US-108)"
-    ]
+    ],
+    "round53Findings": {
+      "knockbackRootCause": "Slime.onHitWall()无条件setVelocity覆盖knockback velocity是击退效果消失的代码根因。之前14个US（US-099/172/207/228/368/395等）描述了症状但未定位到此代码路径。",
+      "deathFrameTiming": "GameScene.update()执行顺序：enemies update -> player update -> spikeTraps update -> checkRoomClear -> checkLoseCondition。玩家在enemies update中被击杀时gameOver尚未设置为true，checkRoomClear正常执行可能触发清除奖励。",
+      "recommendation": "建议按以下优先级修复：(1) US-437核心循环三重修复(checkWinCondition+Chest.open+Space时序)；(2) US-442 Slime onHitWall knockback保护；(3) US-436 PRD去重443->80条。顽固bug建议打包为单一PR一次性修复而非继续追加US。"
+    }
   },
   "balanceAnalysis": {
     "date": "2026-04-27",
@@ -2845,5 +3001,26 @@
       "rootCause": "审查轮次不断发现同一未修复问题并创建新US而非提升旧US优先级，导致PRD膨胀",
       "recommendation": "执行US-436去重后，future审查应先搜索已有US再创建新条目"
     }
-  }
+  },
+  "_reviewHistory": [
+    {
+      "date": "2026-04-28",
+      "type": "game-design-review",
+      "newUserStories": [
+        "US-447",
+        "US-448",
+        "US-449",
+        "US-450",
+        "US-451",
+        "US-452",
+        "US-453",
+        "US-454",
+        "US-455",
+        "US-456"
+      ],
+      "summary": "第50轮审查。聚焦打击感(juice)和体验优化：低血量警告、回血/拾取/死亡粒子特效、镜头震动、暂停菜单完善、音量控制、金币磁吸、房间信息横幅、ResultScene难度展示。",
+      "totalPendingBefore": 386,
+      "newUSCount": 10
+    }
+  ]
 }

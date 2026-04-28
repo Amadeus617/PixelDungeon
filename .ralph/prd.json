@@ -6543,7 +6543,7 @@
           "description": "Slime die() 已修复（US-299）清理 _clearTintTimer 和 tweens，但 Skeleton.die() 直接 destroy() 不清理 takeDamage 中的 delayedCall。当 Skeleton 在闪白期间被击杀时，destroyed sprite 的 clearTint 回调触发 TypeError。应同步 Slime 的清理逻辑。",
           "type": "bug",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Skeleton.die() 清理 _clearTintTimer（如果有）",
@@ -7103,6 +7103,251 @@
             "tsc + build 通过"
           ],
           "id": "US-441"
+        },
+        {
+          "id": "US-442",
+          "title": "Slime onHitWall knockback保护 — 添加isKnockedBack守卫",
+          "description": "Slime.onHitWall()在knockback期间无条件覆盖velocity，导致击退效果被立即取消。解决方案：onHitWall开头添加if(this.isKnockedBack) return; 保护。与US-395/172同类但提供精确修复位置和逻辑。这是52轮审查中反复标记但代码从未修复的运行时bug。",
+          "type": "code",
+          "priority": 427,
+          "status": "pending",
+          "dependsOn": [
+            "US-252"
+          ],
+          "acceptanceCriteria": [
+            "Slime.onHitWall()开头添加isKnockedBack守卫return",
+            "knockback期间碰墙不覆盖击退velocity",
+            "击退结束后碰墙正常切换随机方向",
+            "非knockback碰墙行为不变",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-443",
+          "title": "GameScene endGame帧checkRoomClear防护 — 死亡不应触发房间清除",
+          "description": "GameScene.update()中checkRoomClear在checkLoseCondition之前执行。玩家在最后一帧击杀最后一个敌人时，死亡和房间清除可能同时触发，导致：(1)死亡瞬间弹出房间清除浮动文字；(2)死亡后积分仍被添加。解决方案：checkRoomClear开头添加if(this.gameOver) return;或在checkLoseCondition后短路后续逻辑。这是52轮审查首次发现的时序边界问题。",
+          "type": "code",
+          "priority": 428,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkRoomClear检查gameOver标志",
+            "gameOver=true时跳过房间清除检测",
+            "正常游戏中房间清除逻辑不受影响",
+            "最后一帧击杀不触发清除奖励弹窗",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-444",
+          "title": "GDD healthPotionHeal 参数同步 — GDD=1 但代码实际=3",
+          "description": "gdd.json 中 healthPotionHeal 仍为 1，但 GameScene.ts 中 HEALTH_POTION_HEAL=3 (US-037已实现)。GDD 文档与代码不一致，影响所有基于 GDD 的平衡决策。应将 gdd.json healthPotionHeal 更新为 3。",
+          "type": "design",
+          "priority": 429,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gdd.json healthPotionHeal 更新为 3",
+            "HealthPotion.ts 注释中 heal=1 修正为 3",
+            "DROP_POTION_HEAL=2 也同步到 GDD",
+            "US-037 标记为 done（如尚未标记）"
+          ]
+        },
+        {
+          "id": "US-445",
+          "title": "GDD 添加掉落药水参数 — spawnDropPotion heal=2 未记录",
+          "description": "GameScene 中 DROP_POTION_HEAL=2 是独立的掉落药水回复量，与地图药水 HEAL=3 不同。GDD 中无此参数记录。掉落药水与地图药水使用相同 sprite 且无视觉区分（US-355/421 pending），但 GDD 至少应记录参数差异。",
+          "type": "design",
+          "priority": 430,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "gdd.json 添加 dropPotionHeal: 2 参数",
+            "gdd.json 添加 healthPotionHeal: 3 参数（同步US-037）",
+            "掉落药水与地图药水参数关系在 GDD 中有说明"
+          ]
+        },
+        {
+          "id": "US-446",
+          "title": "PRD 顽固问题实施路线图 — 388 条 pending US 的优先级排序",
+          "description": "443 条 US 中仅 55 条 done (12.4%)。388 条 pending 中大量重复（takeDamage 9+条、HP bar 11+条、checkWinCondition 8+条、shutdown 8+条）。去重后估计仅 60-80 条独立有效 US。需制定实施路线图：(1) P0 核心循环修复(checkWinCondition key+chest奖励+Space时序)；(2) P0 基础接口(takeDamage boolean返回值)；(3) P1 稳定性(shutdown+事件清理)；(4) P1 视觉bug(HP bar跟随)；(5) P2 平衡性(难度曲线完整化)。",
+          "type": "design",
+          "priority": 431,
+          "status": "pending",
+          "dependsOn": [
+            "US-436",
+            "US-437"
+          ],
+          "acceptanceCriteria": [
+            "生成优先级排序文档/飞书文档",
+            "Top 10 P0 US 明确标注并排期",
+            "重复 US 列表和合并关系文档化",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-447",
+          "title": "低血量视觉警告 — HUD 红色边框脉动",
+          "description": "当玩家 HP ≤ 3 时，HUD 显示红色半透明边框/血迹遮罩，以 sin 波脉动提示危险。HP ≤ 1 时脉动频率加快。让玩家不依赖 HUD 条即可感知危险。\n\n实现方式：GameScene.create() 添加固定 UI 层 rectangle overlay (scrollFactor=0, depth=999)，alpha 随 HP 和 sin(time) 计算。在 update() 中检查 player.hp。",
+          "type": "code",
+          "priority": 432,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HP ≤ 3 时屏幕边缘显示红色半透明遮罩",
+            "HP ≤ 1 时脉动频率明显加快（周期 400ms vs 800ms）",
+            "HP > 3 时遮罩完全消失",
+            "overlay 不阻挡游戏交互（input enabled=false）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-448",
+          "title": "回血视觉反馈 — 绿色闪烁 + 浮动数字",
+          "description": "玩家使用药水回血时缺少视觉反馈。应添加：(1) 玩家 sprite 短暂绿色 tint（200ms）；(2) 玩家头顶浮动显示 \"+N\"（N=实际回血量），向上飘出 500ms 后淡出消失。\n\n实现：Player.ts 添加 healEffect() 方法（setTint(0x00ff00) + setTimeout clearTint），GameScene 在 heal() 调用后创建浮动文字 tween。",
+          "type": "code",
+          "priority": 433,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "回血时玩家闪烁绿色 200ms",
+            "玩家头顶显示浮动 \"+N\" 文字（N 为实际回血量）",
+            "文字向上飘出 500ms 后淡出",
+            "满血时不触发效果",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-449",
+          "title": "拾取物收集粒子效果 — 金币/药水拾取微粒爆发",
+          "description": "拾取金币、药水、钥匙时缺少收集反馈。应在拾取位置生成 6-8 个小圆形粒子，颜色匹配物品（金币=金色，药水=绿色，钥匙=黄色），向外扩散 300ms 后淡出。\n\n实现：BootScene 预生成 1x1 粒子纹理。GameScene 添加 spawnCollectParticles(x, y, color) 方法，复用于所有拾取物 overlap 回调。",
+          "type": "code",
+          "priority": 434,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "金币拾取产生 6-8 个金色粒子",
+            "药水拾取产生 6-8 个绿色粒子",
+            "钥匙拾取产生 6-8 个黄色粒子",
+            "粒子从拾取位置向外扩散 300ms 后消失",
+            "AttackBoost 拾取同理产生蓝色粒子",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-450",
+          "title": "暂停菜单功能完善 — 重新开始 + 返回标题按钮",
+          "description": "当前暂停界面仅显示\"已暂停\"文字和\"按 ESC 继续\"提示，缺少功能性按钮。应添加：(1) 按 R 重新开始（重新进入 GameScene）；(2) 按 Q 返回标题画面（TitleScene）。按钮文字以像素风格渲染在遮罩上。\n\n实现：扩展 createPauseOverlay()，添加两个 Text 对象。在 togglePause() 中监听 R/Q 键。重置 runCount 不变（仅重启本局）。",
+          "type": "code",
+          "priority": 435,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停时显示\"按 R 重新开始\"和\"按 Q 返回标题\"选项",
+            "按 R 正确重启 GameScene（无残留状态）",
+            "按 Q 返回 TitleScene",
+            "GameScene restart 时正确清理旧场景资源",
+            "ESC 仍然正常暂停/取消暂停",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-451",
+          "title": "玩家受伤镜头震动 — camera shake 增强打击感",
+          "description": "玩家受伤时缺少镜头反馈。应在 takeDamage 触发时添加轻微 camera shake（duration: 100ms, intensity: 0.003），让受击更有冲击感。\n\n注意：已有 US-360 规划了 cameraShake 参数（50ms, 0.003），但仅存在于 GDD 未实现。本 US 直接实现受伤场景的 camera.shake() 调用。",
+          "type": "code",
+          "priority": 436,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家受伤时镜头轻微震动 100ms",
+            "震动强度 0.003（Phaser cam.shake 参数）",
+            "不与无敌帧闪烁冲突",
+            "死亡时也可触发（endGameInternal 之前）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-452",
+          "title": "敌人死亡粒子消散 — 击杀视觉增强",
+          "description": "敌人死亡时仅有简单销毁，缺少视觉反馈。应在敌人位置生成 8-12 个与敌人同色的小粒子（Slime=绿色, Skeleton=白色），向四周扩散 400ms 后淡出。与现有 SoundManager.playEnemyDeath() 配合形成完整反馈。\n\n实现：在 GameScene handleEnemyDeathDrop 事件中，先获取敌人位置和类型，再 spawnDeathParticles(x, y, color)。",
+          "type": "code",
+          "priority": 437,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 死亡产生 8-12 个绿色粒子",
+            "Skeleton 死亡产生 8-12 个白色粒子",
+            "粒子向四周扩散 400ms 后淡出消失",
+            "粒子效果与死亡音效同时触发",
+            "不影响 enemy death drop 逻辑",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-453",
+          "title": "音量控制 — M 键静音切换 + 记忆设置",
+          "description": "当前无音量控制，玩家无法关闭音效。应添加：按 M 键切换静音/非静音状态，存储到 localStorage。TitleScene 右下角显示静音状态图标（🔇/🔊）。暂停菜单也提示 M 键静音。\n\n实现：localStorage key=pixeldungeon_muted (boolean)。SoundManager 添加 isMuted 属性，所有 play*() 方法开头检查。GameScene 监听 M 键。",
+          "type": "code",
+          "priority": 438,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "按 M 键切换静音/非静音",
+            "静音状态持久化到 localStorage",
+            "TitleScene 显示静音状态图标",
+            "暂停菜单提示 M 键静音",
+            "SoundManager 所有 play 方法遵守静音状态",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-454",
+          "title": "房间进入过渡横幅 — 进入新房间时显示房间名称",
+          "description": "进入新房间时缺少过渡提示。应在房间切换时（RoomCameraSystem 检测到房间变化），在屏幕顶部显示半透明横幅，显示房间编号/类型（如\"战斗房间 2/4\"），800ms 后淡出。\n\n注意：HUD 已有 roomNameOverlay 功能（US-039 实现），但仅显示房间名 2 秒。本 US 增强为显示房间类型标签和探索进度（如\"战斗房间 2/4 · 剩余敌人: 4\"）。",
+          "type": "code",
+          "priority": 439,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "进入新房间时显示房间信息横幅",
+            "横幅显示房间类型（入口/战斗/出口）和编号",
+            "横幅 800ms 后平滑淡出",
+            "不与房间切换相机动画冲突",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-455",
+          "title": "金币磁吸效果 — 靠近时轻微吸引拾取",
+          "description": "金币拾取范围较小，玩家经常需要精确对准。应添加：当玩家距离金币 < 30px 时，金币以轻微速度（20px/s）向玩家移动，降低拾取难度但不破坏手感。\n\n实现：Coin.ts 添加 update(playerX, playerY) 方法，在 GameScene.update() 中遍历未收集金币计算距离。仅对金币生效，药水/钥匙保持原样。",
+          "type": "code",
+          "priority": 440,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家距离金币 < 30px 时金币缓慢向玩家移动",
+            "移动速度 20px/s，不会突然跳到玩家身上",
+            "仅对金币生效，药水/钥匙不受影响",
+            "收集后不再被吸引",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-456",
+          "title": "ResultScene 难度参数展示 — 显示本局难度缩放详情",
+          "description": "ResultScene 统计面板缺少难度信息。应在 ResultScene 显示本局难度参数：Run #X、Slime 数量、Skeleton 速度倍率，让玩家理解难度为何增加。\n\n实现：GameScene 在 endGame 传递 runCount/slimeCount/skeletonSpeedMultiplier 到 ResultScene data，ResultScene 在 stats 面板添加一行显示。",
+          "type": "code",
+          "priority": 441,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 显示 Run 编号",
+            "显示本局 Slime 数量和 Skeleton 速度倍率",
+            "难度信息在统计面板中有独立区域",
+            "数据正确反映本局实际参数",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
