@@ -297,6 +297,99 @@ function paintCorridors(
   return corridors;
 }
 
+/** Decorate corridors with visual variety (US-052) */
+function decorateCorridors(
+  tiles: number[][],
+  corridors: CorridorDef[],
+  rng: () => number
+): void {
+  const halfW = Math.floor(CORRIDOR_WIDTH / 2);
+
+  // Decorative floor tile options (all non-collidable)
+  const decorTiles = [T.FLOOR_MOSS, T.FLOOR_DARK, T.DECOR_STONE];
+
+  for (const corridor of corridors) {
+    // Collect corridor floor positions
+    const isHorizontal = corridor.start.row === corridor.end.row;
+
+    if (isHorizontal) {
+      const row = corridor.start.row;
+      const startCol = Math.min(corridor.start.col, corridor.end.col);
+      const endCol = Math.max(corridor.start.col, corridor.end.col);
+
+      // Place 1-2 decorations along this corridor segment
+      const decorCount = 1 + Math.floor(rng() * 2);
+      const length = endCol - startCol + 1;
+
+      for (let d = 0; d < decorCount; d++) {
+        // Pick a random position along the corridor, avoiding the very edges
+        const col = startCol + 1 + Math.floor(rng() * Math.max(1, length - 2));
+
+        // Place decoration adjacent to wall (top or bottom row of corridor)
+        const wallSide = rng() > 0.5 ? -halfW : halfW;
+        const decorRow = row + wallSide;
+
+        if (decorRow >= 0 && decorRow < tiles.length && col >= 0 && col < tiles[0].length) {
+          const currentTile = tiles[decorRow][col];
+          if (!isWall(currentTile)) {
+            // Place a random decorative tile on the corridor edge
+            tiles[decorRow][col] = decorTiles[Math.floor(rng() * decorTiles.length)];
+          }
+        }
+      }
+
+      // Scatter some floor variation (moss/dark) in corridor center
+      for (let c = startCol; c <= endCol; c++) {
+        if (rng() < 0.15) { // 15% chance per tile
+          for (let dr = -halfW; dr <= halfW; dr++) {
+            const r = row + dr;
+            if (r >= 0 && r < tiles.length && c >= 0 && c < tiles[0].length) {
+              if (!isWall(tiles[r][c]) && tiles[r][c] !== T.STAIRS) {
+                tiles[r][c] = rng() > 0.5 ? T.FLOOR_MOSS : T.FLOOR_DARK;
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // Vertical corridor
+      const col = corridor.start.col;
+      const startRow = Math.min(corridor.start.row, corridor.end.row);
+      const endRow = Math.max(corridor.start.row, corridor.end.row);
+
+      const decorCount = 1 + Math.floor(rng() * 2);
+      const length = endRow - startRow + 1;
+
+      for (let d = 0; d < decorCount; d++) {
+        const r = startRow + 1 + Math.floor(rng() * Math.max(1, length - 2));
+        const wallSide = rng() > 0.5 ? -halfW : halfW;
+        const decorCol = col + wallSide;
+
+        if (r >= 0 && r < tiles.length && decorCol >= 0 && decorCol < tiles[0].length) {
+          const currentTile = tiles[r][decorCol];
+          if (!isWall(currentTile)) {
+            tiles[r][decorCol] = decorTiles[Math.floor(rng() * decorTiles.length)];
+          }
+        }
+      }
+
+      // Scatter floor variation
+      for (let r = startRow; r <= endRow; r++) {
+        if (rng() < 0.15) {
+          for (let dc = -halfW; dc <= halfW; dc++) {
+            const c = col + dc;
+            if (r >= 0 && r < tiles.length && c >= 0 && c < tiles[0].length) {
+              if (!isWall(tiles[r][c]) && tiles[r][c] !== T.STAIRS) {
+                tiles[r][c] = rng() > 0.5 ? T.FLOOR_MOSS : T.FLOOR_DARK;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 /** Carve a horizontal corridor segment */
 function carveHorizontal(
   tiles: number[][],
@@ -384,6 +477,9 @@ export function generateDungeon(): DungeonData {
 
   // Paint corridors between sequential rooms
   const corridors = paintCorridors(tiles, rooms, rng);
+
+  // Decorate corridors with visual variety (US-052)
+  decorateCorridors(tiles, corridors, rng);
 
   // Entrance = first room, Exit = last room
   const entranceRoom = rooms[0];

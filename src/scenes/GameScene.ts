@@ -414,6 +414,10 @@ export class GameScene extends Phaser.Scene {
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
 
+    // --- Corridor visual decorations (US-052) ---
+    this.spawnCorridorDecorations(dungeonData);
+    // --- End corridor decorations ---
+
     // Listen for enemy death events (US-033: enemy drop loot)
     this.events.on("enemy-death", this.handleEnemyDeathDrop, this);
 
@@ -421,6 +425,90 @@ export class GameScene extends Phaser.Scene {
     this.roomCameraSystem.setOnRoomChanged((newRoomIndex: number) => {
       this.tryRespawnClearedRooms(newRoomIndex);
     });
+  }
+
+  /** Spawn decorative sprites along corridors (US-052) */
+  private spawnCorridorDecorations(dungeonData: ReturnType<DungeonMap["getDungeonData"]>): void {
+    const tileS = this.dungeonMap.TILE_SIZE;
+    const scale = 3;
+    const halfW = Math.floor(3 / 2); // CORRIDOR_WIDTH / 2
+
+    const decorTypes = ["torch_decal", "crack_decal", "rubble_decal"];
+
+    for (const corridor of dungeonData.corridors) {
+      const isHorizontal = corridor.start.row === corridor.end.row;
+
+      // Place 1-2 decoration sprites per corridor
+      const decorCount = Phaser.Math.Between(1, 2);
+
+      for (let d = 0; d < decorCount; d++) {
+        // Pick random position along corridor
+        const t = Math.random();
+        let col = Math.round(corridor.start.col + t * (corridor.end.col - corridor.start.col));
+        let row = Math.round(corridor.start.row + t * (corridor.end.row - corridor.start.row));
+
+        // Offset to wall side for torches/cracks, or center for rubble
+        const decorType = decorTypes[Math.floor(Math.random() * decorTypes.length)];
+
+        if (decorType === "torch_decal") {
+          // Place torch near corridor wall
+          const side = Math.random() > 0.5 ? -halfW : halfW;
+          if (isHorizontal) {
+            row += side;
+          } else {
+            col += side;
+          }
+        } else if (decorType === "crack_decal") {
+          // Crack on wall edge
+          const side = Math.random() > 0.5 ? -(halfW + 1) : halfW + 1;
+          if (isHorizontal) {
+            row += side;
+          } else {
+            col += side;
+          }
+        }
+        // rubble stays centered or slightly offset
+
+        // Verify position is valid (within bounds and on a floor tile)
+        const tiles = dungeonData.tiles;
+        if (row < 0 || row >= tiles.length || col < 0 || col >= tiles[0].length) continue;
+        if (isWall(tiles[row][col])) continue;
+
+        const worldX = (col * tileS + tileS / 2) * scale;
+        const worldY = (row * tileS + tileS / 2) * scale;
+
+        const sprite = this.add.image(worldX, worldY, decorType);
+        sprite.setDepth(1); // Above floor tiles (0) but below entities
+        sprite.setAlpha(0.8 + Math.random() * 0.2); // Slight alpha variation
+
+        // Add flickering animation for torches
+        if (decorType === "torch_decal") {
+          sprite.setDepth(2);
+          this.tweens.add({
+            targets: sprite,
+            alpha: { from: 0.7, to: 1.0 },
+            duration: 200 + Math.random() * 300,
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut",
+          });
+
+          // Add a small glow effect around torches
+          const glow = this.add.circle(worldX, worldY, 20, 0xff8800, 0.08);
+          glow.setDepth(1);
+          this.tweens.add({
+            targets: glow,
+            alpha: { from: 0.05, to: 0.12 },
+            scaleX: { from: 0.9, to: 1.1 },
+            scaleY: { from: 0.9, to: 1.1 },
+            duration: 300 + Math.random() * 200,
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut",
+          });
+        }
+      }
+    }
   }
 
   private handlePlayerAttack(): void {

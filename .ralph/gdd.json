@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件变更（US-422 规划中）\n当前: 玩家靠近楼梯即通关。\n规划: 玩家必须开启至少一个宝箱后才能通过楼梯通关，强制 key→chest→stairs 探索闭环。",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -160,6 +160,16 @@
         "slimeCount": "max(2, 2 + floor(depth * 1.5)), 最后房间不低于2",
         "skeletonCount": "floor(depth * (totalCombatRooms > 2 ? 2 : 3)), 最小0",
         "rationale": "确保敌人总数随depth单调递增，slime不递减，skeleton从中期开始出现"
+      }
+    },
+    "crossRunDifficultyIntegration": {
+      "_comment": "US-420: runCount 接入房间深度难度系统",
+      "formula": "difficultyTier = floor(runCount / 3)",
+      "tiers": {
+        "0": "runCount 1-2: 基础难度",
+        "1": "runCount 3-5: 战斗房间 +1 skeleton",
+        "2": "runCount 6-8: 敌人 HP 1.5x",
+        "3": "runCount 9+: +1 skeleton + HP 1.5x"
       }
     }
   },
@@ -1401,6 +1411,28 @@
         }
       ],
       "priority": "US-412 (PRD去重) 是最高元优先级 — 当前411条PRD的维护成本已严重影响开发效率。US-414 (难度曲线) 和 US-413 (楼梯标记) 次之。"
+    },
+    {
+      "date": "2026-04-28",
+      "version": "0.2.0-planning",
+      "summary": "Game design review #49 — 10 new US added (US-415 to US-424)",
+      "keyChanges": [
+        "US-415: 所有可交互实体统一改用 Physics.Arcade.Sprite 基类（基础设施修复）",
+        "US-416: PRD 去重压缩 414→~80 条权威条目（项目管理）",
+        "US-417: 玩家出生点 DECOR_STONE 覆盖修复",
+        "US-418: 地牢连通性 BFS 验证（地图生成可靠性）",
+        "US-419: 攻击动画期间移动减速 50%（战斗节奏感）",
+        "US-420: runCount 接入 getEnemyConfigForRoom（难度闭环）",
+        "US-421: 掉落药水与地图药水视觉区分",
+        "US-422: checkWinCondition 增加宝箱开启检查（核心循环闭环 — CRITICAL）",
+        "US-423: TitleScene 双重触发防护",
+        "US-424: GameScene shutdown() 资源清理（内存泄漏修复）"
+      ],
+      "criticalFindings": [
+        "核心游戏循环断裂: checkWinCondition 不检查 key/chest，玩家可直接通关",
+        "PRD 债务: 414 条 US 中大量重复（takeDamage 返回值 6+ 条，HP bar 8+ 条），阻塞开发",
+        "场景重启泄漏: GameScene 无 shutdown()，多次游戏后监听器累积"
+      ]
     }
   ],
   "improvements": {
@@ -2332,6 +2364,30 @@
       "desc": "满血时拾取药水浪费资源",
       "severity": "medium",
       "relatedUS": "US-236"
+    },
+    {
+      "id": "KI-049",
+      "date": "2026-04-28",
+      "severity": "critical",
+      "title": "核心游戏循环断裂 — checkWinCondition 不检查 key/chest",
+      "description": "玩家可以直接走到楼梯通关，完全跳过钥匙和宝箱。这是游戏核心循环的根本性设计缺陷。",
+      "plannedFix": "US-422"
+    },
+    {
+      "id": "KI-050",
+      "date": "2026-04-28",
+      "severity": "high",
+      "title": "PRD 积累 414 条 US 大量重复",
+      "description": "同一问题在 PRD 中重复记录多达 6-10 次（如 takeDamage 返回值、HP bar 跟随、ResultScene 重启），开发者无法判断哪条是权威来源，实际上阻塞了修复。",
+      "plannedFix": "US-416"
+    },
+    {
+      "id": "KI-051",
+      "date": "2026-04-28",
+      "severity": "high",
+      "title": "GameScene 场景重启后事件监听器泄漏",
+      "description": "GameScene 没有 shutdown() 方法，player-attack、enemy-death 事件监听器和 roomCameraSystem 回调在场景重启后累积，长时间运行导致内存泄漏和潜在的重复触发。",
+      "plannedFix": "US-424"
     }
   ],
   "levelDesign": {

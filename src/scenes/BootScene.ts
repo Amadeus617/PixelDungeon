@@ -171,6 +171,59 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
+    // Generate torch decoration sprite (US-052 corridor decor)
+    if (!this.textures.exists("torch_decal")) {
+      const g = this.add.graphics();
+      // Torch bracket (brown/metal)
+      g.fillStyle(0x8b6914, 1);
+      g.fillRect(5, 6, 2, 8);
+      // Bracket arm
+      g.fillRect(5, 5, 6, 2);
+      // Flame base (orange)
+      g.fillStyle(0xff8800, 1);
+      g.fillCircle(10, 4, 3);
+      // Flame tip (yellow)
+      g.fillStyle(0xffdd00, 1);
+      g.fillCircle(10, 2, 2);
+      // Flame glow (red-orange)
+      g.fillStyle(0xff4400, 0.6);
+      g.fillCircle(10, 5, 2);
+      g.generateTexture("torch_decal", 16, 16);
+      g.destroy();
+    }
+
+    // Generate wall crack decal sprite (US-052 corridor decor)
+    if (!this.textures.exists("crack_decal")) {
+      const g = this.add.graphics();
+      // Crack lines (dark gray on transparent)
+      g.fillStyle(0x555555, 0.8);
+      g.fillRect(3, 2, 1, 5);
+      g.fillRect(4, 5, 3, 1);
+      g.fillRect(6, 6, 1, 4);
+      g.fillRect(7, 8, 2, 1);
+      g.fillRect(9, 3, 1, 3);
+      g.fillRect(10, 5, 2, 1);
+      g.fillRect(11, 6, 1, 4);
+      g.generateTexture("crack_decal", 16, 16);
+      g.destroy();
+    }
+
+    // Generate rubble/debris decal sprite (US-052 corridor decor)
+    if (!this.textures.exists("rubble_decal")) {
+      const g = this.add.graphics();
+      // Small stone pieces (various grays)
+      g.fillStyle(0x888888, 0.7);
+      g.fillRect(3, 8, 3, 2);
+      g.fillStyle(0x999999, 0.6);
+      g.fillRect(8, 10, 2, 2);
+      g.fillStyle(0x777777, 0.5);
+      g.fillRect(6, 12, 4, 2);
+      g.fillStyle(0xaaaaaa, 0.5);
+      g.fillRect(10, 7, 2, 2);
+      g.generateTexture("rubble_decal", 16, 16);
+      g.destroy();
+    }
+
     // Generate skeleton sprite (procedural 4-frame spritesheet)
     if (!this.textures.exists("skeleton")) {
       const g = this.add.graphics();

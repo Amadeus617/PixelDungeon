@@ -6665,6 +6665,161 @@
             "GDD balance部分更新反映新公式",
             "tsc + build 通过"
           ]
+        },
+        {
+          "title": "KeyItem/Chest/SpikeTrap 改为 Physics.Arcade.Sprite — overlap 检测统一基础",
+          "description": "KeyItem、Chest、Coin、HealthPotion、AttackBoost、SpikeTrap 全部继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite。physics.add.overlap 对非 physics sprite 行为不确定。统一改为 Physics.Arcade.Sprite 并设置 body.setSize 确保碰撞检测可靠。这是一次性基础设施修复，阻塞所有道具交互可靠性。",
+          "type": "code",
+          "priority": 400,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有可交互实体继承 Physics.Arcade.Sprite",
+            "overlap 检测对 coin/key/potion/attackboost/chest/spiketrap 可靠触发",
+            "tsc + build 通过",
+            "设置合理 body.setSize 避免过大碰撞体积"
+          ],
+          "id": "US-415"
+        },
+        {
+          "title": "PRD 去重压缩 — 414 条 US 合并为 ~50 条权威条目",
+          "description": "PRD 已积累 414 条 US，其中 takeDamage 返回 boolean 有 6+ 条重复，HP bar 不跟随有 8+ 条，ResultScene 重启有 10+ 条。重复条目导致开发者无法判断哪条是权威来源，实际上阻塞了任何修复。执行去重：同一问题的多条 US 合并为 1 条权威条目，保留最完整的 acceptanceCriteria，删除或标记其他为 superseded。",
+          "type": "code",
+          "priority": 401,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个唯一问题只有 1 条权威 US",
+            "重复 US 标记 status=superseded 并注明 superseded-by",
+            "总 US 数量降到 80 条以内",
+            "所有 done 状态的 US 保留原状",
+            "tsc + build 通过"
+          ],
+          "id": "US-416"
+        },
+        {
+          "title": "玩家出生点 DECOR_STONE 覆盖 floor tile 修复",
+          "description": "entranceRoom 中心位置被设置为 T.DECOR_STONE (tile 27)，getRandomFloorPosInRoom 的 fallback 返回这个位置。虽然 isWall 不包含 DECOR_STONE，但 spawn 在装饰 tile 上视觉不一致。改为在 entrance room 用 FLOOR_1 替代 DECOR_STONE，或 spawn 时排除 DECOR_STONE。",
+          "type": "code",
+          "priority": 402,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家不在 DECOR_STONE tile 上出生",
+            "entrance room 中心 tile 为可走 floor",
+            "getRandomFloorPosInRoom fallback 返回非装饰 tile",
+            "tsc + build 通过"
+          ],
+          "id": "US-417"
+        },
+        {
+          "title": "地牢连通性验证 — 确保所有房间可达",
+          "description": "generateDungeon 只连接相邻排序房间(i→i+1)的走廊，但如果 tryPlaceRoom 失败导致 rooms 数量少于预期，走廊可能无法覆盖所有房间。更严重的是，入口到出口的路径可能被未连接的房间打断。添加后置验证：BFS/DFS 确认 entrance→exit 路径存在，否则重新生成或补连走廊。",
+          "type": "code",
+          "priority": 403,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "generateDungeon 返回后 BFS 验证 entrance→exit 可达",
+            "不可达时重新生成（最多 10 次重试）",
+            "所有放置的房间至少有一条路径连接到主路径",
+            "tsc + build 通过"
+          ],
+          "id": "US-418"
+        },
+        {
+          "title": "玩家攻击时冻结移动 — 攻击动画期间禁止位移",
+          "description": "当前玩家攻击时可以同时移动（attack cooldown 400ms 内自由走动），导致 hit-and-run 过于容易，战斗缺乏节奏感。参考经典 roguelike（Hades、Dead Cells），攻击期间应短暂冻结移动或大幅减速（如 50%），增加攻击时机的决策深度。",
+          "type": "code",
+          "priority": 404,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击动画期间（200ms）玩家移动速度降低 50%",
+            "AttackBoost 激活时不额外减速",
+            "减速在攻击动画结束后恢复",
+            "玩家仍可改变朝向",
+            "tsc + build 通过"
+          ],
+          "id": "US-419"
+        },
+        {
+          "title": "房间深度难度接入 runCount — 跨局难度递增完整闭环",
+          "description": "US-044 getEnemyConfigForRoom 只基于房间索引，US-028 runCount 只影响全局 slime 数量和 skeleton 速度。两套难度系统没有互通。runCount 应影响：每个房间的敌人 HP 倍率、skeleton 数量、spike trap 数量和伤害。实现公式：difficultyTier = Math.floor(runCount / 3)，每 tier 敌人 HP +1、+1 skeleton、spike trap 伤害 +0.5。",
+          "type": "code",
+          "priority": 405,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom 接收 runCount 参数",
+            "runCount>=3 时战斗房间 skeleton 数量 +1",
+            "runCount>=6 时敌人 HP 倍率 1.5x",
+            "HUD 显示当前 difficulty tier",
+            "tsc + build 通过"
+          ],
+          "id": "US-420"
+        },
+        {
+          "title": "HealthPotion 掉落与地图药水视觉区分 — 不同 sprite 颜色",
+          "description": "敌人死亡掉落的药水（spawnDropPotion）和地图上预置的 HealthPotion 使用相同 sprite，但回复量不同（掉落药水回复 2HP vs 地图药水回复 3HP）。玩家无法区分两者，造成信息不透明。掉落药水改为绿色小瓶 sprite，地图药水保持红色。或者统一回复量。",
+          "type": "code",
+          "priority": 406,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落药水和地图药水有不同视觉外观",
+            "HUD/tooltip 显示回复量",
+            "或者统一两者回复量为 3HP",
+            "tsc + build 通过"
+          ],
+          "id": "US-421"
+        },
+        {
+          "title": "checkWinCondition 增加 key 持有检查 — 核心循环 key→chest→stairs 闭环",
+          "description": "当前 checkWinCondition 只检查玩家是否靠近楼梯，不检查是否持有 key 或已开宝箱。玩家可以跳过 key 和 chest 直接走到楼梯通关，完全绕过核心探索循环。修复：只有 inventory.has('key') 或所有 chest 已开启时才允许胜利。优先方案：需要开启 chest 才能通关。",
+          "type": "code",
+          "priority": 407,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 检查至少一个 chest 已开启",
+            "未开宝箱到达楼梯显示提示「找到钥匙开启宝箱!」",
+            "HUD 或 proximity hint 引导玩家找 key",
+            "tsc + build 通过"
+          ],
+          "id": "US-422"
+        },
+        {
+          "title": "TitleScene startGame 双重触发防护 — 防止 runCount 重复递增",
+          "description": "TitleScene create() 注册了 keydown-SPACE、keydown-ENTER 和 500ms 后的 keydown（任意键）三个监听器。快速按 SPACE+ENTER 或在 500ms 窗口内按键会触发 startGame() 两次。虽然 scene.isActive 检查有一定保护，但 localStorage runCount 递增可能在 isActive 检查之前执行。修复：startGame 添加 boolean guard。",
+          "type": "code",
+          "priority": 408,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "startGame() 用 boolean flag 防止双重调用",
+            "runCount 在 guard 之后才递增",
+            "SPACE/ENTER/any-key 三条路径都受到保护",
+            "tsc + build 通过"
+          ],
+          "id": "US-423"
+        },
+        {
+          "title": "GameScene shutdown() 统一资源清理 — 事件监听器/回调/timer 泄漏修复",
+          "description": "GameScene 没有 shutdown() 方法。场景重启时（scene.start('GameScene')）Phaser 会重新调用 create()，但以下残留不清除：events.on('player-attack')、events.on('enemy-death')、roomCameraSystem.setOnRoomChanged 回调、所有 overlap 回调、spikeTrap delayedCall timers、player attackBoost tween。添加 shutdown() 统一清理所有监听器和定时器。",
+          "type": "code",
+          "priority": 409,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "events.off('player-attack') 和 events.off('enemy-death')",
+            "roomCameraSystem callback 清除",
+            "spikeTrap delayedCall 清理",
+            "场景重启后无残留监听器",
+            "tsc + build 通过"
+          ],
+          "id": "US-424"
         }
       ]
     }
