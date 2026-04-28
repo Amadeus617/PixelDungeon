@@ -1531,6 +1531,31 @@
       ],
       "balanceChanges": [],
       "priority": "US-431 + US-432 是最高优先级 — 两个 US 一起修复核心游戏循环。US-433 (PRD去重) 是最高 meta 优先级 — 430 条 PRD 已严重影响开发效率。"
+    },
+    {
+      "round": 52,
+      "date": "2026-04-28",
+      "title": "第52轮设计审查 — PRD膨胀诊断+核心循环断裂+6条合并型US",
+      "summary": "审查435条US（376 pending）、25个源文件和GDD后发现：(1) PRD严重膨胀，同一问题被重复报告5-15次未去重；(2) 核心游戏循环三重断裂（Chest无产出、Win不检查Key、Space被攻击先消费）；(3) healthPotionHeal GDD=1但US-037已改代码为3，文档未同步；(4) Player基础接口takeDamage返回void阻塞10+下游功能；(5) GameScene无shutdown导致事件泄漏累积。新增6条合并型US（US-436~441），每条合并5-15条重复条目。",
+      "newUserStories": [
+        "US-436",
+        "US-437",
+        "US-438",
+        "US-439",
+        "US-440",
+        "US-441"
+      ],
+      "changes": [
+        "US-436: PRD去重meta任务 — 376→≤60条权威US",
+        "US-437: 核心循环一次性修复 — 合并14条重复的核心循环US",
+        "US-438: Player基础接口统一 — 合并10+条takeDamage/knockback重复",
+        "US-439: 场景生命周期统一 — 合并12+条shutdown/ResultScene重复",
+        "US-440: 敌人系统统一 — 合并15+条HPbar/knockback/contact重复",
+        "US-441: 难度曲线闭环 — 合并5条difficulty scaling重复",
+        "标注: healthPotionHeal GDD仍为1，需确认代码实际值后同步"
+      ],
+      "balanceChanges": [],
+      "priority": "P0: US-437(核心循环) > US-438(基础接口) > US-436(PRD去重) > US-439(生命周期) > US-440(敌人) > US-441(难度)"
     }
   ],
   "improvements": {
@@ -2801,5 +2826,24 @@
     },
     "uiNote": "TitleScene三个按钮并排，Normal默认高亮",
     "highScoreSplit": "按难度分别存储高分"
+  },
+  "prdHealth": {
+    "diagnosis_2026-04-28": {
+      "totalUS": 441,
+      "done": 59,
+      "pending": 382,
+      "sourceFiles": 25,
+      "pendingPerFile": 15.3,
+      "topRepeatedIssues": {
+        "Player.takeDamage_boolean": "10+ reports (US-117,171,200,252,330,367,384,388,667等)",
+        "HPbar_follow_chase": "15+ reports (US-136,196,209,234,244,275,279,308,328,375,376,391,397,434等)",
+        "ResultScene_TitleScene": "8+ reports (US-127,175,199,208,246,332,370等)",
+        "checkWinCondition_key": "7+ reports (US-307,372,381,387,401,422等)",
+        "GameScene_shutdown": "12+ reports (US-195,210,233,270,280,327,369,390,400,424,435等)",
+        "chest_noLoot": "6+ reports (US-119,306,317,373,382,431等)"
+      },
+      "rootCause": "审查轮次不断发现同一未修复问题并创建新US而非提升旧US优先级，导致PRD膨胀",
+      "recommendation": "执行US-436去重后，future审查应先搜索已有US再创建新条目"
+    }
   }
 }

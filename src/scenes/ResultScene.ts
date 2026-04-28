@@ -13,6 +13,12 @@ interface ResultSceneData {
   elapsedTime?: number;
   potionUsedCount?: number;
   roomsExplored?: number;
+  scoreBreakdown?: {
+    coins: number;
+    enemies: number;
+    roomClears: number;
+    timeBonus: number;
+  };
 }
 
 /** Stat entry for the detailed stats panel */
@@ -29,7 +35,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create(data: ResultSceneData): void {
-    const { result, score, killCount, coinCount, elapsedTime, potionUsedCount, roomsExplored } = data;
+    const { result, score, killCount, coinCount, elapsedTime, potionUsedCount, roomsExplored, scoreBreakdown } = data;
     const isWin = result === "win";
 
     // Semi-transparent overlay
@@ -187,9 +193,85 @@ export class ResultScene extends Phaser.Scene {
 
     // --- End Detailed Statistics Panel ---
 
+    // --- Score Breakdown Panel (US-053) ---
+    if (scoreBreakdown) {
+      const bdX = GAME_WIDTH / 2;
+      const bdY = panelY + panelH / 2 + 15;
+      const bdW = 400;
+      const bdH = 110;
+
+      // Panel border
+      const bdBorder = this.add.rectangle(
+        bdX, bdY, bdW + 4, bdH + 4,
+        0x222244, 0.8
+      );
+      bdBorder.setOrigin(0.5);
+      bdBorder.setStrokeStyle(2, 0x8888ff, 0.6);
+
+      // Panel inner bg
+      const bdBg = this.add.rectangle(
+        bdX, bdY, bdW, bdH,
+        0x111111, 0.85
+      );
+      bdBg.setOrigin(0.5);
+
+      // Panel title
+      const bdTitle = this.add.text(bdX, bdY - bdH / 2 + 18, "💰 Score Breakdown", {
+        fontSize: "18px",
+        color: "#ffd700",
+        fontFamily: "monospace",
+        stroke: "#000000",
+        strokeThickness: 2,
+      });
+      bdTitle.setOrigin(0.5);
+
+      // Breakdown rows
+      const breakdownEntries = [
+        { icon: "🪙", label: "Coins", value: scoreBreakdown.coins, color: "#ffd700" },
+        { icon: "⚔️", label: "Enemies", value: scoreBreakdown.enemies, color: "#ff6666" },
+        { icon: "🏠", label: "Room Clears", value: scoreBreakdown.roomClears, color: "#44dd44" },
+        { icon: "⏱️", label: "Time Bonus", value: scoreBreakdown.timeBonus, color: "#88ccff" },
+      ];
+
+      const bdStartY = bdY - bdH / 2 + 42;
+      const bdLeftX = bdX - bdW / 2 + 20;
+      const bdRightX = bdX + 20;
+      const bdRowH = 26;
+
+      for (let i = 0; i < breakdownEntries.length; i++) {
+        const entry = breakdownEntries[i];
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const x = col === 0 ? bdLeftX : bdRightX;
+        const y = bdStartY + row * bdRowH;
+
+        const bLabel = this.add.text(x, y, `${entry.icon} ${entry.label}`, {
+          fontSize: "13px",
+          color: "#aaaaaa",
+          fontFamily: "monospace",
+          stroke: "#000000",
+          strokeThickness: 1,
+        });
+        bLabel.setOrigin(0, 0);
+
+        const bValue = this.add.text(x + 150, y, `+${entry.value}`, {
+          fontSize: "16px",
+          color: entry.color,
+          fontFamily: "monospace",
+          stroke: "#000000",
+          strokeThickness: 2,
+        });
+        bValue.setOrigin(0, 0);
+      }
+    }
+    // --- End Score Breakdown Panel ---
+
     // Score display with high score comparison
     const scoreSystem = new ScoreSystem();
-    const scoreY = panelY + panelH / 2 + 30;
+    // Adjust scoreY to account for score breakdown panel (US-053)
+    const scoreY = scoreBreakdown
+      ? panelY + panelH / 2 + 15 + 110 / 2 + 40  // after breakdown panel
+      : panelY + panelH / 2 + 30;                  // original position
 
     if (score !== undefined) {
       const prevHigh = scoreSystem.getHighScore();

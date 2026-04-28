@@ -1123,6 +1123,14 @@ export class GameScene extends Phaser.Scene {
 
     const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
     const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
+
+    // Add time bonus for wins (US-053)
+    let timeBonus = 0;
+    if (result === "win") {
+      timeBonus = this.scoreSystem.addTimeBonus(elapsedTime);
+    }
+
+    const bd = this.scoreSystem.breakdown;
     this.time.delayedCall(200, () => {
       this.scene.start("ResultScene", {
         result,
@@ -1132,6 +1140,12 @@ export class GameScene extends Phaser.Scene {
         elapsedTime,
         potionUsedCount: this.potionUsedCount,
         roomsExplored,
+        scoreBreakdown: {
+          coins: bd.coins,
+          enemies: bd.enemies,
+          roomClears: bd.roomClears,
+          timeBonus: bd.timeBonus,
+        },
       });
     });
   }
@@ -1147,6 +1161,14 @@ export class GameScene extends Phaser.Scene {
     // Transition to result scene after a short delay
     const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // seconds (US-035)
     const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
+
+    // Add time bonus for wins (US-053)
+    let timeBonus = 0;
+    if (result === "win") {
+      timeBonus = this.scoreSystem.addTimeBonus(elapsedTime);
+    }
+
+    const bd = this.scoreSystem.breakdown;
     this.time.delayedCall(800, () => {
       this.scene.start("ResultScene", {
         result,
@@ -1156,6 +1178,12 @@ export class GameScene extends Phaser.Scene {
         elapsedTime,
         potionUsedCount: this.potionUsedCount,
         roomsExplored,
+        scoreBreakdown: {
+          coins: bd.coins,
+          enemies: bd.enemies,
+          roomClears: bd.roomClears,
+          timeBonus: bd.timeBonus,
+        },
       });
     });
   }
