@@ -425,6 +425,10 @@ export class GameScene extends Phaser.Scene {
     // Listen for player attack events
     this.events.on("player-attack", this.handlePlayerAttack, this);
 
+    // --- Corridor patrol enemies (US-055) ---
+    this.spawnCorridorPatrols(dungeonData, wallLayer);
+    // --- End corridor patrol enemies ---
+
     // --- Corridor visual decorations (US-052) ---
     this.spawnCorridorDecorations(dungeonData);
     // --- End corridor decorations ---
@@ -436,6 +440,35 @@ export class GameScene extends Phaser.Scene {
     this.roomCameraSystem.setOnRoomChanged((newRoomIndex: number) => {
       this.tryRespawnClearedRooms(newRoomIndex);
     });
+  }
+
+  /** Spawn Skeleton patrol enemies in corridors (US-055) */
+  private spawnCorridorPatrols(
+    dungeonData: ReturnType<DungeonMap["getDungeonData"]>,
+    wallLayer: Phaser.Tilemaps.TilemapLayer
+  ): void {
+    const CORRIDOR_SKELETON_SPEED = 0.636; // 35/55 multiplier → ~35px/s base speed
+    const MAX_CORRIDOR_PATROLS = 2;
+
+    if (dungeonData.corridors.length === 0) return;
+
+    // Pick 1-2 random corridors to place patrol skeletons
+    const patrolCount = Phaser.Math.Between(1, MAX_CORRIDOR_PATROLS);
+    const shuffled = [...dungeonData.corridors].sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < Math.min(patrolCount, shuffled.length); i++) {
+      const corridor = shuffled[i];
+      const pos = this.getCorridorFloorPos(corridor);
+      if (!pos) continue;
+
+      const skeleton = new Skeleton(this, pos.x, pos.y, CORRIDOR_SKELETON_SPEED);
+      skeleton.setPlayerRef(this.player);
+      this.physics.add.collider(skeleton, wallLayer, () => {
+        skeleton.onHitWall();
+      });
+      this.skeletons.push(skeleton);
+      this.skeletonGroup.add(skeleton);
+    }
   }
 
   /** Spawn decorative sprites along corridors (US-052) */

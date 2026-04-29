@@ -1822,6 +1822,99 @@
         "prdBloat": "462条US，估计仅~90条独立有效。PRD去重(US-436/412/433)仍是最高meta优先级。"
       },
       "priority": "P0: US-462(Chest奖励) > US-463(HP bar) > US-464(knockback守卫) > US-465(takeDamage)。P1: US-466(shutdown) > US-467(ResultScene) > US-468(Physics)"
+    },
+    {
+      "round": 57,
+      "date": "2026-04-28",
+      "title": "第57轮设计审查 — 核心循环断裂确认+敌人三合一修复+场景生命周期",
+      "summary": "全面审查25个源文件和468条PRD后，发现5大类改进机会（本轮新增5条合并型US US-469~US-473，刻意不重复添加已有US覆盖的顽固问题）：(1) Chest.open()仍然不生成任何战利品，key→chest探索后零奖励，核心游戏循环断裂；(2) Skeleton chase分支return跳过hpBar.follow + Slime/Skeleton onHitWall不保护knockback，三个反复标记的敌人bug合并修复；(3) GameScene无shutdown导致事件监听器累积泄漏，ResultScene仍用update轮询且重启跳过TitleScene；(4) Player.takeDamage()仍返回void阻塞6+下游功能（第57轮确认）；(5) 6个实体类继承GameObjects.Sprite而非Physics.Arcade.Sprite导致overlap检测不可靠。",
+      "newUserStories": [
+        "US-469",
+        "US-470",
+        "US-471",
+        "US-472",
+        "US-473"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-469: Chest.open() 战利品掉落 — 核心奖励闭环",
+          "priority": "P0"
+        },
+        {
+          "area": "entities",
+          "change": "US-470: 敌人三合一 — HP bar跟随 + knockback碰墙保护 + 闪白",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-471: 场景生命周期 — GameScene shutdown + ResultScene 流程",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-472: takeDamage 返回 boolean — 基础接口（第57轮确认）",
+          "priority": "P0"
+        },
+        {
+          "area": "physics",
+          "change": "US-473: 实体 Physics 基类统一 — 6个类改为 Physics.Arcade.Sprite",
+          "priority": "P1"
+        }
+      ],
+      "criticalStatus": {
+        "coreLoopBroken": true,
+        "reason": "checkWinCondition 已修复（US-387 需宝箱开启），但 Chest.open() 不产出战利品。key→chest(无奖励)→stairs 闭环中奖励环节断裂。US-469 是修复核心循环的最后一步。",
+        "prdBloat": "473 条 US（417 pending），大量重复。US-436/412/416/430/433/452 去重任务仍 pending。",
+        "stickyBugs": "57轮审查中反复标记但代码从未修复：takeDamage返回void(9+条US)、HP bar chase分支(11+条)、GameScene shutdown(9+条)、onHitWall knockback(4+条)、SpikeTrap physics(4+条)"
+      },
+      "priority": "US-469(宝箱战利品)是核心游戏循环的最后缺失环节。US-470(敌人三合一)和US-472(takeDamage)是P0基础设施。US-471(场景生命周期)是稳定性保障。"
+    },
+    {
+      "round": 58,
+      "date": "2026-04-29",
+      "title": "第58轮设计审查 — 代码重复消除+overlap泄漏+道具视觉区分",
+      "summary": "全面审查25个源文件和473条PRD后，发现3个之前审查未覆盖的新问题：(1) endGameInternal/endGame 90%相同代码重复，维护风险高；(2) 动态掉落道具(spawnDropCoin/spawnDropPotion)注册的overlap回调在道具destroy后不自动移除，多次游戏后累积泄漏；(3) 掉落药水(heal=2)与地图药水(heal=3)使用相同sprite无视觉区分，且代码注释错误。",
+      "newUserStories": [
+        "US-474",
+        "US-475",
+        "US-476"
+      ],
+      "changes": [
+        {
+          "area": "scenes/GameScene",
+          "change": "US-474: endGameInternal/endGame 统一为单一方法 + delayMs参数",
+          "priority": "P2"
+        },
+        {
+          "area": "scenes/GameScene",
+          "change": "US-475: spawnDropCoin/spawnDropPotion overlap collider 主动清理",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/HealthPotion",
+          "change": "US-476: 掉落药水视觉区分 + 注释修正",
+          "priority": "P3"
+        }
+      ],
+      "status": {
+        "recentlyFixed": [
+          "US-387: checkWinCondition requires chest opened — git 36ef5e4",
+          "US-407: Skeleton die() delayedCall cleanup — git fdda61b",
+          "US-251: Slime takeDamage setTint flash — code verified",
+          "US-255/275: Slime die() enemy-death event — code verified",
+          "US-044: Room depth difficulty scaling — code verified getEnemyConfigForRoom"
+        ],
+        "stillPending": [
+          "Chest.open() 无奖励掉落 — 核心循环仍断裂",
+          "Player.takeDamage() 返回 void — 12+ 重复US阻塞下游",
+          "Skeleton chase 分支跳过 hpBar.follow() — 视觉bug活跃",
+          "Slime onHitWall() knockback无守卫 — 击退效果被覆盖",
+          "GameScene 无 shutdown() — 18个重复US标记",
+          "PRD 410条pending含大量重复 — 去重任务仍pending"
+        ]
+      },
+      "priority": "P1: US-475(overlap泄漏) > P2: US-474(代码重复) > P3: US-476(视觉区分)"
     }
   ],
   "improvements": {

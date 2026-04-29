@@ -915,7 +915,7 @@
           "description": "当前走廊完全无敌人，玩家可以安全穿越所有房间。应在连接房间的走廊中随机放置1-2个Skeleton巡逻兵(速度略低于房间内，35px/s)，走廊窄(3 tiles)增加遭遇紧张感。走廊无威胁降低了探索的决策压力，巡逻敌人迫使玩家判断路线。",
           "type": "code",
           "priority": 40,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "走廊中生成1-2个Skeleton巡逻兵",
@@ -7539,6 +7539,135 @@
             "HealthPotion extends Physics.Arcade.Sprite",
             "AttackBoost extends Physics.Arcade.Sprite",
             "所有 overlap 检测行为与修改前一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-469",
+          "title": "Chest.open() 战利品掉落实现 — 核心奖励闭环",
+          "description": "Chest.open() 成功后只切换贴图，不生成任何掉落物品。玩家完成 key→chest 探索后获得零奖励，核心游戏循环断裂。实现方案：Chest.open() 成功时发射 chest-opened 事件，GameScene 监听后生成随机战利品（50%金币3-5枚、30%药水、20%AttackBoost），在宝箱位置以掉落动画散布。这是整个游戏探索奖励系统的关键缺失。",
+          "type": "code",
+          "priority": 454,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 后在宝箱位置生成 1-3 个随机掉落物品",
+            "掉落物品使用 spawnDropCoin/spawnDropPotion 的弹射动画",
+            "掉落率分布：50% Coin、30% HealthPotion、20% AttackBoost",
+            "掉落物品立即加入 physics overlap 检测可被拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-470",
+          "title": "敌人系统三合一修复 — HP bar跟随 + knockback碰墙保护 + takeDamage闪白",
+          "description": "三个反复标记但未修复的敌人 bug 合并修复：(1) Skeleton.update() chase 分支直接 return 跳过 hpBar.follow()，HP bar 在追踪时停留在旧位置 — 代码第 136 行 return 前需添加 hpBar.follow；(2) Slime/Skeleton onHitWall() 无条件覆盖 velocity 为新随机方向，knockback 期间被碰墙取消 — 需添加 if(this.isKnockedBack) return 守卫；(3) 确认 Slime takeDamage 闪白与 Skeleton 一致。",
+          "type": "code",
+          "priority": 455,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 return 前调用 hpBar.follow(this)",
+            "Slime onHitWall() 添加 if(isKnockedBack) return",
+            "Skeleton onHitWall() 添加 if(isKnockedBack) return",
+            "Slime takeDamage 闪白与 Skeleton 一致（已有 setTint + delayedCall）",
+            "Knockback 期间碰墙不改变移动方向",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-471",
+          "title": "场景生命周期修复 — GameScene shutdown + ResultScene 重启流程",
+          "description": "两个场景生命周期 bug 合并修复：(1) GameScene 无 shutdown() 方法，player-attack/enemy-death 事件监听器和动态 overlap 回调在 scene restart 后累积，多次游戏后同一攻击触发多次回调 — 需在 shutdown() 中 events.off 所有自定义事件、销毁动态创建的 collider；(2) ResultScene 用 events.on(\"update\") 轮询检测按键，监听器从不清理，重启直接到 GameScene 跳过 TitleScene — 改为 input.keyboard.on(\"keydown\", ...) 并在 shutdown 清理，重启改为 TitleScene。",
+          "type": "code",
+          "priority": 456,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 清理 player-attack/enemy-death 事件监听",
+            "GameScene.shutdown() 销毁动态创建的 overlap/collider",
+            "ResultScene 改用 input.keyboard.on(\"keydown\") 替代 events.on(\"update\")",
+            "ResultScene 重启跳转 TitleScene 而非 GameScene",
+            "多次重启后无事件监听器累积（内存稳定）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-472",
+          "title": "Player.takeDamage() 返回 boolean — 基础接口修复（第57轮确认）",
+          "description": "Player.takeDamage() 当前返回 void（第157行），导致调用方无法判断本次调用是否实际造成伤害。这阻塞了 6+ 下游功能：hurt 音效条件判断、击杀积分 wasDead 检测、受伤统计计数、combo 系统触发、受伤屏幕效果等。修改方案：函数签名改为 takeDamage(amount, sourceX?, sourceY?): boolean，在 invincible/已死亡分支 return false，实际受伤后 return true。所有调用方更新为使用返回值判断。",
+          "type": "code",
+          "priority": 457,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 签名改为 (amount, sourceX?, sourceY?) => boolean",
+            "invincible 或 !alive 时返回 false",
+            "实际受伤后返回 true",
+            "所有 overlap 回调中使用返回值判断是否播 hurt 音效",
+            "handlePlayerAttack 中使用返回值判断击杀",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-473",
+          "title": "实体 Physics 基类统一 — SpikeTrap/Coin/Potion/AttackBoost/KeyItem",
+          "description": "6个实体类继承 Phaser.GameObjects.Sprite 而非 Physics.Arcade.Sprite，导致 physics.add.overlap 检测依赖 Phaser 内部 fallback 行为不可靠。需统一改为继承 Physics.Arcade.Sprite 或在 create 中 enable body。影响：SpikeTrap（陷阱不触发或误触发）、Coin/HealthPotion/AttackBoost/KeyItem（拾取检测不可靠）。",
+          "type": "code",
+          "priority": 458,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap 改为 extends Physics.Arcade.Sprite",
+            "Coin/HealthPotion/AttackBoost/KeyItem 改为 extends Physics.Arcade.Sprite",
+            "所有 overlap 检测行为与之前兼容",
+            "构造函数调用 super(scene, x, y, texture) 兼容 Phaser physics",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-474",
+          "title": "endGameInternal/endGame 代码重复消除 — 统一为单一 endGame 方法",
+          "description": "endGameInternal 和 endGame 两个方法有90%相同代码：physics.pause、velocity reset、elapsedTime计算、timeBonus添加、scene.start数据传递。差异仅在于delayedCall延迟(200ms vs 800ms)。应提取公共逻辑，通过参数控制延迟时间。当前双重实现导致：1) 添加新通关数据时需改两处 2) 未来维护可能遗漏一方导致数据不一致。",
+          "type": "refactor",
+          "priority": 459,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGameInternal 和 endGame 合并为单一方法",
+            "通过参数（如 delayMs）控制延迟时间",
+            "两处调用点正常工作（死亡动画回调 200ms，胜利跳转 800ms）",
+            "tsc + build 通过",
+            "ResultScene 接收相同数据结构"
+          ]
+        },
+        {
+          "id": "US-475",
+          "title": "掉落道具（spawnDropCoin/spawnDropPotion）overlap 回调泄漏 — 已拾取道具 overlap listener 不随 destroy 移除",
+          "description": "spawnDropCoin 和 spawnDropPotion 在创建道具时通过 physics.add.overlap 注册匿名闭包回调。道具被 collect() 后 destroy()，但 Phaser 的 overlap collider 不会自动移除（不同于 collider）。多次游戏后 overlap 回调累积。地图初始道具在 create() 中也有同样问题，但掉落道具是动态创建的，每次击杀都会增加新的 overlap 回调。",
+          "type": "bug",
+          "priority": 460,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spawnDropCoin/spawnDropPotion 返回 overlap collider 引用",
+            "道具 collect() 或 destroy() 时主动移除 overlap collider",
+            "多次击杀敌人 + 拾取掉落后无残留 overlap 回调",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-476",
+          "title": "掉落药水与地图药水使用相同 HealthPotion sprite — 无视觉区分误导玩家",
+          "description": "spawnDropPotion 创建标准 HealthPotion 实例，使用 health_potion 纹理。但掉落药水治疗 2 HP (DROP_POTION_HEAL)，地图药水治疗 3 HP (HEALTH_POTION_HEAL)。玩家无法区分两者治疗效果差异。注释 \"Small potion from drop heals 2 HP (vs map potion 1 HP)\" 中 \"1 HP\" 也不正确，应为 3 HP。建议：掉落药水使用不同颜色/尺寸 sprite（如半瓶药水/浅色药水），或添加浮动文字显示回复量。",
+          "type": "design",
+          "priority": 461,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落药水与地图药水有视觉区分（颜色/尺寸/sprite）",
+            "GameScene.ts 第84行注释修正为正确值",
+            "玩家可通过外观判断治疗量差异",
             "tsc + build 通过"
           ]
         }
