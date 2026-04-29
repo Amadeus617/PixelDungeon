@@ -235,7 +235,12 @@
       "showRoomType": true,
       "showEnemyCount": true,
       "note": "US-454: 房间进入信息横幅"
-    }
+    },
+    "playerKnockbackDistance": 25,
+    "playerKnockbackDuration": 200,
+    "playerKnockbackSpeed_current": "125px/s",
+    "playerKnockbackSpeed_proposed": "200px/s (40px/200ms)",
+    "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知"
   },
   "designLog": [
     {
@@ -2087,6 +2092,89 @@
         "stickyBugs": "takeDamage返回void(9+重复US)、HP bar chase(15+重复US)、GameScene shutdown(10+重复US)代码从未修复"
       },
       "priority": "P0: US-492(Chest战利品) + US-490(Slime knockback守卫) > US-491(HP bar) > US-494(takeDamage) > US-495(shutdown)"
+    },
+    {
+      "round": 58,
+      "date": "2026-04-29",
+      "title": "第58轮设计审查 — 权威合并型US+核心循环断裂确认+knockback对称性",
+      "summary": "全面审查25个源文件和495条PRD后，添加8条权威合并型US(US-496~US-503)。关键发现：(1) Chest.open()仍只切换贴图不产出战利品，key→chest探索循环是功能死胡同（15条重复US合并为US-496）；(2) takeDamage仍返回void阻塞10+下游功能（12条重复合并为US-497）；(3) GameScene无shutdown导致事件监听器累积泄漏（12条重复合并为US-498）；(4) ResultScene重启跳过TitleScene+update轮询泄漏（12条重复合并为US-499）；(5) 敌人onHitWall不保护knockback（9条重复合并为US-500）；(6) Skeleton chase分支HP bar脱离是55+轮顽固视觉bug（16条重复合并为US-501）；(7) PRD膨胀至495条需去重（US-502）；(8) 玩家knockback 125px/s与敌人300px/s严重不对称（US-503）。",
+      "newUserStories": [
+        "US-496",
+        "US-497",
+        "US-498",
+        "US-499",
+        "US-500",
+        "US-501",
+        "US-502",
+        "US-503"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-496: Chest.open() 战利品掉落（权威条目，合并15条重复US）",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-497: Player.takeDamage() 返回 boolean（权威条目，合并12条重复US）",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-498: GameScene shutdown() 资源清理（权威条目，合并12条重复US）",
+          "priority": "P0"
+        },
+        {
+          "area": "flow",
+          "change": "US-499: ResultScene → TitleScene + keyboard事件（权威条目，合并12条重复US）",
+          "priority": "P1"
+        },
+        {
+          "area": "combat",
+          "change": "US-500: Skeleton/Slime onHitWall knockback守卫（权威条目，合并9条重复US）",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-501: Skeleton chase HP bar跟随（权威条目，合并16条重复US，55+轮顽固bug）",
+          "priority": "P0"
+        },
+        {
+          "area": "meta",
+          "change": "US-502: PRD去重 495→≤80条权威条目",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "balance",
+          "change": "US-503: 玩家knockback 125→200px/s 对称性修复",
+          "priority": "P1"
+        }
+      ],
+      "balanceChanges": [
+        {
+          "param": "playerKnockbackSpeed",
+          "from": "125px/s (25px/200ms)",
+          "to": "200px/s (40px/200ms)",
+          "reason": "与敌人击退300px/s对称，当前125px/s几乎不可感知"
+        }
+      ],
+      "codeStatus": {
+        "checkWinCondition": "US-387已实现(hasOpenedChest检查)，US-057已解耦宝箱与胜利条件",
+        "slimeDeathEvent": "已修复 - Slime.die()正确emit enemy-death事件",
+        "slimeTakeDamageFlash": "已修复 - Slime.takeDamage有setTint(0xffffff)闪白",
+        "skeletonDieTimerCleanup": "已修复 - US-407 Skeleton die()清理delayedCall",
+        "attackSlashEffect": "已修复 - 四朝向翻转实现",
+        "slimeDieTimerCleanup": "已修复 - delayedCall清理"
+      },
+      "criticalStatus": {
+        "chestLootMissing": "Chest.open() 只做 setTexture('chest_open')，不生成任何战利品 — 核心探索循环断裂",
+        "takeDamageReturnsVoid": "Player.takeDamage 返回 void — 10+下游功能被阻塞",
+        "noShutdown": "GameScene 无 shutdown() 方法 — 多次restart后事件监听器累积",
+        "resultSceneFlow": "ResultScene 直接 scene.start('GameScene') 跳过 TitleScene",
+        "hpBarChaseBug": "Skeleton.update chase分支直接return跳过hpBar.follow() — 55+轮顽固视觉bug",
+        "prdBloat": "495条US(429 pending)，估计仅80条独立有效 — 严重PRD债务"
+      },
+      "priority": "US-496(宝箱掉落)+US-497(takeDamage)+US-498(shutdown)是P0三件套。US-501(HP bar)是55+轮顽固bug。US-502(PRD去重)是最高meta优先级。"
     }
   ],
   "improvements": {

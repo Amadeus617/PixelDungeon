@@ -376,6 +376,8 @@ export class GameScene extends Phaser.Scene {
       if (this.keyItem.collect()) {
         this.inventory.add("key");
         this.soundManager.playPickup();
+        // Show hint: key can be used to open chest (US-057)
+        this.showKeyPickupHint(this.keyItem.x, this.keyItem.y);
       }
     });
 
@@ -664,6 +666,15 @@ export class GameScene extends Phaser.Scene {
       const targetY = chestY + Math.sin(angle) * dist;
       this.spawnDropPotion(targetX, targetY, chestX, chestY);
     }
+
+    // 20% chance to drop an attack boost
+    if (Math.random() < CHEST_ATTACKBOOST_DROP_RATE) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Phaser.Math.Between(20, 35);
+      const targetX = chestX + Math.cos(angle) * dist;
+      const targetY = chestY + Math.sin(angle) * dist;
+      this.spawnDropAttackBoost(targetX, targetY, chestX, chestY);
+    }
   }
 
   /** Show a floating hint near a chest (US-051) */
@@ -697,6 +708,33 @@ export class GameScene extends Phaser.Scene {
         });
       }
       this.chestHintTimer = null;
+    });
+  }
+
+  /** Show a floating hint when player picks up key (US-057) */
+  private showKeyPickupHint(worldX: number, worldY: number): void {
+    const hint = this.add.text(worldX, worldY - 30, "\u{1F511} \u53EF\u7528\u4E8E\u5F00\u542F\u5B9D\u7BB1!", {
+      fontSize: "14px",
+      fontFamily: "monospace",
+      color: "#ffff00",
+      stroke: "#000000",
+      strokeThickness: 3,
+      backgroundColor: "#000000aa",
+      padding: { x: 5, y: 3 },
+    });
+    hint.setOrigin(0.5);
+    hint.setDepth(500);
+
+    // Float up and fade out
+    this.tweens.add({
+      targets: hint,
+      alpha: 0,
+      y: hint.y - 30,
+      duration: 2000,
+      ease: "Power2",
+      onComplete: () => {
+        hint.destroy();
+      },
     });
   }
 
@@ -915,6 +953,40 @@ export class GameScene extends Phaser.Scene {
       if (potion.collect()) {
         this.player.heal(DROP_POTION_HEAL);
         this.potionUsedCount++;
+        this.soundManager.playPickup();
+      }
+    });
+  }
+
+  /** Spawn a dropped attack boost with popup arc animation (US-057) */
+  private spawnDropAttackBoost(targetX: number, targetY: number, originX: number, originY: number): void {
+    const boost = new AttackBoost(this, originX, originY);
+    boost.setAlpha(0); // Start invisible
+    this.attackBoosts.push(boost);
+
+    // Popup arc animation
+    this.tweens.add({
+      targets: boost,
+      x: targetX,
+      y: { value: targetY - DROP_POP_HEIGHT, from: originY },
+      alpha: 1,
+      duration: DROP_POP_DURATION,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: boost,
+          y: targetY,
+          duration: 150,
+          ease: 'Bounce.easeOut',
+        });
+      },
+    });
+
+    // Register overlap for pickup
+    this.physics.add.overlap(this.player, boost, () => {
+      if (!boost.active) return;
+      if (boost.collect()) {
+        this.player.activateAttackBoost();
         this.soundManager.playPickup();
       }
     });

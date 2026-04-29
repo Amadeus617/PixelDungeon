@@ -154,8 +154,8 @@ export class HUD extends Phaser.GameObjects.Container {
     this.keyIcon.setVisible(false);
     this.add(this.keyIcon);
 
-    this.keyLabel = scene.add.text(38, keyY + 8, "Key", {
-      fontSize: "14px",
+    this.keyLabel = scene.add.text(38, keyY + 8, "\u{1F511} \u5F00\u5B9D\u7BB1\u7528", {
+      fontSize: "12px",
       color: "#ffff00",
       fontFamily: "monospace",
     });

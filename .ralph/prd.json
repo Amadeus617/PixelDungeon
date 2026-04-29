@@ -947,7 +947,7 @@
           "description": "当前胜利条件是到达楼梯(exit stairs)，但代码中仍保留了钥匙+宝箱系统(KeyItem+Chest)，宝箱开启后无任何效果(既不是胜利条件也不给奖励)，形成功能死胡同。应将宝箱改为奖励型：开启后掉落金币(3-5个)和概率药水，使钥匙到宝箱到奖励形成有意义的探索循环。",
           "type": "code",
           "priority": 42,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-033"
           ],
@@ -7957,6 +7957,130 @@
             "player-attack/enemy-death 事件在 shutdown 中 off",
             "动态 overlap collider 在 shutdown 中 destroy",
             "多次重启无事件/回调累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-496",
+          "title": "Chest.open() 战利品掉落实现（权威条目）",
+          "description": "宝箱开启时生成随机掉落（50%金币3-5枚/30%药水/20%AttackBoost），形成 key→chest(loot)→stairs 完整奖励闭环。当前 Chest.open() 仅切换贴图不产出任何物品，探索奖励正反馈断裂。合并条目: US-057/119/263/306/317/373/382/389/405/431/462/469/477/484/492。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 调用后生成随机战利品实体",
+            "战利品50%金币3-5枚/30%HealthPotion/20%AttackBoost",
+            "tsc + build 通过",
+            "战利品拾取流程与地图道具一致"
+          ]
+        },
+        {
+          "id": "US-497",
+          "title": "Player.takeDamage() 返回 boolean（权威条目）",
+          "description": "takeDamage 当前返回 void，调用方无法判断是否实际受伤（被无敌帧/已死亡跳过）。修改为返回 boolean 表示本次是否造成伤害。下游依赖：hurt音效精确触发、战斗统计killCount、overlap回调幂等、SpikeTrap伤害判定。合并条目: US-117/171/200/252/274/330/367/384/388/472/494/200/367/384。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 返回 true 表示实际受伤，false 表示被无敌帧/已死跳过",
+            "所有调用方使用返回值判断音效/统计触发",
+            "tsc + build 通过",
+            "heal() 已正确返回 number 作为参考实现"
+          ]
+        },
+        {
+          "id": "US-498",
+          "title": "GameScene shutdown() 统一资源清理（权威条目）",
+          "description": "GameScene 无 shutdown() 方法，player-attack/enemy-death 事件监听器、动态 overlap 回调、RoomCameraSystem 回调在 scene restart 后累积泄漏，多次游戏后同一攻击/拾取触发多次。合并条目: US-195/233/270/280/327/390/400/424/435/479/486/495。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 清理所有事件监听器",
+            "动态 overlap collider 在 shutdown 中 destroy",
+            "RoomCameraSystem/Minimap 引用在 shutdown 中置空",
+            "多次 restart 后无累积回调触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-499",
+          "title": "ResultScene 重启返回 TitleScene + keyboard事件替代update轮询",
+          "description": "两个问题：(1) ResultScene 直接 scene.start(\"GameScene\") 跳过 TitleScene，游戏流程不完整；(2) events.on(\"update\") 轮询检测按键，监听器从不清理导致内存泄漏。修复为 SPACE→TitleScene + keyboard.on(\"keydown\") 事件。合并条目: US-127/175/199/208/246/265/276/332/370/393/467/493。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene SPACE/ENTER 返回 TitleScene 而非 GameScene",
+            "使用 input.keyboard.on(\"keydown\") 替代 events.on(\"update\") 轮询",
+            "shutdown() 中 off 所有键盘监听器",
+            "TitleScene→BootScene→GameScene 链路正常",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-500",
+          "title": "Skeleton/Slime knockback期间onHitWall守卫（权威条目）",
+          "description": "Slime.onHitWall() 无条件调用 pickDirection() 覆盖 knockback 速度，Skeleton 同理。isKnockedBack 属性已存在但未在 onHitWall 中检查。击退碰墙时方向被随机覆盖导致击退效果消失。合并条目: US-099/100/172/207/395/442/464/487/490。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "onHitWall() 添加 if (this.isKnockedBack) return 守卫",
+            "击退碰墙时速度方向不被覆盖",
+            "Slime 和 Skeleton 均修复",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-501",
+          "title": "Skeleton chase分支HP bar跟随修复（权威条目）",
+          "description": "Skeleton.update() 追踪模式下直接 return 跳过 hpBar.follow()，HP条停留在旧位置是玩家直接可见的视觉bug。Slime knockback 分支同理 return 跳过 follow。修复：所有 early-return 路径前补充 hpBar.follow()。合并条目: US-136/196/209/234/244/279/308/328/375/391/397/434/463/475/482/491。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 return 前调用 hpBar.follow(this)",
+            "Slime knockback 分支 return 前调用 hpBar.follow(this)",
+            "所有 update 中的 early-return 路径均有 hpBar.follow",
+            "HP条在任何状态下不脱离sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-502",
+          "title": "PRD 大规模去重执行 — 429 pending → ≤80 权威条目",
+          "description": "PRD严重膨胀至495条US(429 pending)，同一问题被重复编号4-15次。takeDamage返回值12+条、HP bar跟随16+条、checkWinCondition 8+条、shutdown 12+条、ResultScene流程 12+条。本次去重将合并重复US为≤80条权威条目，每条标注所有被合并的原始US编号。去重后开发团队可聚焦真正需要修复的问题。",
+          "type": "code",
+          "priority": 7,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "429条pending US合并为≤80条权威条目",
+            "每条权威US标注所有被合并的原始US编号",
+            "已标记done的US保持不变",
+            "PRD JSON格式合法可解析",
+            "去重后无功能点遗漏"
+          ]
+        },
+        {
+          "id": "US-503",
+          "title": "玩家knockback速度提升至200px/s — 与敌人击退对称",
+          "description": "当前 KNOCKBACK_DISTANCE=25px / KNOCKBACK_DURATION=200ms = 125px/s，而敌人击退 45px/150ms ≈ 300px/s，严重不对称。玩家被击中时后退几乎不可感知，削弱战斗反馈。建议提升至 40px/200ms = 200px/s。",
+          "type": "code",
+          "priority": 8,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "KNOCKBACK_DISTANCE 提升至 40px",
+            "玩家被击中时后退视觉可感知",
+            "不导致玩家被推入墙壁（需碰撞保护）",
             "tsc + build 通过"
           ]
         }
