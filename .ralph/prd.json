@@ -4841,7 +4841,7 @@
           "description": "GDD中设计Shift键冲刺机制（US pending），但当前代码中Player的移动通过physics velocity实现，instant teleport（如果dash用tween）会绕过AABB碰撞。dash必须使用physics-based位移或碰撞安全检查。",
           "type": "code",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "dash位移通过physics velocity实现而非直接坐标修改",
@@ -7719,6 +7719,245 @@
             "SoundManager清理",
             "多次restart后无监听器累积",
             "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-480",
+          "title": "PRD 大规模去重执行 — 414 pending US 去重合并为 ≤80 条",
+          "description": "PRD 目前有 414 条 pending US，其中 takeDamage 相关 22 条、hpbar 相关 23 条、shutdown 相关 19 条、chest loot 相关 11 条。同一问题被反复标记（最多 22 次）但从未修复。需要：1) 按问题域分组 2) 每组合并为 1 条权威 US 3) 删除重复条目 4) 结果写入 .ralph/prd.json",
+          "type": "code",
+          "priority": 0,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "pending US 总数 ≤ 80",
+            "每个具体问题只有 1 条权威 US",
+            "tsc + build 通过",
+            "去重脚本可重复运行幂等"
+          ]
+        },
+        {
+          "id": "US-481",
+          "title": "PRD 添加 priority tier 标签 — P0 阻塞性 / P1 核心 / P2 增强 / P3 愿景",
+          "description": "414 条 pending US 无优先级区分，无法指导开发顺序。需要为每条 US 添加 priorityTier 字段：P0=游戏循环断裂(Chest loot/takeDamage return/shutdown), P1=核心体验(hpbar follow/knockback保护/难度缩放), P2=增强(combo/粒子/VFX), P3=未来愿景(Boss/多层/成就)。P0 条目应 ≤ 10 条。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每条 pending US 有 priorityTier 字段",
+            "P0 条目 ≤ 10",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-482",
+          "title": "Skeleton chase 分支缺少 hpBar.follow() — 43+ 轮顽固视觉 bug 根因代码行已定位",
+          "description": "Skeleton.update() line 165: chase 分支在 setVelocity(vx, vy) 后直接 return，跳过 line 167-168 的 hpBar.follow()。修复方案：在 return 前添加 hpBar.follow(this) 调用。",
+          "type": "code",
+          "priority": 467,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪模式下 HP bar 始终跟随 sprite",
+            "chase setVelocity 后 return 前调用 hpBar.follow(this)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-483",
+          "title": "Slime knockback 分支缺少 hpBar.follow() — 击退期间血条脱离",
+          "description": "Slime.update() isKnockedBack 为 true 时直接 return，跳过 hpBar.follow()。与 Skeleton 同类问题。修复方案：在 return 前添加 hpBar.follow()。",
+          "type": "code",
+          "priority": 468,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 击退期间 HP bar 始终跟随 sprite",
+            "isKnockedBack return 前调用 hpBar.follow(this)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-484",
+          "title": "Chest.open() 无战利品产出 — 宝箱开启是功能死胡同",
+          "description": "Chest.open() 仅切换贴图为 chest_open，不生成任何掉落物品。US-387 已修复 checkWinCondition 检查宝箱开启，但宝箱本身无奖励产出。修复方案：open() 时发射 chest-opened 事件，GameScene 监听后生成随机掉落（50% 金币 x3-5 / 30% 药水 / 20% AttackBoost）。",
+          "type": "code",
+          "priority": 469,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 后地面生成随机战利品",
+            "战利品遵循 GDD 掉落概率",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-485",
+          "title": "Player.takeDamage() 返回 void — 阻塞 hurt 音效/统计/掉落等 6+ 下游功能",
+          "description": "Player.takeDamage() 返回 void，调用方无法区分实际受伤和无敌帧/已死亡。直接导致 hurt 音效在无敌帧期间误播、受伤统计无法精确计数。修复方案：返回 boolean（true=实际受伤）。",
+          "type": "code",
+          "priority": 470,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 返回 boolean",
+            "无敌帧/已死亡时返回 false",
+            "实际受伤时返回 true",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-486",
+          "title": "GameScene 缺少 shutdown() 方法 — 场景重启后事件监听器/overlap 回调累积泄漏",
+          "description": "GameScene 没有 shutdown() 方法。player-attack 事件监听器、enemy-death 事件监听器、动态创建的 overlap 回调在 scene.restart() 后累积。多次游戏后同一攻击/拾取触发多次回调。修复方案：添加 shutdown() 清理所有事件监听器和 overlap collider。",
+          "type": "code",
+          "priority": 471,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 清理所有事件监听器",
+            "overlap collider 在 shutdown 时 destroy",
+            "多次 restart 后无回调累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-487",
+          "title": "Skeleton/Slime onHitWall() 无 isKnockedBack 守卫 — 击退碰墙时方向被覆盖",
+          "description": "Skeleton.onHitWall() 无条件调用 pickWanderDirection()，在 knockback 期间被 wallCollider 触发时覆盖击退速度方向。Slime 有同类问题。修复方案：onHitWall 开头检查 if (this.isKnockedBack) return。",
+          "type": "code",
+          "priority": 472,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "knockback 期间 onHitWall 不执行",
+            "击退方向不被碰墙覆盖",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-488",
+          "title": "PRD 去重压缩 — 481 条 US 中约 300 条重复需合并为约 80 条权威条目",
+          "description": "PRD 膨胀至 481 条，同一问题被重复编号 4-15 次。takeDamage 返回值 9 条、HP bar 跟随 11 条、checkWinCondition 8 条、GameScene shutdown 8 条。维护成本严重失控。修复方案：编写去重脚本合并重复条目，保留最详细的权威条目，标注所有被合并的 ID。目标 pending US <= 80 条。",
+          "type": "code",
+          "priority": 473,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "重复 US 合并为权威条目",
+            "被合并的 US 标注 duplicate-of 字段",
+            "最终 pending US <= 80 条",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-489",
+          "title": "Slime 难度缩放缺失 — HP/速度与 runCount 无关，后期太弱",
+          "description": "Slime 构造器不接受 speedMultiplier 或 hpMultiplier 参数，HP 固定 2、速度固定 60。Skeleton 已有 speedMultiplier 参数。在高 runCount 时 Slime 一击即死且移动缓慢。修复方案：构造器添加 speedMultiplier 和 hpMultiplier 参数，通过 getEnemyConfigForRoom 传入缩放值。",
+          "type": "code",
+          "priority": 474,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 构造器接受 speedMultiplier 和 hpMultiplier",
+            "HP 和速度随 runCount/房间深度增长",
+            "遵循 GDD 缩放公式",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-490",
+          "title": "Slime onHitWall knockback 守卫 — isKnockedBack 属性已存在但未使用",
+          "description": "Slime 已有 isKnockedBack 布尔属性，但 onHitWall() 仍无条件调用 pickDirection() 覆盖击退速度。修复：在 onHitWall 中添加 if(this.isKnockedBack) return; 守卫，确保击退期间碰墙不切换方向。这是击退效果消失的根因，14+ 个 US 标记了 knockback 问题但从未定位到此代码路径。",
+          "type": "code",
+          "priority": 475,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "onHitWall 中 isKnockedBack 时直接 return 不调 pickDirection",
+            "击退期间碰墙速度方向不变",
+            "tsc + build 通过",
+            "手动测试：Slime 被击退至墙壁时保持击退方向"
+          ]
+        },
+        {
+          "id": "US-491",
+          "title": "Skeleton chase 分支 return 前补充 hpBar.follow — 55+ 轮顽固视觉 bug",
+          "description": "Skeleton.update() 中 chase 分支在 setVelocity 后直接 return，跳过底部 hpBar.follow(this) 调用。HP 条停留在追踪开始位置不跟随 sprite 移动。这是 PRD 中 15+ 个重复 US 覆盖的最顽固视觉 bug。修复：在 chase return 前添加 if(this.hpBar && this.hpBar.active) this.hpBar.follow(this)。",
+          "type": "code",
+          "priority": 476,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 return 前调用 hpBar.follow",
+            "追踪时 HP 条始终在 sprite 上方",
+            "tsc + build 通过",
+            "无死引用崩溃"
+          ]
+        },
+        {
+          "id": "US-492",
+          "title": "Chest.open() 战利品掉落实现 — 核心游戏循环奖励闭环",
+          "description": "Chest.open() 当前仅切换贴图为 chest_open，不生成任何掉落物品。key→chest 探索完成后零奖励形成功能死胡同。修复：open() 时 scene 事件通知 GameScene 生成随机战利品（50% 金币3-5枚/30% 药水/20% AttackBoost），掉落在宝箱位置弹出。这是 PRD 中 10+ 个重复 US 覆盖的核心循环问题。",
+          "type": "code",
+          "priority": 477,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest open 时生成随机战利品",
+            "战利品掉落在宝箱位置附近弹出",
+            "50% coin / 30% potion / 20% attackBoost 概率分布",
+            "tsc + build 通过",
+            "key→chest(loot)→stairs 完整闭环可玩"
+          ]
+        },
+        {
+          "id": "US-493",
+          "title": "ResultScene 重启返回 TitleScene — 游戏流程闭环",
+          "description": "ResultScene 当前 SPACE/ENTER 直接 scene.start(GameScene) 跳过 TitleScene，导致：1) runCount 不递增（TitleScene 负责递增）；2) BootScene 纹理不重新生成；3) 游戏流程不完整。修复：改为 scene.start(TitleScene)，TitleScene 按任意键进入 BootScene→GameScene 完整流程。同时清理 events.on update 监听器改用 keyboard 事件。",
+          "type": "code",
+          "priority": 478,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene SPACE/ENTER 跳转 TitleScene",
+            "TitleScene 按键正常进入 BootScene→GameScene",
+            "runCount 正确递增",
+            "events.on update 监听器改为 keydown 事件",
+            "场景重启无事件监听器泄漏"
+          ]
+        },
+        {
+          "id": "US-494",
+          "title": "Player takeDamage 返回 boolean — 基础接口修复（第57轮确认）",
+          "description": "Player.takeDamage() 当前返回 void，导致调用方无法判断本次调用是否实际造成伤害（无敌帧期间返回 false）。下游 6+ 功能被阻塞：hurt 音效条件判断、受伤统计、knockback 仅在受伤时触发、受伤粒子反馈等。修复：函数签名改为 takeDamage(amount, sourceX?, sourceY?): boolean，无敌帧期间 return false，实际受伤 return true。",
+          "type": "code",
+          "priority": 479,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 签名返回 boolean",
+            "无敌帧期间 return false",
+            "实际受伤 return true",
+            "GameScene overlap 回调使用返回值判断 hurt 音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-495",
+          "title": "GameScene shutdown() 统一资源清理 — 事件监听器/timer/overlap 泄漏",
+          "description": "GameScene 当前无 shutdown() 方法。player-attack 和 enemy-death 事件监听器在 scene restart 后累积，动态创建的 overlap 回调（spawnDropCoin/spawnDropPotion）持有已销毁对象引用。修复：添加 shutdown() 方法，执行 this.events.off()、this.time.removeAllEvents()、清理动态 overlap collider。",
+          "type": "code",
+          "priority": 480,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 有 shutdown() 方法",
+            "player-attack/enemy-death 事件在 shutdown 中 off",
+            "动态 overlap collider 在 shutdown 中 destroy",
+            "多次重启无事件/回调累积",
+            "tsc + build 通过"
           ]
         }
       ]

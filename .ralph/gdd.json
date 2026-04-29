@@ -1957,6 +1957,136 @@
         "PRD膨胀至479条 — 大量重复(如HP bar问题11+条, takeDamage 9+条)"
       ],
       "priority": "US-477 (Chest战利品) 是最高优先级 — 核心游戏循环奖励闭环缺失。US-479 (shutdown) 次之 — 影响稳定性。"
+    },
+    {
+      "round": 60,
+      "date": "2026-04-29",
+      "title": "第60轮设计审查 — 核心循环状态确认+顽固Bug精确定位+PRD健康度",
+      "summary": "全面审查25个源文件和481条PRD后，确认核心游戏循环已部分修复（US-387 checkWinCondition已检查宝箱开启），但宝箱本身无奖励产出仍是功能死胡同。精确定位了3个顽固bug的根因代码行：(1) Skeleton.update() chase分支line 165 return跳过hpBar.follow()；(2) Slime.update() isKnockedBack return跳过hpBar.follow()；(3) takeDamage返回void阻塞下游功能。PRD膨胀至489条（含本轮新增8条），去重需求仍为最高meta优先级。",
+      "newUserStories": [
+        "US-482",
+        "US-483",
+        "US-484",
+        "US-485",
+        "US-486",
+        "US-487",
+        "US-488",
+        "US-489"
+      ],
+      "changes": [
+        {
+          "area": "visual-bug",
+          "change": "US-482: Skeleton chase hpBar.follow — 精确定位到 line 165 return",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-483: Slime knockback hpBar.follow — 同类问题",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-484: Chest.open() 战利品产出 — 宝箱功能死胡同",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-485: takeDamage 返回 boolean — 基础接口",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-486: GameScene shutdown — 内存泄漏",
+          "priority": "P1"
+        },
+        {
+          "area": "combat",
+          "change": "US-487: onHitWall knockback 守卫 — 击退覆盖",
+          "priority": "P1"
+        },
+        {
+          "area": "meta",
+          "change": "US-488: PRD 去重 489→≤80 条",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "balance",
+          "change": "US-489: Slime 难度缩放 — HP/速度参数化",
+          "priority": "P1"
+        }
+      ],
+      "fixedConfirmations": [
+        "US-387: checkWinCondition hasOpenedChest 检查已实现 — 代码确认",
+        "US-407: Skeleton die() 清理 delayedCall — 代码确认",
+        "US-251: Slime takeDamage 闪白 — 代码确认有 setTint(0xffffff)",
+        "US-255/329: Slime die() emit enemy-death — 代码确认"
+      ],
+      "criticalStatus": {
+        "coreLoopPartial": true,
+        "note": "checkWinCondition 已要求宝箱开启(US-387 ✓)，但 Chest.open() 无奖励产出仍是功能死胡同。完整闭环需 US-484。",
+        "prdBloat": "489 条 US，估计仅 ~80 条独立有效。US-488 去重任务仍 pending。",
+        "stickyBugCount": "6 个问题 43+ 轮反复标记但代码从未修复"
+      },
+      "priority": "US-484(宝箱奖励) + US-482/483(HP bar) 是最高优先级。US-488(PRD去重) 是最高 meta 优先级。"
+    },
+    {
+      "round": 57,
+      "date": "2026-04-29",
+      "title": "第57轮设计审查 — 核心循环断裂确认+顽固bug根因定位+6条权威US",
+      "summary": "全面审查25个源文件、489条pending US和GDD后发现6个改进机会：(1) Slime onHitWall已有isKnockedBack属性但未使用，是击退效果消失的根因；(2) Skeleton chase分支return跳过hpBar.follow——55+轮最顽固视觉bug；(3) Chest.open()仅切换贴图无战利品——核心循环奖励断裂；(4) ResultScene重启跳过TitleScene——runCount不递增+流程不完整；(5) takeDamage返回void阻塞6+下游功能；(6) GameScene无shutdown事件泄漏。确认checkWinCondition已修复(US-387 done)但Chest奖励产出仍未实现。",
+      "newUserStories": [
+        "US-490",
+        "US-491",
+        "US-492",
+        "US-493",
+        "US-494",
+        "US-495"
+      ],
+      "changes": [
+        {
+          "area": "entities/Slime",
+          "change": "US-490: onHitWall添加isKnockedBack守卫",
+          "priority": "P0"
+        },
+        {
+          "area": "entities/Skeleton",
+          "change": "US-491: chase分支return前hpBar.follow",
+          "priority": "P0"
+        },
+        {
+          "area": "entities/Chest",
+          "change": "US-492: open()战利品掉落实现",
+          "priority": "P0"
+        },
+        {
+          "area": "scenes/ResultScene",
+          "change": "US-493: 重启返回TitleScene+keyboard事件",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Player",
+          "change": "US-494: takeDamage返回boolean",
+          "priority": "P0"
+        },
+        {
+          "area": "scenes/GameScene",
+          "change": "US-495: shutdown()统一资源清理",
+          "priority": "P0"
+        }
+      ],
+      "fixedInReview": [
+        "US-387: checkWinCondition hasOpenedChest检查 — 代码确认已实现(done)",
+        "US-044: getEnemyConfigForRoom房间深度难度 — 代码确认已实现",
+        "US-056: 玩家冲刺闪避 — 代码确认已实现",
+        "US-407: Skeleton die()清理delayedCall — 代码确认已修复",
+        "US-251: Slime takeDamage闪白 — 代码确认setTint已实现"
+      ],
+      "criticalStatus": {
+        "coreLoopState": "checkWinCondition已修复(done)，但Chest.open()仍无战利品产出。key→chest(无奖励)→stairs 半闭环",
+        "prdBloat": "489条pending US，估计仅~80条独立有效。PRD去重仍为最高meta优先级",
+        "stickyBugs": "takeDamage返回void(9+重复US)、HP bar chase(15+重复US)、GameScene shutdown(10+重复US)代码从未修复"
+      },
+      "priority": "P0: US-492(Chest战利品) + US-490(Slime knockback守卫) > US-491(HP bar) > US-494(takeDamage) > US-495(shutdown)"
     }
   ],
   "improvements": {
@@ -2875,50 +3005,65 @@
     }
   },
   "healthPotionHeal": 3,
-  "knownIssues": [
-    {
-      "id": "KI-014",
-      "desc": "GameScene 无 shutdown() 方法，事件监听和 overlap 不清理",
-      "severity": "high",
-      "relatedUS": "US-233"
-    },
-    {
-      "id": "KI-015",
-      "desc": "Skeleton 追踪模式下 HP Bar 不跟随实体",
-      "severity": "medium",
-      "relatedUS": "US-234"
-    },
-    {
-      "id": "KI-016",
-      "desc": "满血时拾取药水浪费资源",
-      "severity": "medium",
-      "relatedUS": "US-236"
-    },
-    {
-      "id": "KI-049",
-      "date": "2026-04-28",
-      "severity": "critical",
-      "title": "核心游戏循环断裂 — checkWinCondition 不检查 key/chest",
-      "description": "玩家可以直接走到楼梯通关，完全跳过钥匙和宝箱。这是游戏核心循环的根本性设计缺陷。",
-      "plannedFix": "US-422"
-    },
-    {
-      "id": "KI-050",
-      "date": "2026-04-28",
-      "severity": "high",
-      "title": "PRD 积累 414 条 US 大量重复",
-      "description": "同一问题在 PRD 中重复记录多达 6-10 次（如 takeDamage 返回值、HP bar 跟随、ResultScene 重启），开发者无法判断哪条是权威来源，实际上阻塞了修复。",
-      "plannedFix": "US-416"
-    },
-    {
-      "id": "KI-051",
-      "date": "2026-04-28",
-      "severity": "high",
-      "title": "GameScene 场景重启后事件监听器泄漏",
-      "description": "GameScene 没有 shutdown() 方法，player-attack、enemy-death 事件监听器和 roomCameraSystem 回调在场景重启后累积，长时间运行导致内存泄漏和潜在的重复触发。",
-      "plannedFix": "US-424"
-    }
-  ],
+  "knownIssues": {
+    "_consolidated": "2026-04-29 审查后合并去重",
+    "P0_blockers": [
+      {
+        "id": "CORE-001",
+        "title": "Chest.open() 无战利品产出",
+        "impact": "玩家完成 key→chest 探索后获得零奖励，核心循环断裂",
+        "existingUS": "US-462, US-317, US-382, US-389, US-431, US-469, US-477",
+        "codeRef": "src/entities/Chest.ts open() method"
+      },
+      {
+        "id": "CORE-002",
+        "title": "Player.takeDamage() 返回 void",
+        "impact": "无法判断是否实际受伤，阻塞受伤音效/分数/UI更新等 6+ 功能",
+        "existingUS": "US-117, US-171, US-200, US-252, US-330, US-367, US-384, US-388, US-465, US-472, US-484",
+        "codeRef": "src/entities/Player.ts takeDamage() return type"
+      },
+      {
+        "id": "CORE-003",
+        "title": "GameScene 无 shutdown() 方法",
+        "impact": "场景重启后事件监听器/overlap回调/timer累积泄漏",
+        "existingUS": "US-195, US-233, US-270, US-280, US-327, US-390, US-400, US-424, US-435, US-466, US-471, US-479",
+        "codeRef": "src/scenes/GameScene.ts"
+      },
+      {
+        "id": "CORE-004",
+        "title": "PRD 重复膨胀",
+        "impact": "416 条 pending US 中 ~80% 重复，无法有效指导开发",
+        "existingUS": "US-404, US-411, US-412, US-416, US-430, US-433, US-436, US-446, US-480",
+        "codeRef": ".ralph/prd.json"
+      }
+    ],
+    "P1_core": [
+      {
+        "id": "VIS-001",
+        "title": "Skeleton chase 分支 HP bar 不跟随",
+        "impact": "追踪敌人时血条原地不动，直接可见的视觉 bug",
+        "existingUS": "US-136, US-196, US-209, US-244, US-279, US-308, US-334, US-375, US-391, US-397, US-434, US-463"
+      },
+      {
+        "id": "BAL-001",
+        "title": "难度缩放体系断裂 — runCount 未接入房间敌人配置",
+        "impact": "getEnemyConfigForRoom 不受 runCount 影响，跨局难度不变",
+        "existingUS": "US-143, US-290, US-336, US-339, US-379, US-420, US-441"
+      },
+      {
+        "id": "BUG-001",
+        "title": "Slime/Skeleton onHitWall() knockback 保护缺失",
+        "impact": "击退未结束时碰墙覆盖速度方向，击退效果被打断",
+        "existingUS": "US-099, US-100, US-172, US-207, US-395, US-442, US-464"
+      },
+      {
+        "id": "BUG-002",
+        "title": "dash 冲刺无碰撞保护 — 可能穿墙",
+        "impact": "高速度 + 无碰撞检测 = 玩家可进入墙壁/无效区域",
+        "existingUS": "US-303, US-316"
+      }
+    ]
+  },
   "levelDesign": {
     "rules": [
       {
@@ -3234,23 +3379,19 @@
     "highScoreSplit": "按难度分别存储高分"
   },
   "prdHealth": {
-    "diagnosis_2026-04-28": {
-      "totalUS": 441,
-      "done": 59,
-      "pending": 382,
-      "sourceFiles": 25,
-      "pendingPerFile": 15.3,
-      "topRepeatedIssues": {
-        "Player.takeDamage_boolean": "10+ reports (US-117,171,200,252,330,367,384,388,667等)",
-        "HPbar_follow_chase": "15+ reports (US-136,196,209,234,244,275,279,308,328,375,376,391,397,434等)",
-        "ResultScene_TitleScene": "8+ reports (US-127,175,199,208,246,332,370等)",
-        "checkWinCondition_key": "7+ reports (US-307,372,381,387,401,422等)",
-        "GameScene_shutdown": "12+ reports (US-195,210,233,270,280,327,369,390,400,424,435等)",
-        "chest_noLoot": "6+ reports (US-119,306,317,373,382,431等)"
-      },
-      "rootCause": "审查轮次不断发现同一未修复问题并创建新US而非提升旧US优先级，导致PRD膨胀",
-      "recommendation": "执行US-436去重后，future审查应先搜索已有US再创建新条目"
-    }
+    "lastReviewed": "2026-04-29",
+    "totalUS": 481,
+    "doneUS": 65,
+    "pendingUS": 416,
+    "completionRate": "13.5%",
+    "estimatedDuplicates": "~330 (80% of pending)",
+    "uniqueIssuesEstimate": "~80",
+    "criticalFindings": [
+      "Chest.open() 无战利品 — 核心游戏循环奖励断裂",
+      "Player.takeDamage() 返回 void — 阻塞受伤音效/分数/UI 等 6+ 功能",
+      "GameScene 无 shutdown() — 场景重启事件监听器累积泄漏",
+      "PRD 重复率 80% — 失去项目指导价值"
+    ]
   },
   "_reviewHistory": [
     {
@@ -3271,6 +3412,33 @@
       "summary": "第50轮审查。聚焦打击感(juice)和体验优化：低血量警告、回血/拾取/死亡粒子特效、镜头震动、暂停菜单完善、音量控制、金币磁吸、房间信息横幅、ResultScene难度展示。",
       "totalPendingBefore": 386,
       "newUSCount": 10
+    },
+    {
+      "date": "2026-04-29",
+      "round": 2,
+      "findings": [
+        "PRD 膨胀严重: 479 US 中 414 pending，重复率极高(takeDamage 22次, hpbar 23次, shutdown 19次)",
+        "核心游戏循环 key→chest→stairs 已完整(US-387 done)，但 Chest.open() 仍无战利品掉落(US-462 pending)",
+        "难度缩放断裂: getEnemyConfigForRoom 未接入 runCount，Slime 无 HP/速度缩放",
+        "dash 碰撞保护缺失 — 可能穿墙进入无效区域",
+        "endGame/endGameInternal 代码重复 — 两套几乎相同的转场逻辑",
+        "414 条 pending US 中 ~80% 是同一问题的重复标记，PRD 已失去项目指导价值"
+      ],
+      "newUS": [
+        "US-480 (PRD去重执行)",
+        "US-481 (优先级分级)"
+      ],
+      "gddUpdates": [
+        "prdHealth 添加重复率统计",
+        "reviewHistory 记录本轮发现"
+      ],
+      "criticalPath": [
+        "P0-1: Chest.open() 战利品掉落 — 核心奖励闭环断裂",
+        "P0-2: Player.takeDamage() 返回 boolean — 阻塞 6+ 下游功能",
+        "P0-3: GameScene shutdown() — 场景泄漏累积",
+        "P0-4: PRD 去重 — 项目管理基础恢复",
+        "P0-5: Skeleton chase HP bar follow — 直接可见视觉 bug"
+      ]
     }
   ]
 }

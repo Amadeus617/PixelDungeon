@@ -76,6 +76,14 @@ const ATTACK_BOOST_COUNT = 2;
 const ENEMY_CONTACT_DAMAGE = 1;
 const STAIRS_REACH_DISTANCE = 40;
 
+// --- Chest loot drop rates (US-431) ---
+const CHEST_COIN_DROP_RATE = 0.5;       // 50%
+const CHEST_POTION_DROP_RATE = 0.3;    // 30%
+const CHEST_ATTACKBOOST_DROP_RATE = 0.2; // 20%
+const CHEST_COIN_COUNT_MIN = 3;
+const CHEST_COIN_COUNT_MAX = 5;
+// --- End chest loot drop rates ---
+
 // --- Enemy death drop rates (US-033) ---
 const SLIME_COIN_DROP_RATE = 0.3;    // 30%
 const SLIME_POTION_DROP_RATE = 0.1;  // 10%
@@ -630,7 +638,31 @@ export class GameScene extends Phaser.Scene {
       this.inventory.remove("key");
       chest.open();
       this.soundManager.playChestOpen();
+      // US-431: Generate chest loot drops
+      this.spawnChestLoot(chest.x, chest.y);
       return; // Only open one chest per press
+    }
+  }
+
+  /** Spawn loot drops from an opened chest (US-057) */
+  private spawnChestLoot(chestX: number, chestY: number): void {
+    // Drop 3-5 coins scattered around the chest
+    const coinCount = Phaser.Math.Between(CHEST_COIN_COUNT_MIN, CHEST_COIN_COUNT_MAX);
+    for (let i = 0; i < coinCount; i++) {
+      const angle = (Math.PI * 2 / coinCount) * i + Math.random() * 0.5;
+      const dist = Phaser.Math.Between(20, 40);
+      const targetX = chestX + Math.cos(angle) * dist;
+      const targetY = chestY + Math.sin(angle) * dist;
+      this.spawnDropCoin(targetX, targetY, chestX, chestY);
+    }
+
+    // 30% chance to drop a health potion
+    if (Math.random() < CHEST_POTION_DROP_RATE) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Phaser.Math.Between(20, 35);
+      const targetX = chestX + Math.cos(angle) * dist;
+      const targetY = chestY + Math.sin(angle) * dist;
+      this.spawnDropPotion(targetX, targetY, chestX, chestY);
     }
   }
 
@@ -724,37 +756,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Show hint near stairs if chest not yet opened (US-387) */
+  /** Show hint near stairs (US-387, decoupled from chest US-057) */
   private updateStairsProximityHint(): void {
-    const stairsPos = this.dungeonMap.getStairsPos();
-    const dx = this.player.x - stairsPos.x;
-    const dy = this.player.y - stairsPos.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    const hasOpenedChest = this.chests.some((c) => c.isOpen);
-    const nearStairs = dist < STAIRS_REACH_DISTANCE * 2; // wider radius for hint
-
-    if (nearStairs && !hasOpenedChest) {
-      const msg = "\uD83D\uDD12 \u627E\u5230\u94A5\u5319\u5F00\u542F\u5B9D\u7BB1\u540E\u624D\u80FD\u901A\u5173!";
-      if (!this.stairsHintText || !this.stairsHintText.active) {
-        this.stairsHintText = this.add.text(stairsPos.x, stairsPos.y - 40, msg, {
-          fontSize: "13px",
-          fontFamily: "monospace",
-          color: "#ff8844",
-          stroke: "#000000",
-          strokeThickness: 3,
-          backgroundColor: "#000000bb",
-          padding: { x: 5, y: 2 },
-        });
-        this.stairsHintText.setOrigin(0.5);
-        this.stairsHintText.setDepth(400);
-      }
-    } else {
-      if (this.stairsHintText && this.stairsHintText.active) {
-        this.stairsHintText.destroy();
-      }
-      this.stairsHintText = null;
+    // Stairs hint removed — chest is no longer required for win (US-057)
+    if (this.stairsHintText && this.stairsHintText.active) {
+      this.stairsHintText.destroy();
     }
+    this.stairsHintText = null;
   }
 
   /** Get a random floor position within a corridor segment (world pixels) */
@@ -1116,17 +1124,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkWinCondition(): boolean {
-    // Win: reach the stairs in the exit room AND at least one chest opened (US-387)
-    // This ensures the key→chest→stairs game loop is enforced
+    // Win: reach the stairs in the exit room (US-057: chest decoupled from win)
     const stairsPos = this.dungeonMap.getStairsPos();
     const dx = this.player.x - stairsPos.x;
     const dy = this.player.y - stairsPos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist >= STAIRS_REACH_DISTANCE) return false;
-
-    // Require at least one chest to be opened
-    const hasOpenedChest = this.chests.some((c) => c.isOpen);
-    return hasOpenedChest;
+    return dist < STAIRS_REACH_DISTANCE;
   }
 
   private checkLoseCondition(): boolean {
