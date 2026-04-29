@@ -8293,6 +8293,97 @@
             "生成按优先级排序的实施路线图",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-517",
+          "title": "核心游戏循环再断裂 — US-057 解耦宝箱后 checkWinCondition 不检查任何条件",
+          "description": "US-057 将宝箱改为奖励型道具时，从 checkWinCondition 移除了 chest 检查（代码注释明确写了 \"chest decoupled from win\"），导致玩家可以直接走到楼梯通关，key/chest 系统再次无意义。这是继 US-387 修复 key 检查后的第二次循环断裂——US-387 的修复被 US-057 的解耦覆盖。需要重新设计胜利条件：要么保留 key→chest→stairs 闭环，要么引入新的通关门控（如击败 Boss）。",
+          "type": "code",
+          "priority": 502,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 包含有意义的通关门控条件",
+            "key/chest 探索系统对通关有价值（非纯装饰）",
+            "GDD coreLoop 和胜利条件文档与代码一致",
+            "相关 PRD 重复 US（US-307/318/372/381/387/401/422/432）合并标记"
+          ]
+        },
+        {
+          "id": "US-518",
+          "title": "Chest.open() 仍无战利品产出 — US-057 仅在 GameScene 侧生成掉落",
+          "description": "US-057 的实现将宝箱掉落逻辑放在 GameScene.handleChestInteraction 中（spawnDropCoin + 30% spawnDropPotion），而非 Chest.open() 方法本身。Chest.open() 仅切换贴图返回 true。当前实现可行但架构不理想——Chest 类不知道自己产出什么，奖励逻辑分散在 GameScene。更重要的是，handleChestInteraction 中 SPACE 键被攻击优先消费的时序问题（US-061/102/374/383/458）仍然存在，宝箱交互可能永远无法触发。",
+          "type": "code",
+          "priority": 503,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱战利品生成逻辑验证——确认当前 handleChestInteraction 实际产出掉落",
+            "SPACE JustDown 时序确认——宝箱交互不被攻击拦截",
+            "Chest.open() 或 Chest 类添加奖励配置接口"
+          ]
+        },
+        {
+          "id": "US-519",
+          "title": "Player.takeDamage 返回 void — 57轮+审查标记仍未修复",
+          "description": "Player.ts L190 takeDamage 返回 void。heal() 已正确返回 number。返回 void 导致调用方无法判断是否实际受伤（被无敌帧跳过），阻塞 hurt 音效精确控制、战斗统计、击杀积分判定等 6+ 下游功能。这是 PRD 中重复编号最多的顽固问题（9+ 个 US：US-117/171/200/252/274/330/367/384/388/438/465/472/485/494/497/509）。修复方案：返回 boolean 表示是否实际扣血。",
+          "type": "code",
+          "priority": 504,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 返回 boolean（true=实际受伤，false=被无敌帧/已死亡跳过）",
+            "所有调用方适配新返回值（Slime/Skeleton overlap 音效、handlePlayerAttack 击杀判定）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-520",
+          "title": "Skeleton chase 分支 return 跳过 hpBar.follow — 55+ 轮顽固视觉 bug",
+          "description": "Skeleton.ts L155-161，追踪模式直接 return，L168 的 hpBar.follow 只在 wander 分支执行。Slime.ts L153 的 hpBar.follow 在 knockback return 之前，但 Slime 的 knockback return（L143）也跳过 L153。实际验证：Slime L140-146 knockback return 跳过 L153 的 hpBar.follow。两个敌人的 HP bar 在特定状态下脱离 sprite。",
+          "type": "code",
+          "priority": 505,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 return 前调用 hpBar.follow(this)",
+            "Slime knockback 分支 return 前调用 hpBar.follow(this)",
+            "HP bar 在所有状态（idle/wander/chase/knockback）下始终跟随 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-521",
+          "title": "GameScene 无 shutdown() 方法 — 场景重启事件监听器泄漏",
+          "description": "GameScene 没有 shutdown() 方法。ResultScene 使用 events.on(\"update\") 轮询按键（L371-380），重启到 GameScene 后监听器从不清理。GameScene 中 player-attack/enemy-death 事件监听器、动态创建的 overlap 回调在多次 restart 后累积。验证：grep shutdown src/scenes/GameScene.ts 无结果。",
+          "type": "code",
+          "priority": 506,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "shutdown 中清理所有事件监听器（player-attack、enemy-death、roomChanged 等）",
+            "shutdown 中清理动态 overlap 回调",
+            "ResultScene 改用 keyboard keydown 事件替代 events.on(\"update\") 轮询",
+            "多次 restart 后无监听器累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-522",
+          "title": "ResultScene 重启跳过 TitleScene + events.on update 监听器泄漏",
+          "description": "ResultScene L371 重启到 GameScene（this.scene.start(\"GameScene\")）跳过 TitleScene，游戏流程不完整。同时使用 events.on(\"update\") 轮询按键，监听器从不清理，多次重启后累积。验证：grep 确认 L371 直接跳 GameScene。",
+          "type": "code",
+          "priority": 507,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene SPACE/ENTER 重启到 TitleScene 而非 GameScene",
+            "用 input.keyboard.on(\"keydown\") 替代 events.on(\"update\") 轮询",
+            "shutdown 时移除所有 keyboard 监听器",
+            "完整流程：TitleScene → BootScene → GameScene → ResultScene → TitleScene",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

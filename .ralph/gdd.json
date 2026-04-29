@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（US-387 已实现）\n当前: 玩家必须在已开启至少一个宝箱的前提下到达楼梯才能通关。\n实现: checkWinCondition 检查 hasOpenedChest = this.chests.some(c => c.isOpen)。\n\n### 核心循环缺口（US-462 待实现）\n问题: Chest.open() 成功后只切换贴图，不生成任何掉落物品。玩家完成 key→chest 探索后获得零奖励。\n计划: Chest.open() 时生成随机战利品（50%金币/30%药水/20%AttackBoost），形成 key→chest(loot)→stairs 完整奖励闭环。",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（当前状态 — 第60轮审查）\n⚠️ 问题：US-057 将宝箱改为奖励型道具时从 checkWinCondition 移除了 chest 检查，导致玩家可直接走到楼梯通关。\n代码注释明确写着 \"chest decoupled from win\"。key/chest 系统再次无意义。\nUS-387 曾添加 key+chest 检查，但被 US-057 覆盖。\n\n当前代码 checkWinCondition 仅检查：玩家与楼梯距离 < 40px。\n不含 key/chest/任何门控条件。\n\n### 核心循环状态（第60轮）\n- key 拾取 → 可开宝箱 ✅ 逻辑存在\n- 宝箱开启 → 生成掉落物 ✅ 在 GameScene.handleChestInteraction 中实现\n- 但 SPACE 时序问题可能导致宝箱交互无法触发 ⚠️\n- 通关 → 不需要 key/chest ❌ US-057 解耦导致循环断裂\n- 宝箱纯奖励型 → 通关不依赖探索 ❌ 降低探索动力",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -2321,6 +2321,61 @@
         ]
       },
       "priority": "US-508 (Chest战利品) + US-509 (takeDamage返回值) 是最高优先级核心修复。US-507 (PRD去重) 是最高meta优先级 — 439条pending US的维护成本已阻塞开发。"
+    },
+    {
+      "round": 60,
+      "date": "2026-04-29",
+      "title": "第60轮设计审查 — 核心循环二次断裂确认+6条权威US",
+      "summary": "全面审查516条PRD和25个源文件后，发现最关键问题：US-057 宝箱解耦导致 checkWinCondition 不检查任何条件，核心游戏循环再次断裂（US-387 修复被覆盖）。同时确认5个顽固问题仍在代码中：takeDamage 返回 void、Skeleton chase HP bar 脱离、GameScene 无 shutdown、ResultScene 跳过 TitleScene + 监听器泄漏、Chest.open 仅有贴图切换。新增 US-517~US-522。",
+      "newUserStories": [
+        "US-517",
+        "US-518",
+        "US-519",
+        "US-520",
+        "US-521",
+        "US-522"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-517: checkWinCondition 无门控条件 — US-057 解耦覆盖了 US-387 修复",
+          "priority": "P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-518: Chest.open() 架构 + SPACE 时序确认",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-519: takeDamage 返回 boolean — 9+ 个重复US的权威条目",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-520: Skeleton/Slime HP bar chase/knockback 跟随 — 11+ 个重复US的权威条目",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-521: GameScene shutdown — 8+ 个重复US的权威条目",
+          "priority": "P0"
+        },
+        {
+          "area": "flow",
+          "change": "US-522: ResultScene → TitleScene + keyboard 事件",
+          "priority": "P1"
+        }
+      ],
+      "fixedInReview": [
+        "US-387 checkWinCondition key检查 — 被 US-057 覆盖，不再是 done",
+        "US-057 宝箱奖励 — GameScene 侧已实现掉落，但 checkWinCondition 解耦导致循环断裂",
+        "US-407 Skeleton die() delayedCall 清理 — 代码已修复",
+        "US-044 房间深度难度递增 — getEnemyConfigForRoom 已实现",
+        "US-041 Slime 闪白 — 代码已修复",
+        "US-255/275/288/329 Slime die() 事件 — 代码已修复"
+      ],
+      "priority": "US-517（核心循环再断裂）是 P0 中最高优先级。这是游戏第二次因解耦导致循环断裂，需要设计层面的决策而非简单代码修复。"
     }
   ],
   "improvements": {
