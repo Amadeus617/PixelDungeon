@@ -240,7 +240,23 @@
     "playerKnockbackDuration": 200,
     "playerKnockbackSpeed_current": "125px/s",
     "playerKnockbackSpeed_proposed": "200px/s (40px/200ms)",
-    "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知"
+    "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知",
+    "_codeAudit": {
+      "date": "2026-04-29",
+      "note": "第60轮审查代码实际值验证",
+      "confirmed": [
+        "Player.takeDamage 返回 void（L190）",
+        "Player.heal 返回 number（L188）",
+        "Slime.isKnockedBack 属性存在（L28）但 onHitWall（L77）未检查",
+        "Skeleton chase 分支 return 在 hpBar.follow 之前（L166）",
+        "GameScene 无 shutdown() 方法",
+        "ResultScene 用 events.on(update) 轮询按键（L371-380），重启到 GameScene",
+        "Chest.open() 仅切换贴图无掉落（L30-33）",
+        "endGame/endGameInternal 代码重复约40行",
+        "checkWinCondition 仅检查楼梯距离，不检查 key/chest（US-057 解耦后丢失）",
+        "getEnemyConfigForRoom 已接入房间深度（L39），slimeCount 随 runCount 递增（L177）"
+      ]
+    }
   },
   "designLog": [
     {
@@ -2175,6 +2191,136 @@
         "prdBloat": "495条US(429 pending)，估计仅80条独立有效 — 严重PRD债务"
       },
       "priority": "US-496(宝箱掉落)+US-497(takeDamage)+US-498(shutdown)是P0三件套。US-501(HP bar)是55+轮顽固bug。US-502(PRD去重)是最高meta优先级。"
+    },
+    {
+      "round": 60,
+      "date": "2026-04-29",
+      "title": "第60轮设计审查 — endGame代码重复消除+Slime knockback根因+PRD去重meta",
+      "summary": "全面审查25个源文件和503条PRD后发现3个改进机会（本轮刻意不重复添加已有US覆盖的顽固问题）：(1) endGame/endGameInternal约40行代码完全重复，是维护风险 — 之前对其中一个的修复可能遗漏另一个；(2) Slime onHitWall不检查isKnockedBack是14+个knockback US从未定位到的根因代码路径（属性已存在但未使用）；(3) PRD膨胀至503条（436 pending），同一问题重复5-15次，约350条为重复，严重降低开发效率。",
+      "newUserStories": [
+        "US-504",
+        "US-505",
+        "US-506"
+      ],
+      "changes": [
+        {
+          "area": "GameScene/lifecycle",
+          "change": "US-504: endGame/endGameInternal合并为单一方法，接受delay参数",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Slime",
+          "change": "US-505: onHitWall添加isKnockedBack守卫 — knockback根因修复",
+          "priority": "P0"
+        },
+        {
+          "area": "meta",
+          "change": "US-506: PRD去重 503→≤80条权威条目",
+          "priority": "meta-P0"
+        }
+      ],
+      "criticalStatus": {
+        "coreLoopBroken": true,
+        "reason": "US-057将宝箱与胜利条件解耦后，checkWinCondition仅需到达楼梯，key/chest系统在通关路径上无意义。Chest.open()不产出战利品。US-437/431/432标记但代码从未修复。",
+        "prdBloat": "503条US（436 pending），估计仅80条独立有效。takeDamage返回值9条、HP bar 11条、checkWinCondition 8条、shutdown 12条。US-506去重任务仍pending。",
+        "stickyBugs": "以下问题57+轮反复标记但代码从未修复：takeDamage返回void、Skeleton chase HP bar脱离、GameScene无shutdown、ResultScene不返回TitleScene、Chest无战利品"
+      },
+      "fixedInReview": [],
+      "priority": "P0: US-505(knockback根因) > US-504(代码重复) > meta-P0: US-506(PRD去重)"
+    },
+    {
+      "round": 60,
+      "date": "2026-04-29",
+      "title": "第60轮设计审查 — PRD债务治理+权威US合并+代码审计",
+      "summary": "第60轮全面审查25个源文件和506条PRD（439 pending）。确认核心架构问题仍存在于代码中：(1) takeDamage返回void阻塞6+下游功能；(2) Skeleton chase分支return跳过hpBar.follow（43+轮顽固视觉bug）；(3) Slime/Skeleton onHitWall不保护knockback；(4) GameScene无shutdown方法导致事件监听器泄漏；(5) Chest.open()不生成掉落物品（核心循环死胡同）；(6) ResultScene跳过TitleScene+update轮询泄漏；(7) endGame代码重复40行。PRD债务严重：439条pending US中约300条为重复。本轮新增10条权威US（US-507~US-516），每条合并5-15条历史重复条目。",
+      "newUserStories": [
+        "US-507",
+        "US-508",
+        "US-509",
+        "US-510",
+        "US-511",
+        "US-512",
+        "US-513",
+        "US-514",
+        "US-515",
+        "US-516"
+      ],
+      "changes": [
+        {
+          "area": "meta",
+          "change": "US-507: PRD去重执行 439→≤80条权威US",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-508: Chest.open()战利品掉落 — 合并15+条重复US",
+          "priority": "P0"
+        },
+        {
+          "area": "interface",
+          "change": "US-509: takeDamage返回boolean — 合并15+条重复US",
+          "priority": "P0"
+        },
+        {
+          "area": "stability",
+          "change": "US-510: GameScene shutdown() — 合并14条重复US",
+          "priority": "P0"
+        },
+        {
+          "area": "combat",
+          "change": "US-511: onHitWall isKnockedBack守卫 — 合并14条重复US",
+          "priority": "P0"
+        },
+        {
+          "area": "visual-bug",
+          "change": "US-512: Skeleton chase HP bar跟随 — 合并15条重复US（43+轮顽固bug）",
+          "priority": "P0"
+        },
+        {
+          "area": "flow",
+          "change": "US-513: ResultScene TitleScene返回+keyboard事件 — 合并13条重复US",
+          "priority": "P1"
+        },
+        {
+          "area": "balance",
+          "change": "US-514: knockback速度提升至200+px/s",
+          "priority": "P1"
+        },
+        {
+          "area": "code-quality",
+          "change": "US-515: endGame代码重复消除",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-516: PRD优先级排序 P0/P1/P2/P3标签",
+          "priority": "meta-P1"
+        }
+      ],
+      "codeAudit": {
+        "date": "2026-04-29",
+        "confirmed": [
+          "Player.takeDamage 返回 void（L190）",
+          "Player.heal 返回 number（L188）",
+          "Slime.isKnockedBack 属性存在（L28）但 onHitWall（L77）未检查",
+          "Skeleton chase 分支 return 在 hpBar.follow 之前（L166）",
+          "Slime knockback 分支 return 在 hpBar.follow 之前（L142）",
+          "GameScene 无 shutdown() 方法",
+          "ResultScene 用 events.on(update) 轮询按键（L371-380），重启到 GameScene",
+          "Chest.open() 仅切换贴图无掉落（L30-33）",
+          "endGame/endGameInternal 代码重复约40行",
+          "checkWinCondition 仅检查楼梯距离，不检查 key/chest（US-057 解耦后丢失）",
+          "getEnemyConfigForRoom 已接入房间深度（L39），slimeCount 随 runCount 递增（L177）"
+        ],
+        "fixed": [
+          "US-251: Slime takeDamage 闪白 — 代码已有 setTint(0xffffff)",
+          "US-255/275/288/329: Slime die() 发射 enemy-death 事件 — 已确认",
+          "US-298: 攻击 slash 四朝向翻转 — 已确认",
+          "US-299: Slime die() 清理 delayedCall — 已确认",
+          "US-387: checkWinCondition 增加 hasOpenedChest 检查 — git log 确认已实现"
+        ]
+      },
+      "priority": "US-508 (Chest战利品) + US-509 (takeDamage返回值) 是最高优先级核心修复。US-507 (PRD去重) 是最高meta优先级 — 439条pending US的维护成本已阻塞开发。"
     }
   ],
   "improvements": {

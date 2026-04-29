@@ -965,7 +965,7 @@
           "description": "DungeonMap.ts中存在两个方法：returnWorldHeight()(无意义命名，不返回)和getWorldHeight()(正确实现)。returnWorldHeight是遗留bug，方法名暗示返回但实际无return语句。应删除returnWorldHeight，统一使用getWorldHeight。",
           "type": "code",
           "priority": 43,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "删除returnWorldHeight方法",
@@ -8081,6 +8081,216 @@
             "KNOCKBACK_DISTANCE 提升至 40px",
             "玩家被击中时后退视觉可感知",
             "不导致玩家被推入墙壁（需碰撞保护）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-504",
+          "title": "endGame/endGameInternal 代码重复消除 — 统一为单一endGame方法",
+          "description": "endGame() 和 endGameInternal() 有约40行几乎相同的代码（physics.pause、elapsedTime计算、timeBonus、scene.start参数）。唯一差异是延迟时间（800ms vs 200ms）和gameOver guard。应合并为单一方法，接受delay参数。消除维护风险（之前修复只改了其中一个）。",
+          "type": "code",
+          "priority": 489,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame() 和 endGameInternal() 合并为单一方法",
+            "方法签名: endGame(result: GameResult, delay?: number)",
+            "所有调用点已更新",
+            "tsc + build 通过",
+            "游戏流程无变化（胜利800ms延迟、死亡200ms延迟保持）"
+          ]
+        },
+        {
+          "id": "US-505",
+          "title": "Slime onHitWall 添加 isKnockedBack 守卫 — 击退碰墙不覆盖velocity",
+          "description": "Slime.isKnockedBack 属性已存在（L28），onHitWall()（L77）中无条件调用 pickDirection() 覆盖了 knockback 速度。应在 onHitWall 开头添加 if (this.isKnockedBack) return;。这是 14+ 个 knockback 相关 US 中从未定位到的根因代码路径。",
+          "type": "code",
+          "priority": 490,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "onHitWall() 第一行检查 isKnockedBack，为 true 时直接 return",
+            "击退效果碰墙后不被 pickDirection 覆盖",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-506",
+          "title": "PRD 大规模去重执行 — 503 US 压缩至 ≤80 条权威条目",
+          "description": "PRD 膨胀至 503 条 US（436 pending），其中约 350 条为重复。同一问题被重复编号 5-15 次（takeDamage 返回值 9 条、HP bar 跟随 11 条、checkWinCondition key 检查 8 条、GameScene shutdown 12 条、endGame 敌人冻结 6 条）。维护成本已严重影响开发效率 — 开发者需要阅读 503 条 US 才能确定实际工作量。应：1) 识别所有重复组 2) 为每组保留一个最完整的权威条目 3) 标记其余为 duplicate/superseded 4) 更新 GDD 标记已合并的 US 编号。",
+          "type": "code",
+          "priority": 491,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个问题域只有一个权威 US 条目",
+            "重复条目标记 status=superseded，description 指向权威条目",
+            "权威条目 acceptanceCriteria 合并所有重复条目的验收标准",
+            "总数 ≤ 80 条 pending 权威 US",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-507",
+          "title": "PRD 大规模去重执行 — 439 pending US 压缩至 ≤80 条权威条目",
+          "description": "PRD 膨胀至 506 条 US（439 pending），同一问题被重复编号 5-15 次（takeDamage 返回值 15+ 条、HP bar 跟随 11+ 条、checkWinCondition key 检查 8+ 条、GameScene shutdown 10+ 条、ResultScene 流程 12+ 条）。严重降低 PRD 可操作性，开发者无法区分优先级。执行去重：合并所有重复 US 为单一权威条目，保留最完整的描述和实现方案，标记被合并的旧 US 为 superseded。",
+          "type": "meta",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "PRD pending US 数量 ≤ 80",
+            "每个问题只有 1 个权威 US",
+            "所有被合并的 US 标记为 superseded 并指向权威条目",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-508",
+          "title": "Chest.open() 战利品掉落实现 — 宝箱开启生成随机奖励（权威条目）",
+          "description": "Chest.open() 当前仅切换贴图为 chest_open，不生成任何掉落物品。key→chest 探索循环是功能死胡同——玩家完成整个探索流程后获得零奖励。修复方案：open() 成功后通过 scene 事件通知 GameScene 在宝箱位置生成随机战利品（50% 金币 3-5 个、30% 药水、20% AttackBoost），形成 key→chest(loot)→stairs 完整奖励闭环。合并所有重复 US：US-057/119/263/306/317/373/382/389/405/431/437/462/469/477/484/492/496。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 后 GameScene 在宝箱位置生成掉落物品",
+            "掉落概率：50% 金币(3-5)、30% 药水、20% AttackBoost",
+            "掉落物品有物理碰撞体可被玩家拾取",
+            "宝箱开启有缩放+闪光动画反馈",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-509",
+          "title": "Player.takeDamage() 返回 boolean 基础接口修复（权威条目）",
+          "description": "Player.takeDamage() 当前返回 void，调用方无法判断是否实际受伤（无敌帧/死亡时返回无意义）。这阻塞了 6+ 下游功能：hurt 音效精确控制、受伤统计、knockback 条件判定、UI 反馈、成就系统。修复：返回 boolean（true=实际受伤，false=无敌/死亡跳过）。Player.heal() 已正确返回 number，takeDamage 应同理。合并所有重复 US：US-117/171/200/252/274/330/367/384/388/438/465/472/485/494/497/548+。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "takeDamage 返回 boolean",
+            "无敌帧期间返回 false",
+            "死亡状态返回 false",
+            "实际受伤返回 true",
+            "所有 overlap 回调使用返回值判断是否播 hurt 音效",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-510",
+          "title": "GameScene shutdown() 统一资源清理（权威条目）",
+          "description": "GameScene 没有 shutdown() 方法。player-attack 和 enemy-death 事件监听器（L436/L447）在 scene 重启后从不清理，导致多次游戏后同一攻击/掉落事件触发 N 次。RoomCameraSystem.onRoomChanged 回调同样泄漏。修复：添加 shutdown() 方法清理所有事件监听器、overlap 回调和 timer。合并所有重复 US：US-195/233/270/280/327/390/400/424/435/466/479/486/495/498。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene 添加 shutdown() 方法",
+            "清理 player-attack 事件监听器",
+            "清理 enemy-death 事件监听器",
+            "清理 RoomCameraSystem.onRoomChanged 回调",
+            "清理所有动态 overlap collider",
+            "多次重启后无重复触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-511",
+          "title": "Slime/Skeleton onHitWall() isKnockedBack 守卫（权威条目）",
+          "description": "Slime.onHitWall()（L77）和 Skeleton.onHitWall()（L73）无条件调用 pickDirection/pickWanderDirection，在 knockback 期间覆盖击退速度导致击退效果消失。isKnockedBack 属性已存在（Slime L28, Skeleton L19）但 onHitWall 未检查。修复：onHitWall 首行检查 if(this.isKnockedBack) return。合并所有重复 US：US-099/100/172/207/268/336/368/440/442/464/487/490/500/505。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 首行 if(isKnockedBack) return",
+            "Skeleton.onHitWall() 首行 if(isKnockedBack) return",
+            "击退期间碰墙不覆盖 velocity",
+            "击退效果可被玩家感知",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-512",
+          "title": "Skeleton chase 分支 return 前补充 hpBar.follow（权威条目）",
+          "description": "Skeleton.update() chase 分支（L160-167）设置 velocity 后直接 return，跳过 L168 的 hpBar.follow(this) 调用。这是 43+ 轮反复标记的最顽固视觉 bug——追踪时 HP 条停留在旧位置不动。修复方案 A：将 hpBar.follow 移到 return 之前。方案 B：将 hpBar.follow 移到 update 顶部（所有路径都经过）。推荐方案 B 更健壮。合并所有重复 US：US-136/234/244/279/308/328/375/391/397/434/463/475/482/491/501。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton chase 分支 HP 条跟随 sprite 位置",
+            "Slime knockback 分支 HP 条跟随 sprite 位置",
+            "所有 update 路径（wander/chase/knockback）都更新 HP bar 位置",
+            "HP 条不脱离 sprite",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-513",
+          "title": "ResultScene 重启返回 TitleScene + keyboard 事件替代 update 轮询（权威条目）",
+          "description": "ResultScene 使用 events.on(\"update\") 轮询检测按键（L370-380），监听器从不清理，多次重启后累积。且重启跳转到 GameScene 而非 TitleScene，游戏流程不完整。修复：(1) 改用 input.keyboard.on(\"keydown\") 事件自动清理；(2) SPACE/ENTER → TitleScene 而非 GameScene。合并所有重复 US：US-127/175/199/208/246/253/265/276/332/370/386/393/467/499。",
+          "type": "code",
+          "priority": 7,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 使用 keyboard 事件替代 update 轮询",
+            "场景销毁时监听器自动清理",
+            "重启跳转 TitleScene 而非 GameScene",
+            "多次重启无监听器累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-514",
+          "title": "玩家 knockback 速度提升至 200px/s — 击退与敌人对称",
+          "description": "当前 Player knockback 速度 = KNOCKBACK_DISTANCE(25px) / KNOCKBACK_DURATION(200ms) = 125px/s。敌人 knockback 速度约 300px/s。1:2.4 的严重不对称导致玩家被击中时几乎无后退感知，战斗反馈弱。建议提升 KNOCKBACK_DISTANCE 至 40px（200px/s）或 50px（250px/s）。同时修改 GDD playerKnockbackSpeed 参数。",
+          "type": "code",
+          "priority": 8,
+          "status": "pending",
+          "dependsOn": [
+            "US-511"
+          ],
+          "acceptanceCriteria": [
+            "KNOCKBACK_DISTANCE ≥ 40px",
+            "玩家被击中时可感知后退",
+            "GDD playerKnockbackDistance 同步更新",
+            "击退不穿过墙壁（配合 onHitWall 守卫）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-515",
+          "title": "endGame/endGameInternal 代码重复消除 — 统一为单一 endGame 方法",
+          "description": "GameScene 中 endGame(won: boolean) 和 endGameInternal(won: boolean) 约 40 行重复代码，两者做相同的状态设置（gameOver=true、暂停物理、设置结果数据）但分别处理胜利和失败路径。统一为单一 endGame 方法，消除维护分歧和 bug 遗漏风险。",
+          "type": "code",
+          "priority": 9,
+          "status": "pending",
+          "dependsOn": [
+            "US-510"
+          ],
+          "acceptanceCriteria": [
+            "endGame 和 endGameInternal 合并为单一方法",
+            "无重复逻辑",
+            "胜利和失败路径通过参数区分",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-516",
+          "title": "PRD 顽固问题优先级排序 — P0/P1/P2/P3 标签体系",
+          "description": "为 439 条 pending US 添加 priorityTier 标签：P0=阻塞性（核心循环断裂、崩溃风险）、P1=核心功能（基础接口、视觉 bug、游戏流程）、P2=增强功能（手感优化、视觉反馈、音效）、P3=愿景（新敌人、Boss、多层地牢）。排序后生成实施路线图，前 10 个 P0 US 优先实施。",
+          "type": "meta",
+          "priority": 10,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有 pending US 有 priorityTier 标签",
+            "P0 ≤ 15 条",
+            "生成按优先级排序的实施路线图",
             "tsc + build 通过"
           ]
         }

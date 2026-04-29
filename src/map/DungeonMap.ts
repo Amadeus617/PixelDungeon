@@ -66,10 +66,6 @@ export class DungeonMap {
   }
 
   /** World pixel height */
-  returnWorldHeight(): number {
-    return this.dungeonData.height * this.TILE_SIZE * this.scale;
-  }
-
   getWorldHeight(): number {
     return this.dungeonData.height * this.TILE_SIZE * this.scale;
   }
