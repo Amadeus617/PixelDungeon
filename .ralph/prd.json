@@ -1015,7 +1015,7 @@
           "description": "当前 player.update() 和 GameScene.update() 都用 JustDown(spaceKey) 检测空格键，导致靠近宝箱时可能同时触发攻击和开箱。应重构：GameScene.update() 中先检查宝箱交互，若成功则标记跳过攻击，或将宝箱交互移到 player-attack 事件前。",
           "type": "code",
           "priority": 46,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "靠近宝箱+有钥匙时，空格键只开箱不攻击",

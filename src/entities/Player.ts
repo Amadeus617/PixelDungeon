@@ -476,8 +476,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.startDash(time ?? this.scene.time.now);
     }
 
-    // Handle attack input
-    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+    // Handle attack input (US-061: skip if space was consumed by chest interaction)
+    const sceneRef = this.scene as any;
+    const spaceConsumed = sceneRef.spaceConsumedByChest === true;
+    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey) && !spaceConsumed) {
       const now = time ?? this.scene.time.now;
       if (now - this.lastAttackTime >= ATTACK_COOLDOWN) {
         this.lastAttackTime = now;

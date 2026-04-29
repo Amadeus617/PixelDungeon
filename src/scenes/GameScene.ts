@@ -151,6 +151,9 @@ export class GameScene extends Phaser.Scene {
   // Stairs proximity hint (US-387)
   private stairsHintText: Phaser.GameObjects.Text | null = null;
 
+  // Space key consumed by chest interaction this frame (US-061)
+  private spaceConsumedByChest = false;
+
   // Enemy respawn tracking (US-050)
   private roomEnemyMap: Map<number, { slimes: Slime[]; skeletons: Skeleton[] }> = new Map();
   private respawnCooldowns: Map<number, number> = new Map(); // roomIndex → lastRespawnTime
@@ -1408,22 +1411,13 @@ export class GameScene extends Phaser.Scene {
     // Skip all game logic when paused
     if (this.isPaused) return;
 
-    this.player.update(delta, time);
-    // Only update living slimes
-    for (const slime of this.slimes) {
-      slime.update(delta);
-    }
-    // Update skeletons
-    for (const skeleton of this.skeletons) {
-      skeleton.update(delta);
-    }
-
-    // Chest interaction on space press (handled here to intercept before attack)
+    // US-061: Check chest interaction BEFORE player.update() so attack can be suppressed
+    this.spaceConsumedByChest = false;
     if (
       this.spaceKey &&
       Phaser.Input.Keyboard.JustDown(this.spaceKey)
     ) {
-      // Check if player is near any closed chest first
+      // Check if player is near any closed chest
       let nearChest = false;
       for (const chest of this.chests) {
         if (!chest.isOpen && chest.isInRange(this.player.x, this.player.y)) {
@@ -1433,7 +1427,18 @@ export class GameScene extends Phaser.Scene {
       }
       if (nearChest) {
         this.handleChestInteraction();
+        this.spaceConsumedByChest = true;
       }
+    }
+
+    this.player.update(delta, time);
+    // Only update living slimes
+    for (const slime of this.slimes) {
+      slime.update(delta);
+    }
+    // Update skeletons
+    for (const skeleton of this.skeletons) {
+      skeleton.update(delta);
     }
 
     this.hud.update();
