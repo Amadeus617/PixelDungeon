@@ -257,6 +257,12 @@
         "endGame/endGameInternal 代码重复（L1277-L1340约40行）",
         "getEnemyConfigForRoom 已接入房间深度，slimeCount随runCount递增"
       ]
+    },
+    "playerKnockbackSpeed": {
+      "current": 125,
+      "target": 200,
+      "note": "US-537: 与敌人击退300px/s严重不对称，提升至200px/s",
+      "enemyKnockbackSpeed": 300
     }
   },
   "designLog": [
@@ -3351,30 +3357,102 @@
     "P0_blockers": [
       {
         "id": "CORE-001",
-        "title": "Chest.open() 无战利品产出",
-        "impact": "玩家完成 key→chest 探索后获得零奖励，核心循环断裂",
-        "existingUS": "US-462, US-317, US-382, US-389, US-431, US-469, US-477",
-        "codeRef": "src/entities/Chest.ts open() method"
+        "title": "Chest.open() 无战利品产出 + checkWinCondition无门控",
+        "impact": "US-057解耦宝箱后核心循环第二次断裂：玩家可直接走到楼梯通关，key/chest系统无意义",
+        "existingUS": "US-536 (权威)",
+        "supersedes": [
+          "US-119",
+          "US-317",
+          "US-373",
+          "US-382",
+          "US-389",
+          "US-431",
+          "US-462",
+          "US-469",
+          "US-477",
+          "US-496",
+          "US-508",
+          "US-518"
+        ],
+        "codeRef": "src/entities/Chest.ts open() + src/scenes/GameScene.ts checkWinCondition"
       },
       {
         "id": "CORE-002",
         "title": "Player.takeDamage() 返回 void",
-        "impact": "无法判断是否实际受伤，阻塞受伤音效/分数/UI更新等 6+ 功能",
-        "existingUS": "US-117, US-171, US-200, US-252, US-330, US-367, US-384, US-388, US-465, US-472, US-484",
-        "codeRef": "src/entities/Player.ts takeDamage() return type"
+        "impact": "阻塞受伤音效/统计/UI更新等6+功能",
+        "existingUS": "US-497 (权威)",
+        "supersedes": [
+          "US-117",
+          "US-171",
+          "US-200",
+          "US-252",
+          "US-330",
+          "US-367",
+          "US-384",
+          "US-388",
+          "US-465",
+          "US-472",
+          "US-494",
+          "US-509",
+          "US-519"
+        ],
+        "codeRef": "src/entities/Player.ts takeDamage()"
       },
       {
         "id": "CORE-003",
         "title": "GameScene 无 shutdown() 方法",
         "impact": "场景重启后事件监听器/overlap回调/timer累积泄漏",
-        "existingUS": "US-195, US-233, US-270, US-280, US-327, US-390, US-400, US-424, US-435, US-466, US-471, US-479",
+        "existingUS": "US-538 (权威)",
+        "supersedes": [
+          "US-195",
+          "US-233",
+          "US-270",
+          "US-280",
+          "US-327",
+          "US-390",
+          "US-400",
+          "US-424",
+          "US-435",
+          "US-466",
+          "US-471",
+          "US-479",
+          "US-498",
+          "US-510"
+        ],
         "codeRef": "src/scenes/GameScene.ts"
       },
       {
-        "id": "CORE-004",
-        "title": "PRD 重复膨胀",
-        "impact": "416 条 pending US 中 ~80% 重复，无法有效指导开发",
-        "existingUS": "US-404, US-411, US-412, US-416, US-430, US-433, US-436, US-446, US-480",
+        "id": "CORE-005",
+        "title": "Enemy respawn overlap 重复注册 — 伤害倍增",
+        "impact": "P0：多次进出房间后敌人伤害叠加，破坏游戏平衡",
+        "existingUS": "US-540 (权威)",
+        "supersedes": [
+          "US-531"
+        ],
+        "codeRef": "src/scenes/GameScene.ts createEnemyOverlap/room reset"
+      },
+      {
+        "id": "CORE-006",
+        "title": "PRD 重复膨胀 — 534条US中~80%重复",
+        "impact": "无法有效指导开发，token浪费严重",
+        "existingUS": "US-535 (权威)",
+        "supersedes": [
+          "US-404",
+          "US-411",
+          "US-412",
+          "US-416",
+          "US-430",
+          "US-433",
+          "US-436",
+          "US-446",
+          "US-480",
+          "US-502",
+          "US-506",
+          "US-507",
+          "US-523",
+          "US-530",
+          "US-534"
+        ],
         "codeRef": ".ralph/prd.json"
       }
     ],
@@ -3517,7 +3595,17 @@
           "US-337: Slime speedMultiplier 支持",
           "US-338: Slime/Skeleton hpMultiplier 支持",
           "US-339: 魔法数字提取为命名常量"
-        ]
+        ],
+        "runCountIntegration": {
+          "status": "broken",
+          "issue": "getEnemyConfigForRoom 使用硬编码值，未接入 runCount",
+          "fix": "US-539: Slime HP/速度/数量按runCount递增",
+          "formulas": {
+            "slimeHp": "2 + floor((runCount-1)/3), cap 5",
+            "slimeSpeed": "60 * (1 + (runCount-1)*0.05), cap 90",
+            "slimeCount": "base + floor(runCount/4)"
+          }
+        }
       }
     },
     "hazards": {
@@ -3828,13 +3916,56 @@
         "P0-4: PRD 去重 — 项目管理基础恢复",
         "P0-5: Skeleton chase HP bar follow — 直接可见视觉 bug"
       ]
+    },
+    {
+      "round": 63,
+      "date": "2026-04-29T22:05:00Z",
+      "findings": [
+        "PRD膨胀：534条US(464 pending)，关键词聚类230条集中重复",
+        "核心循环第三次断裂：US-057解耦宝箱后checkWinCondition无门控",
+        "Slime难度缩放完全缺失：HP/速度/数量不受runCount影响",
+        "Enemy respawn overlap重复注册导致伤害倍增",
+        "玩家knockback 125px/s vs 敌人300px/s严重不对称",
+        "GameScene缺少shutdown()：24条重复US与此相关",
+        "视觉反馈缺失：低血量/回血/拾取/受伤均无反馈"
+      ],
+      "newUS": [
+        "US-535",
+        "US-536",
+        "US-537",
+        "US-538",
+        "US-539",
+        "US-540",
+        "US-541"
+      ],
+      "consolidatedIssues": {
+        "takeDamage_boolean": "27条重复→US-497权威",
+        "chest_open_reward": "14条重复→US-536权威",
+        "shutdown_cleanup": "24条重复→US-538权威",
+        "hpbar_follow": "18条重复→保留US-501权威",
+        "knockback_protection": "31条重复→US-537权威",
+        "resultscene_flow": "38条重复→US-499权威",
+        "minimap_features": "14条重复→US-413权威",
+        "prd_dedup": "20条重复→US-535权威",
+        "difficulty_scaling": "8条重复→US-539权威"
+      }
     }
   ],
   "lastReviewInfo": {
-    "round": 62,
-    "date": "2026-04-29T20:05:00Z",
-    "criticalIssues": 2,
-    "balanceIssues": 1,
-    "maintenanceIssues": 1
+    "round": 63,
+    "date": "2026-04-29T22:05:00Z",
+    "criticalIssues": 3,
+    "balanceIssues": 2,
+    "maintenanceIssues": 2,
+    "newUS": [
+      "US-535",
+      "US-536",
+      "US-537",
+      "US-538",
+      "US-539",
+      "US-540",
+      "US-541"
+    ],
+    "summary": "PRD膨胀达534条US(464 pending)，核心循环第三次断裂(chest奖励+win条件+Space时序)，难度缩放体系断裂(Slime不受runCount影响)，overlap重复注册导致伤害倍增"
   }
 }

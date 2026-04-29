@@ -8619,6 +8619,122 @@
             "US-523",
             "US-530"
           ]
+        },
+        {
+          "id": "US-535",
+          "title": "PRD 权威去重执行 — 534条US压缩至≤60条",
+          "description": "当前PRD有534条US，其中464条pending。关键词聚类分析显示：takeDamage返回值(27条重复)、ResultScene流程(38条)、knockback保护(31条)、shutdown清理(24条)、HP bar跟随(18条)、chest.open()(14条)、PRD去重本身(20条)等。需要一次性合并为≤60条权威US，删除所有重复条目，保留最早创建的US id作为权威条目，将后续重复US的ID和状态记录到权威US的supersedes字段中。",
+          "type": "code",
+          "priority": 520,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "PRD总US数≤60",
+            "每个唯一问题只有1条权威US",
+            "被合并的US ID记录在权威US的supersedes字段",
+            "所有P0阻塞问题保留为权威条目",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-536",
+          "title": "核心游戏循环三层修复 — chest奖励+checkWinCondition+Space时序",
+          "description": "三个相互关联的核心问题需一次性修复：(1) Chest.open()无战利品产出 — 宝箱开启后应有金币/药水掉落（US-057在GameScene侧实现掉落但Chest.open()本身仍为空）；(2) checkWinCondition不检查宝箱开启状态 — US-057解耦宝箱后玩家可直接走到楼梯通关，key/chest系统再次失去意义（US-387曾修复但被US-057覆盖）；(3) Space JustDown时序 — player.update先消费Space键导致handleChestInteraction永远无法触发。建议方案：宝箱开启生成3-5金币+30%概率药水；checkWinCondition恢复key持有检查或改为roomExplored百分比阈值；Space键处理移到player.update之前。",
+          "type": "code",
+          "priority": 521,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "宝箱开启生成可见掉落物",
+            "checkWinCondition有明确条件（key持有或房间探索率）",
+            "Space键能可靠触发宝箱交互",
+            "核心循环 key→chest→reward→stairs 完整闭环",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-537",
+          "title": "玩家受伤knockback速度对称性修复 — 125→200px/s",
+          "description": "当前玩家被击退速度仅125px/s，而敌人击退速度300px/s，严重不对称导致击退几乎不可感知。GDD balance中未记录玩家knockback速度参数。应将玩家knockback速度提升至200px/s，并在GDD balance中新增playerKnockbackSpeed参数。同时修复knockback期间攻击状态未重置（isAttacking可能卡死200ms）和onHitWall覆盖击退方向问题。",
+          "type": "code",
+          "priority": 522,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家knockback速度=200px/s",
+            "GDD balance新增playerKnockbackSpeed=200",
+            "knockback期间isAttacking重置为false",
+            "onHitWall有isKnockedBack守卫不覆盖击退速度",
+            "击退效果视觉可感知",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-538",
+          "title": "GameScene生命周期完整修复 — shutdown+endGame统一+敌人冻结",
+          "description": "三个相关的场景生命周期问题：(1) GameScene缺少shutdown()方法 — 场景重启后事件监听器/overlap回调/timer累积泄漏（464条pending中有24条与此相关）；(2) endGame/endGameInternal代码重复 — 应统一为单一endGame方法；(3) endGame后敌人/SpikeTrap update仍执行 — 浪费CPU且可能导致状态异常。修复方案：添加shutdown()清理所有事件监听器和timer；合并endGame方法；endGame后设置gameActive=false让所有entity的update检查此标志。",
+          "type": "code",
+          "priority": 523,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown()清理所有事件监听器",
+            "shutdown()清理所有overlap回调",
+            "endGame方法统一为单一实现",
+            "endGame后所有entity.update停止执行",
+            "场景重启后无累积泄漏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-539",
+          "title": "Slime难度缩放接入runCount — HP/速度/数量递增",
+          "description": "US-290/US-336/US-339/US-379/US-420/US-441/US-489/US-533等多轮标记但未修复。当前Slime的HP=2、速度=60、数量与房间深度相关但不受runCount影响，导致后期Slime太弱无挑战。getEnemyConfigForRoom使用硬编码值未接入runCount。修复方案：Slime HP = 2 + floor((runCount-1)/3), cap 5；Slime 速度 = 60 * (1 + (runCount-1)*0.05), cap 90；Slime数量 = base + floor(runCount/4)；将所有魔法数字提取到balance配置。",
+          "type": "code",
+          "priority": 524,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom接入runCount参数",
+            "Slime HP随runCount递增 cap 5",
+            "Slime速度随runCount递增 cap 90",
+            "GDD balance.difficultyScaling完整记录缩放公式",
+            "第3-5次run有明显难度提升",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-540",
+          "title": "Enemy respawn overlap重复注册伤害倍增修复",
+          "description": "US-531标记的P0问题。敌人重生/房间重置机制（US-050）在重新创建敌人时重复注册overlap回调，导致同一敌人每次重生后contact damage被叠加触发。表现为：第二次进入房间时敌人伤害翻倍，第三次三倍。根因：createEnemyOverlap()在每次房间切换时被调用但未清理旧的overlap。修复方案：房间切换前先清理该房间敌人的overlap collider；或使用scene.physics.world.colliders移除特定pair；确保每帧overlap只触发一次伤害。",
+          "type": "code",
+          "priority": 525,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "敌人重生后overlap只注册一次",
+            "多次进出房间后敌人伤害不叠加",
+            "添加overlap清理到房间切换逻辑",
+            "添加contact damage独立冷却(500ms)作为安全网",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-541",
+          "title": "视觉效果打磨包 — 低血量警告+回血反馈+拾取粒子+受伤震屏",
+          "description": "合并US-447/448/449/451/452/342/453等视觉增强US：(1) 低血量时HUD边框红色脉动警告（HP≤3时触发）；(2) 拾取药水回复时绿色闪烁+浮动数字；(3) 金币/药水拾取时微粒爆发效果；(4) 玩家受伤时镜头轻微震动(camera shake 50ms)；(5) M键静音切换+记忆设置。这些是小而独立的视觉改进，可以一次性实现提升游戏感觉。",
+          "type": "code",
+          "priority": 526,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HP≤3时HUD边缘红色脉动",
+            "拾取药水显示绿色+浮动数字",
+            "金币拾取显示金色微粒爆发",
+            "受伤时camera shake 50ms",
+            "M键切换静音并localStorage记忆",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
