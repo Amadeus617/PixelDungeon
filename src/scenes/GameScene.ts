@@ -311,9 +311,14 @@ export class GameScene extends Phaser.Scene {
       this.attackBoosts.push(boost);
     }
 
-    // Overlap: player picks up health potions
+    // Overlap: player picks up health potions (US-060: block at full HP)
     for (const potion of this.healthPotions) {
       this.physics.add.overlap(this.player, potion, () => {
+        if (this.player.hp >= this.player.maxHp) {
+          // Full HP — show hint, don't collect
+          this.showHpFullHint(potion.x, potion.y);
+          return;
+        }
         if (potion.collect()) {
           this.player.heal(HEALTH_POTION_HEAL);
           this.potionUsedCount++;
@@ -948,13 +953,59 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Register overlap for pickup
+    // Register overlap for pickup (US-060: block at full HP)
     this.physics.add.overlap(this.player, potion, () => {
+      if (this.player.hp >= this.player.maxHp) {
+        this.showHpFullHint(potion.x, potion.y);
+        return;
+      }
       if (potion.collect()) {
         this.player.heal(DROP_POTION_HEAL);
         this.potionUsedCount++;
         this.soundManager.playPickup();
       }
+    });
+  }
+
+  /** Show "HP Full" floating hint near a health potion (US-060) */
+  private hpFullHintText: Phaser.GameObjects.Text | null = null;
+  private hpFullHintCooldown = 0;
+
+  private showHpFullHint(worldX: number, worldY: number): void {
+    const now = this.time.now;
+    if (now - this.hpFullHintCooldown < 1500) return; // Throttle to once per 1.5s
+    this.hpFullHintCooldown = now;
+
+    // Destroy previous hint if still active
+    if (this.hpFullHintText && this.hpFullHintText.active) {
+      this.hpFullHintText.destroy();
+    }
+
+    this.hpFullHintText = this.add.text(worldX, worldY - 20, "HP Full", {
+      fontSize: "14px",
+      fontFamily: "monospace",
+      color: "#ff6666",
+      stroke: "#000000",
+      strokeThickness: 3,
+      backgroundColor: "#000000aa",
+      padding: { x: 5, y: 3 },
+    });
+    this.hpFullHintText.setOrigin(0.5);
+    this.hpFullHintText.setDepth(500);
+
+    // Float up and fade out
+    this.tweens.add({
+      targets: this.hpFullHintText,
+      alpha: 0,
+      y: this.hpFullHintText.y - 25,
+      duration: 1000,
+      ease: "Power2",
+      onComplete: () => {
+        if (this.hpFullHintText && this.hpFullHintText.active) {
+          this.hpFullHintText.destroy();
+        }
+        this.hpFullHintText = null;
+      },
     });
   }
 

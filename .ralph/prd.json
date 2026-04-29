@@ -1000,7 +1000,7 @@
           "description": "当前玩家满血时仍可拾取药水导致浪费。应在 GameScene 中检查 player.hp < player.maxHp 后才允许 collect()。HUD 可在靠近药水时显示提示文字。",
           "type": "code",
           "priority": 45,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "玩家满HP时无法拾取HealthPotion",
