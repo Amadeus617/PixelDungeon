@@ -980,7 +980,7 @@
           "description": "attackBoosted状态存储在GameScene而非Player类中，设计不合理。当前逻辑：拾取后true，攻击一次后false(一次性)。这导致如果玩家拾取后不攻击，HUD永远显示ATK x2。应将buff状态移入Player类，配合US-030限时buff设计：拾取后10s内双倍伤害，无论是否攻击过，到时自动恢复。",
           "type": "code",
           "priority": 44,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-030"
           ],
