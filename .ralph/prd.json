@@ -8461,6 +8461,164 @@
             "所有调用点更新",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-528",
+          "title": "Skeleton/Slime update() 所有 early-return 路径补充 hpBar.follow — 精确代码修复",
+          "description": "Skeleton.ts L137-143 knockback return 和 L155-166 chase return 两条路径都跳过 L167-168 的 hpBar.follow()。Slime.ts L142-148 knockback return 同理。修复方案：在每条 return 前插入 if (this.hpBar && this.hpBar.active) this.hpBar.follow(this); 或将 hpBar.follow 移到 update() 最顶部在所有分支之前执行。",
+          "type": "code",
+          "priority": 513,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton knockback 期间 hpBar 跟随 sprite",
+            "Skeleton chase 期间 hpBar 跟随 sprite",
+            "Slime knockback 期间 hpBar 跟随 sprite",
+            "tsc + build 通过"
+          ],
+          "supersedes": [
+            "US-434",
+            "US-391",
+            "US-375",
+            "US-308",
+            "US-279",
+            "US-244",
+            "US-234",
+            "US-397",
+            "US-501",
+            "US-512",
+            "US-463",
+            "US-328",
+            "US-136"
+          ]
+        },
+        {
+          "id": "US-529",
+          "title": "checkWinCondition 增加宝箱已开启检查 — 核心游戏循环闭环",
+          "description": "当前 GameScene.ts checkWinCondition (L1249-1256) 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。注释 \"chest decoupled from win\" 来自 US-057。应在 checkWinCondition 中增加 this.chests.every(c => c.isOpen) 或至少一个宝箱已开启的检查。同时需确保 key→chest→stairs 完整路径：玩家必须先拾取 key，再开宝箱，最后才能通关。",
+          "type": "code",
+          "priority": 514,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家到达楼梯但未开宝箱时不能通关",
+            "玩家持有key时可以开宝箱",
+            "宝箱开启后生成掉落物",
+            "key→chest→stairs 完整闭环",
+            "tsc + build 通过"
+          ],
+          "supersedes": [
+            "US-387",
+            "US-372",
+            "US-422",
+            "US-401",
+            "US-318",
+            "US-307",
+            "US-432",
+            "US-405",
+            "US-437"
+          ]
+        },
+        {
+          "id": "US-530",
+          "title": "PRD 去重执行 — 457 条 pending US 合并为 ≤50 条权威条目",
+          "description": "PRD 当前有 457 条 pending US，其中约 350 条是重复条目。同一问题被编号 5-15 次（如 takeDamage 返回值 9 条、HP bar 跟随 13 条、checkWinCondition key 检查 9 条、GameScene shutdown 10 条、ResultScene 流程 8 条、PRD 去重 meta 12 条、Chest 奖励 8 条）。应：(1) 用脚本按标题关键词聚类；(2) 每类保留 1 条权威条目，合并所有 acceptanceCriteria 和实现细节；(3) 删除或标记其余重复条目为 superseded-by 权威条目。目标：≤50 条有效 pending US。",
+          "type": "code",
+          "priority": 515,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "PRD pending US ≤ 50 条",
+            "每条权威 US 包含合并的 acceptanceCriteria",
+            "重复条目标记为 superseded-by 权威条目 ID",
+            "无功能遗漏 — 所有原 US 的需求被覆盖",
+            "tsc + build 通过"
+          ],
+          "supersedes": [
+            "US-433",
+            "US-430",
+            "US-416",
+            "US-412",
+            "US-411",
+            "US-404",
+            "US-502",
+            "US-506",
+            "US-507",
+            "US-436",
+            "US-480",
+            "US-523"
+          ]
+        },
+        {
+          "id": "US-531",
+          "title": "CRITICAL: Enemy respawn 重复注册 overlap 导致伤害倍增",
+          "description": "checkRespawnRooms() (L1128-1145) 每次重生都重新调用 this.physics.add.overlap(player, slimeGroup/skeletonGroup)。由于原始 overlap (L251-275) 从未移除，Phaser 会为同一 group 注册多个 overlap callback。N次重生后玩家每次接触敌人受到 N+1 倍伤害。这是 P0 bug，因为它是累积的且直接影响游戏体验。修复方案：(1) 不重新注册 overlap — 新敌人已加入 slimeGroup/skeletonGroup，原有 overlap 自动覆盖；(2) 删除 L1128-1145 两处 this.physics.add.overlap 调用即可。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "删除 checkRespawnRooms 中两处 this.physics.add.overlap 调用",
+            "重生的新敌人仍能正常造成伤害（通过原始 overlap）",
+            "3次重生后玩家每次接触只受1点伤害",
+            "tsc + build 通过"
+          ],
+          "supersedes": []
+        },
+        {
+          "id": "US-532",
+          "title": "P0: US-387 标记done但 checkWinCondition 仍无宝箱检查 — 重新执行修复",
+          "description": "US-387 标记为 done，但当前 checkWinCondition() (L1249-1256) 仍只检查楼梯距离。注释 \"US-057: chest decoupled from win\" 表明 US-057 的实现可能覆盖了 US-387 的修复。应：(1) 确认 git 历史中 US-387 是否曾落地；(2) 重新实现 checkWinCondition 增加 this.chests.every(c => c.isOpen) 条件；(3) 确保 key→chest→stairs 完整路径闭环。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 检查宝箱开启状态",
+            "未开宝箱时走到楼梯不触发胜利",
+            "验证 US-387 git 历史并记录分析",
+            "tsc + build 通过"
+          ],
+          "supersedes": [
+            "US-387",
+            "US-529"
+          ]
+        },
+        {
+          "id": "US-533",
+          "title": "难度缩放只影响 Skeleton 速度 — Slime 完全不受 runCount 影响",
+          "description": "difficultyScaling 系统只修改 skeletonSpeedMultiplier (L189-192)，Slime 速度固定为 SLIME_SPEED=60。随着 runCount 增加，Skeleton 变快但 Slime 保持不变，导致后期 Slime 完全没有威胁。应增加 Slime 速度缩放（建议 BASE +10%/run, cap 2.0x）和/或增加 Slime 数量缩放上限。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 速度受 runCount 影响递增",
+            "Slime 速度有上限 (cap 2.0x)",
+            "高难度下 Slime 仍有威胁性",
+            "tsc + build 通过"
+          ],
+          "supersedes": []
+        },
+        {
+          "id": "US-534",
+          "title": "PRD 去重执行 — 460条pending US聚类合并为≤50条权威条目",
+          "description": "PRD 有460条pending US，约350条重复。同一问题被重复编号5-15次（hpBar.follow 13条、checkWinCondition 9条、shutdown 10条、takeDamage 9条、ResultScene 8条、PRD去重meta 15条）。应：(1) 用脚本按标题关键词聚类并输出报告；(2) 每类保留1条权威条目，合并所有 acceptanceCriteria；(3) 标记其余为 superseded-by。目标：≤50条有效pending US。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "输出聚类报告（每类含条目数量和代表性ID）",
+            "PRD pending US ≤ 50条",
+            "重复条目标记为 superseded-by 权威条目ID",
+            "无功能遗漏",
+            "tsc + build 通过"
+          ],
+          "supersedes": [
+            "US-523",
+            "US-530"
+          ]
         }
       ]
     }

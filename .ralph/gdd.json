@@ -3435,6 +3435,54 @@
       "focus": "攻击动画朝向/Slime timer泄漏/Skeleton追踪缩放/胜利判定/走廊门框/dash碰撞/安全区/HUD性能",
       "totalUS": 305,
       "completedUS": 42
+    },
+    {
+      "round": 62,
+      "date": "2026-04-29T20:05:00Z",
+      "summary": "第62轮设计审查",
+      "findings": [
+        {
+          "severity": "P0-critical",
+          "title": "Enemy respawn 重复注册 overlap 导致伤害倍增",
+          "description": "checkRespawnRooms() 每次重生都重新注册 physics.add.overlap(player, slimeGroup/skeletonGroup)，原始 overlap 从未移除。N次重生后玩家每次接触敌人受 N+1 倍伤害。修复：删除重复注册（新敌人已加入 group，原始 overlap 自动覆盖）。",
+          "usRef": "US-531",
+          "codeLocation": "GameScene.ts L1128-1145"
+        },
+        {
+          "severity": "P0-critical",
+          "title": "US-387 标记done但核心循环修复未落地",
+          "description": "US-387 标记为done，但 checkWinCondition 仍只检查楼梯距离（L1249-1256），注释 \"US-057: chest decoupled from win\"。US-057 的实现可能覆盖了US-387的修复。需重新实现。",
+          "usRef": "US-532",
+          "codeLocation": "GameScene.ts L1249-1256"
+        },
+        {
+          "severity": "P2-balance",
+          "title": "Slime 难度缩放缺失",
+          "description": "难度缩放只影响 Skeleton 速度（skeletonSpeedMultiplier），Slime 速度固定60。后期 Slime 无威胁，难度曲线失衡。",
+          "usRef": "US-533",
+          "codeLocation": "GameScene.ts L189-192, entities/Slime.ts SLIME_SPEED"
+        },
+        {
+          "severity": "P3-maintenance",
+          "title": "PRD 460条pending含~350条重复",
+          "description": "PRD膨胀严重，同一问题重复5-15次。需要脚本化去重合并。",
+          "usRef": "US-534"
+        }
+      ],
+      "newUS": [
+        "US-531",
+        "US-532",
+        "US-533",
+        "US-534"
+      ],
+      "resolvedUS": [],
+      "stats": {
+        "totalUS": 534,
+        "pendingUS": 464,
+        "doneUS": 70,
+        "newThisRound": 4,
+        "duplicateEstimate": 350
+      }
     }
   ],
   "gameSystems": {
@@ -3781,5 +3829,12 @@
         "P0-5: Skeleton chase HP bar follow — 直接可见视觉 bug"
       ]
     }
-  ]
+  ],
+  "lastReviewInfo": {
+    "round": 62,
+    "date": "2026-04-29T20:05:00Z",
+    "criticalIssues": 2,
+    "balanceIssues": 1,
+    "maintenanceIssues": 1
+  }
 }
