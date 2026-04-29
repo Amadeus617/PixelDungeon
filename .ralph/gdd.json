@@ -243,18 +243,19 @@
     "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知",
     "_codeAudit": {
       "date": "2026-04-29",
-      "note": "第60轮审查代码实际值验证",
+      "note": "第61轮审查代码实际值验证",
       "confirmed": [
-        "Player.takeDamage 返回 void（L190）",
-        "Player.heal 返回 number（L188）",
-        "Slime.isKnockedBack 属性存在（L28）但 onHitWall（L77）未检查",
-        "Skeleton chase 分支 return 在 hpBar.follow 之前（L166）",
-        "GameScene 无 shutdown() 方法",
-        "ResultScene 用 events.on(update) 轮询按键（L371-380），重启到 GameScene",
-        "Chest.open() 仅切换贴图无掉落（L30-33）",
-        "endGame/endGameInternal 代码重复约40行",
-        "checkWinCondition 仅检查楼梯距离，不检查 key/chest（US-057 解耦后丢失）",
-        "getEnemyConfigForRoom 已接入房间深度（L39），slimeCount 随 runCount 递增（L177）"
+        "checkWinCondition 仅检查楼梯距离 < STAIRS_REACH_DISTANCE，不含key/chest检查",
+        "Player.takeDamage 返回 void（L190），heal 返回 number（L188）",
+        "Skeleton.onHitWall() 无条件调用 pickWanderDirection()，不检查 isKnockedBack",
+        "Slime.onHitWall() 无条件调用 pickDirection()，不检查 isKnockedBack",
+        "Skeleton knockback分支(L137-145) return前不调用hpBar.follow",
+        "Skeleton chase分支(L160-168) return前不调用hpBar.follow",
+        "Slime knockback分支(L142-150) return前不调用hpBar.follow",
+        "GameScene 无shutdown方法，事件监听器（L436/447）无清理",
+        "ResultScene events.on(update) 轮询按键（L366），重启到GameScene",
+        "endGame/endGameInternal 代码重复（L1277-L1340约40行）",
+        "getEnemyConfigForRoom 已接入房间深度，slimeCount随runCount递增"
       ]
     }
   },
@@ -2376,6 +2377,57 @@
         "US-255/275/288/329 Slime die() 事件 — 代码已修复"
       ],
       "priority": "US-517（核心循环再断裂）是 P0 中最高优先级。这是游戏第二次因解耦导致循环断裂，需要设计层面的决策而非简单代码修复。"
+    },
+    {
+      "round": 61,
+      "date": "2026-04-29",
+      "title": "第61轮设计审查 — PRD膨胀治理+代码根因定位+实施路线图",
+      "summary": "全面审查25个源文件和522条PRD（453 pending）后确认：(1) PRD严重膨胀至522条US，同一问题重复5-15次，453条pending中估计300+条为重复，需去重至≤80条权威条目；(2) 核心代码问题确认：checkWinCondition仍不检查key（US-057解耦后断裂）、takeDamage返回void、Skeleton/Slime onHitWall不保护knockback、HP bar在knockback/chase分支脱离、GameScene无shutdown、ResultScene用update轮询重启到GameScene跳过TitleScene；(3) endGame/endGameInternal约40行重复代码需合并；(4) 新增5条US(US-523~527)聚焦PRD治理和代码根因修复。",
+      "findings": [
+        "PRD膨胀：522条US（453 pending），同一问题重复5-15次，开发效率严重受阻",
+        "checkWinCondition不检查key/chest — 核心循环key→chest→stairs断裂",
+        "takeDamage返回void — 阻塞hurt音效/统计/掉落等6+下游功能",
+        "Skeleton/Slime onHitWall无条件覆盖velocity — 14+个US的knockback根因",
+        "HP bar在knockback/chase分支return跳过follow — 11+条US的顽固视觉bug",
+        "GameScene无shutdown — 事件监听器/overlap回调泄漏累积",
+        "ResultScene events.on(update)轮询+重启到GameScene — 监听器泄漏+流程不完整",
+        "endGame/endGameInternal重复约40行 — 维护成本倍增"
+      ],
+      "newUserStories": [
+        "US-523",
+        "US-524",
+        "US-525",
+        "US-526",
+        "US-527"
+      ],
+      "changes": [
+        {
+          "area": "meta",
+          "change": "US-523: PRD大规模去重 — 453 pending → ≤80条权威条目",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "meta",
+          "change": "US-524: 顽固问题实施路线图 — P0基础→P1核心循环→P2视觉→P3增强",
+          "priority": "meta-P1"
+        },
+        {
+          "area": "entities",
+          "change": "US-525: Skeleton/Slime onHitWall isKnockedBack守卫 — knockback根因修复",
+          "priority": "P0"
+        },
+        {
+          "area": "entities",
+          "change": "US-526: HP bar knockback/chase分支follow修复 — 顽固视觉bug",
+          "priority": "P0"
+        },
+        {
+          "area": "GameScene",
+          "change": "US-527: endGame/endGameInternal合并为单一方法",
+          "priority": "P2"
+        }
+      ],
+      "priority": "US-523(PRD去重)是最高meta优先级 — 522条US已严重阻碍开发效率。US-525/526是代码根因修复。"
     }
   ],
   "improvements": {

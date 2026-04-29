@@ -8384,6 +8384,83 @@
             "完整流程：TitleScene → BootScene → GameScene → ResultScene → TitleScene",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-523",
+          "title": "PRD 大规模去重执行 — 453条pending US去重合并为≤80条权威条目",
+          "description": "PRD膨胀至522条US（453 pending），同一问题被重复编号5-15次。示例：takeDamage返回值9+条、HP bar跟随11+条、checkWinCondition key检查8+条、GameScene shutdown 8+条、ResultScene流程 10+条。去重方案：按功能域分组，每组保留1条权威条目，标注所有重复编号，其余标记为superseded。目标：453 pending → ≤80条。",
+          "type": "code",
+          "priority": 508,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "PRD pending US数 ≤ 80条",
+            "每条权威US标注所有superseded的重复编号",
+            "核心顽固问题（takeDamage/HPbar/shutdown/checkWin/ResultScene）各仅保留1条",
+            "gdd.json designLog 记录去重操作"
+          ]
+        },
+        {
+          "id": "US-524",
+          "title": "PRD 顽固问题实施路线图 — 按依赖拓扑排序分4批执行",
+          "description": "当前453条pending US无执行顺序，开发者无法判断优先级。根据代码审查第60轮的依赖分析，制定4批实施路线图：P0基础设施（takeDamage返回值、shutdown、physics基类统一）→ P1核心循环（checkWinCondition key+宝箱奖励+Space时序）→ P2视觉反馈（HP bar跟随、knockback碰墙保护、enemy freeze）→ P3体验增强（combo、BGM、房间类型、难度精调）。每批内按依赖拓扑排序。",
+          "type": "code",
+          "priority": 509,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "路线图文档写入gdd.json designLog",
+            "P0批次5条US明确依赖关系",
+            "P1批次3条US依赖P0完成",
+            "每条US标注blocking/blocked关系"
+          ]
+        },
+        {
+          "id": "US-525",
+          "title": "Skeleton.onHitWall() 添加 isKnockedBack 守卫 — 击退碰墙根因修复",
+          "description": "Skeleton.onHitWall()无条件调用this.pickWanderDirection()覆盖velocity，在knockback期间击退效果被碰墙立即取消。Slime.onHitWall()同理。这是14+个US反复标记的knockback问题的根因代码路径。修复：if (this.isKnockedBack) return; 作为onHitWall第一行。",
+          "type": "code",
+          "priority": 510,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton.onHitWall() 首行添加 isKnockedBack 守卫",
+            "Slime.onHitWall() 首行添加 isKnockedBack 守卫",
+            "tsc + build 通过",
+            "击退碰墙不再中断击退效果"
+          ]
+        },
+        {
+          "id": "US-526",
+          "title": "Slime knockback 分支 return 前补充 hpBar.follow — 击退时血条脱离",
+          "description": "Slime.update()中isKnockedBack分支直接return，跳过后方的hpBar.follow()调用，导致击退期间血条原地不动。Skeleton同理（chase和knockback两个分支都return跳过follow）。这是11+条US反复标记的顽固视觉bug。",
+          "type": "code",
+          "priority": 511,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime knockback分支return前调用hpBar.follow(this)",
+            "Skeleton chase分支return前调用hpBar.follow(this)",
+            "Skeleton knockback分支return前调用hpBar.follow(this)",
+            "tsc + build 通过",
+            "击退/追踪期间HP bar始终跟随sprite"
+          ]
+        },
+        {
+          "id": "US-527",
+          "title": "endGame/endGameInternal 代码重复消除 — 统一为单一endGame方法",
+          "description": "GameScene中endGame和endGameInternal存在约40行重复代码（L1277-L1340）。endGameInternal绕过gameOver守卫直接执行转场逻辑，endGame先检查gameOver再调用Internal。这导致：(1) 维护时需同步修改两处；(2) endGame帧有特殊路径（死亡通过Internal绕过守卫）。应合并为单一方法，用参数控制是否检查gameOver守卫。",
+          "type": "code",
+          "priority": 512,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "合并为单一endGame(result, options?)方法",
+            "options.skipGameOverCheck用于死亡路径",
+            "删除endGameInternal方法",
+            "所有调用点更新",
+            "tsc + build 通过"
+          ]
         }
       ]
     }
