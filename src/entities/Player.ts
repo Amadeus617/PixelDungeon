@@ -11,6 +11,11 @@ const KNOCKBACK_DISTANCE = 25; // pixels
 const KNOCKBACK_DURATION = 200; // ms
 const ATTACK_BOOST_DURATION = 10000; // 10 seconds
 
+// Dash / dodge mechanics (US-056)
+const DASH_DISTANCE = 80; // pixels
+const DASH_DURATION = 150; // ms (0.15s)
+const DASH_COOLDOWN = 1500; // ms (1.5s)
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: {
@@ -20,6 +25,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     D: Phaser.Input.Keyboard.Key;
   };
   private spaceKey!: Phaser.Input.Keyboard.Key;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
   private _direction: Direction = "down";
   private speed: number = 120;
   private _hp: number = PLAYER_MAX_HP;
@@ -43,6 +49,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private _attackBoosted: boolean = false;
   private _attackBoostTimer: number = 0;
   private _attackBoostDuration: number = ATTACK_BOOST_DURATION;
+
+  // Dash / dodge state (US-056)
+  private isDashing: boolean = false;
+  private dashTimer: number = 0;
+  private lastDashTime: number = -DASH_COOLDOWN; // Allow immediate first dash
+  private dashDirX: number = 0;
+  private dashDirY: number = 0;
+  private dashStartX: number = 0;
+  private dashStartY: number = 0;
+
+  /** Whether the player is currently dashing */
+  get dashing(): boolean {
+    return this.isDashing;
+  }
+
+  /** Dash cooldown remaining in ms (0 if ready) */
+  get dashCooldownRemaining(): number {
+    const now = this.scene ? this.scene.time.now : 0;
+    const remaining = DASH_COOLDOWN - (now - this.lastDashTime);
+    return Math.max(0, remaining);
+  }
+
+  /** Total dash cooldown duration in ms */
+  static readonly DASH_COOLDOWN = DASH_COOLDOWN;
 
   /** Whether the player currently has the ATK x2 buff */
   get attackBoosted(): boolean {
@@ -99,6 +129,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       };
       this.spaceKey = scene.input.keyboard.addKey(
         Phaser.Input.Keyboard.KeyCodes.SPACE
+      );
+      this.shiftKey = scene.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.SHIFT
       );
     }
 
@@ -273,6 +306,71 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.slowTimer = duration;
   }
 
+  /** Start a dash in the current facing direction (US-056) */
+  private startDash(time: number): void {
+    if (this.isDashing || this.isKnockedBack || !this.alive) return;
+    const now = time ?? this.scene.time.now;
+    if (now - this.lastDashTime < DASH_COOLDOWN) return;
+
+    // Determine dash direction from facing direction
+    const dir = this._direction === "idle" ? "down" : this._direction;
+    const offsets: Record<string, { dx: number; dy: number }> = {
+      up: { dx: 0, dy: -1 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 },
+      right: { dx: 1, dy: 0 },
+    };
+    const o = offsets[dir];
+    this.dashDirX = o.dx;
+    this.dashDirY = o.dy;
+
+    this.isDashing = true;
+    this.dashTimer = DASH_DURATION;
+    this.dashStartX = this.x;
+    this.dashStartY = this.y;
+    this.lastDashTime = now;
+
+    // Dash invincibility (separate from damage invincibility)
+    this.isInvincible = true;
+    this.invincibleTimer = Math.max(this.invincibleTimer, DASH_DURATION);
+
+    // Set high velocity in dash direction
+    const dashSpeed = DASH_DISTANCE / (DASH_DURATION / 1000);
+    this.setVelocity(this.dashDirX * dashSpeed, this.dashDirY * dashSpeed);
+
+    // Visual: blue tint during dash
+    this.setTint(0x44aaff);
+  }
+
+  /** Update dash state — returns true if currently dashing */
+  private updateDash(delta: number): boolean {
+    if (!this.isDashing) return false;
+
+    this.dashTimer -= delta;
+
+    // Calculate how far we've dashed
+    const traveledX = this.x - this.dashStartX;
+    const traveledY = this.y - this.dashStartY;
+    const distTraveled = Math.sqrt(
+      traveledX * traveledX + traveledY * traveledY
+    );
+
+    // End dash if: timer expired, reached target distance, or hit a wall (velocity zeroed by collision)
+    if (
+      this.dashTimer <= 0 ||
+      distTraveled >= DASH_DISTANCE ||
+      (this.body as Phaser.Physics.Arcade.Body).speed < 10
+    ) {
+      this.isDashing = false;
+      this.setVelocity(0, 0);
+      this.clearTint();
+      // Don't clear invincibility if it was from damage (let updateInvincibility handle it)
+      return false;
+    }
+
+    return true;
+  }
+
   private updateInvincibility(delta: number): void {
     if (!this.isInvincible) return;
     this.invincibleTimer -= delta;
@@ -314,6 +412,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.isKnockedBack = false;
         this.setVelocity(0, 0);
       }
+      return;
+    }
+
+    // Update dash state — skip normal input during dash (US-056)
+    if (this.updateDash(_delta)) {
+      this.updateInvincibility(_delta);
       return;
     }
 
@@ -365,6 +469,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       if (this._direction !== "idle" && !this.isAttacking) {
         this.play(`idle-${this._direction}`, true);
       }
+    }
+
+    // Handle dash input (US-056)
+    if (this.shiftKey && Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
+      this.startDash(time ?? this.scene.time.now);
     }
 
     // Handle attack input

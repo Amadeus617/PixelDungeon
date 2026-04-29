@@ -32,6 +32,11 @@ export class HUD extends Phaser.GameObjects.Container {
   private attackBoostIcon!: Phaser.GameObjects.Image;
   private attackBoostLabel!: Phaser.GameObjects.Text;
 
+  // Dash cooldown indicator (US-056)
+  private dashBarBg!: Phaser.GameObjects.Rectangle;
+  private dashBarFill!: Phaser.GameObjects.Rectangle;
+  private dashLabel!: Phaser.GameObjects.Text;
+
   // Minimap
   private minimap!: Minimap;
 
@@ -208,8 +213,41 @@ export class HUD extends Phaser.GameObjects.Container {
     this.attackBoostLabel.setVisible(false);
     this.add(this.attackBoostLabel);
 
+    // --- Dash cooldown section (US-056) ---
+    const DASH_BAR_W = 100;
+    const DASH_BAR_H = 10;
+    const dashY = boostY + 44;
+    const dashBg = scene.add.rectangle(0, dashY, 160, 36, 0x000000, 0.6);
+    dashBg.setOrigin(0);
+    this.add(dashBg);
+
+    this.dashLabel = scene.add.text(12, dashY + 2, "Dash [Shift]", {
+      fontSize: "11px",
+      color: "#44aaff",
+      fontFamily: "monospace",
+    });
+    this.add(this.dashLabel);
+
+    const dashBarX = 12;
+    const dashBarY = dashY + 18;
+    this.dashBarBg = scene.add.rectangle(
+      dashBarX, dashBarY,
+      DASH_BAR_W + 2, DASH_BAR_H + 2,
+      0x333333
+    );
+    this.dashBarBg.setOrigin(0);
+    this.add(this.dashBarBg);
+
+    this.dashBarFill = scene.add.rectangle(
+      dashBarX + 1, dashBarY + 1,
+      DASH_BAR_W, DASH_BAR_H,
+      0x44aaff
+    );
+    this.dashBarFill.setOrigin(0);
+    this.add(this.dashBarFill);
+
     // --- Difficulty level section (US-028) ---
-    const diffY = boostY + 44;
+    const diffY = dashY + 44;
     this.difficultyBg = scene.add.rectangle(0, diffY, 160, 36, 0x000000, 0.6);
     this.difficultyBg.setOrigin(0);
     this.add(this.difficultyBg);
@@ -355,6 +393,22 @@ export class HUD extends Phaser.GameObjects.Container {
       this.attackBoostLabel.setText(`ATK x2 [${secs}s]`);
     } else {
       this.attackBoostLabel.setText("ATK x2!");
+    }
+
+    // Update dash cooldown bar (US-056)
+    const dashCooldownMax = Player.DASH_COOLDOWN; // 1500ms
+    const dashRemaining = this.player.dashCooldownRemaining;
+    const dashReady = dashRemaining <= 0;
+    const DASH_BAR_W = 100;
+    if (dashReady) {
+      this.dashBarFill.width = DASH_BAR_W;
+      this.dashBarFill.setFillStyle(0x44aaff);
+      this.dashLabel.setColor("#44aaff");
+    } else {
+      const pct = 1 - dashRemaining / dashCooldownMax;
+      this.dashBarFill.width = DASH_BAR_W * pct;
+      this.dashBarFill.setFillStyle(0x225588);
+      this.dashLabel.setColor("#225588");
     }
 
     // Update minimap

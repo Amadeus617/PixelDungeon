@@ -1915,6 +1915,48 @@
         ]
       },
       "priority": "P1: US-475(overlap泄漏) > P2: US-474(代码重复) > P3: US-476(视觉区分)"
+    },
+    {
+      "round": 59,
+      "date": "2026-04-29",
+      "title": "第59轮设计审查 — Chest战利品闭环+代码重复消除+生命周期清理",
+      "summary": "全面审查25个源文件和476条PRD后发现3个独立改进机会（刻意不重复已有US覆盖的顽固问题）：(1) Chest.open()仍只切换贴图不生成战利品——key→chest探索循环是功能死胡同，需在open()时发射事件触发GameScene生成随机掉落；(2) endGame()和endGameInternal()代码体几乎完全相同，唯一区别是delayedCall延迟，应合并消除重复；(3) GameScene注册了player-attack/enemy-death事件监听器但无shutdown()清理，scene restart后监听器累积。本轮确认：checkWinCondition已正确检查hasOpenedChest(US-387 done)、Slime die()已发射enemy-death事件(done)、US-044房间深度难度已实现。",
+      "newUserStories": [
+        "US-477",
+        "US-478",
+        "US-479"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-477: Chest.open() 战利品掉落 — 宝箱开启生成随机掉落(50%coin/30%potion/20%attackBoost)",
+          "priority": "P0"
+        },
+        {
+          "area": "code-quality",
+          "change": "US-478: endGame/endGameInternal 合并 — 消除30行重复代码",
+          "priority": "P2"
+        },
+        {
+          "area": "stability",
+          "change": "US-479: GameScene shutdown() 事件监听器清理 — 防止scene restart后累积",
+          "priority": "P1"
+        }
+      ],
+      "confirmedFixed": [
+        "US-387: checkWinCondition hasOpenedChest检查 — 代码确认已实现",
+        "US-044: getEnemyConfigForRoom 房间深度难度 — 代码确认已实现",
+        "US-255/275/288/329: Slime die() enemy-death事件 — 代码确认已实现",
+        "US-053: ScoreSystem breakdown + timeBonus — 代码确认已实现",
+        "US-051: 钥匙使用引导 — 代码确认已实现"
+      ],
+      "persistentIssues": [
+        "Player.takeDamage()仍返回void — 6+轮审查标记但未修复",
+        "ResultScene仍用events.on(update)轮询+直接重启GameScene — 流程不完整",
+        "Skeleton/Slime HP bar chase/knockback分支不跟随 — 顽固视觉bug",
+        "PRD膨胀至479条 — 大量重复(如HP bar问题11+条, takeDamage 9+条)"
+      ],
+      "priority": "US-477 (Chest战利品) 是最高优先级 — 核心游戏循环奖励闭环缺失。US-479 (shutdown) 次之 — 影响稳定性。"
     }
   ],
   "improvements": {

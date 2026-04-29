@@ -930,7 +930,7 @@
           "description": "当前战斗只有攻击和逃跑，缺少闪避维度。添加Shift键冲刺：向当前方向快速位移80px(0.15s)，冲刺期间无敌，冷却1.5s。增加战斗策略深度，玩家可以冲刺穿过敌人群体或闪避包围。GDD balance应添加dashSpeed/dashCooldown参数。",
           "type": "code",
           "priority": 41,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Shift键触发冲刺动画和位移",
@@ -7669,6 +7669,56 @@
             "GameScene.ts 第84行注释修正为正确值",
             "玩家可通过外观判断治疗量差异",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-477",
+          "title": "Chest.open() 战利品掉落实现 — 宝箱开启生成随机掉落",
+          "description": "Chest.open() 成功后只切换贴图为chest_open，不生成任何战利品。玩家完成key→chest探索循环后获得零奖励，宝箱系统是功能死胡同。应在open()成功时通过事件通知GameScene生成随机掉落（50%金币3-5枚/30%药水/20%AttackBoost），形成key→chest(loot)→stairs完整奖励闭环。",
+          "type": "code",
+          "priority": 462,
+          "status": "pending",
+          "dependsOn": [
+            "US-387"
+          ],
+          "acceptanceCriteria": [
+            "Chest.open()时发射chest-opened事件",
+            "GameScene监听事件并生成随机掉落（50%coin/30%potion/20%attackBoost）",
+            "掉落物品有弹出动画(arc 20px/400ms)",
+            "所有overlap回调正确注册",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-478",
+          "title": "endGame/endGameInternal 代码重复消除 — 统一为单一endGame方法",
+          "description": "endGame()和endGameInternal()方法体几乎完全相同（都计算elapsedTime/roomsExplored/timeBonus/scoreBreakdown，都调用scene.start），唯一区别是delayedCall延迟不同(800ms vs 200ms)和gameOver检查。应合并为单一方法，接受delay参数，消除重复逻辑降低维护成本。",
+          "type": "code",
+          "priority": 463,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGameInternal删除，endGame接受delay参数",
+            "死亡动画和胜利场景使用同一个endGame方法",
+            "gameOver检查逻辑正确（防止双重调用）",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-479",
+          "title": "GameScene shutdown() 统一资源清理 — 事件监听器+overlap回调",
+          "description": "GameScene注册了events.on(player-attack)和events.on(enemy-death)两个事件监听器，但无shutdown()方法清理。Phaser scene restart时不会自动清理events监听器，导致多次游戏后回调累积。应在shutdown()中显式events.off所有注册的监听器，并清理RoomCameraSystem/SoundManager等子系统。",
+          "type": "code",
+          "priority": 464,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "添加shutdown()方法",
+            "events.off(player-attack)和events.off(enemy-death)",
+            "RoomCameraSystem.destroy()调用",
+            "SoundManager清理",
+            "多次restart后无监听器累积",
+            "tsc + build通过"
           ]
         }
       ]
