@@ -1241,7 +1241,7 @@
           "description": "GameScene 无 shutdown() 方法，player-attack/enemy-death 事件监听器 + 动态 overlap 回调在 restart 后累积泄漏。需添加 shutdown() 方法清理所有事件监听器、timer 和回调。\\n\\n合并自: US-195, US-233, US-270, US-280, US-327, US-390, US-400, US-424, US-435, US-466, US-479, US-495, US-498, US-510",
           "type": "code",
           "priority": 61,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "shutdown() 方法存在",

@@ -1380,6 +1380,68 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Phaser scene lifecycle: called when the scene is shut down or restarted.
+   * Cleans up event listeners, tweens, timers, and dynamic overlaps
+   * to prevent memory leaks across restarts (US-562).
+   */
+  shutdown(): void {
+    // --- Scene event listeners ---
+    this.events.off("player-attack", this.handlePlayerAttack, this);
+    this.events.off("enemy-death", this.handleEnemyDeathDrop, this);
+
+    // --- Timers ---
+    if (this.chestHintTimer) {
+      this.chestHintTimer.remove();
+      this.chestHintTimer = null;
+    }
+
+    // --- Tweens — stop all scene tweens ---
+    this.tweens.killAll();
+
+    // --- Time events — clear all delayed calls / loops ---
+    this.time.removeAllEvents();
+
+    // --- Floating hint objects ---
+    if (this.chestHintText && this.chestHintText.active) {
+      this.chestHintText.destroy();
+      this.chestHintText = null;
+    }
+    if (this.stairsHintText && this.stairsHintText.active) {
+      this.stairsHintText.destroy();
+      this.stairsHintText = null;
+    }
+    if (this.proximityHint && this.proximityHint.active) {
+      this.proximityHint.destroy();
+      this.proximityHint = null;
+    }
+    if (this.hpFullHintText && this.hpFullHintText.active) {
+      this.hpFullHintText.destroy();
+      this.hpFullHintText = null;
+    }
+
+    // --- Physics: dynamic overlaps are automatically cleaned by Phaser
+    //     when the scene shuts down (bodies are destroyed with the scene).
+    //     No manual overlap removal needed — Phaser handles this via
+    //     PhysicsWorld.shutdown() → Group.destroy() → Body.destroy().
+
+    // --- Reset mutable state ---
+    this.slimes = [];
+    this.skeletons = [];
+    this.chests = [];
+    this.coins = [];
+    this.healthPotions = [];
+    this.attackBoosts = [];
+    this.spikeTraps = [];
+    this.clearedRooms.clear();
+    this.roomEnemyMap.clear();
+    this.respawnCooldowns.clear();
+    this.gameOver = false;
+    this.isPaused = false;
+    this.spaceConsumedByChest = false;
+    this.hpFullHintCooldown = 0;
+  }
+
   update(time: number, delta: number): void {
     if (this.gameOver) return;
 
