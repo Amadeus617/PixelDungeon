@@ -2328,6 +2328,109 @@
             "ESC 仍然正常暂停/取消暂停",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-627",
+          "title": "GameScene shutdown 清理 — 事件监听器/tween/overlap 泄漏修复",
+          "description": "GameScene 没有 shutdown() 方法。create() 中注册了 events.on(\"player-attack\"), events.on(\"enemy-death\") 和 16+ physics.add.overlap 回调，场景重启后全部泄漏。需要实现 shutdown() 依次: (1) this.events.off 所有自定义事件 (2) this.tweens.killAll() (3) 清理 HUD/Minimap/RoomCameraSystem 引用。实测: 快速重启5次后 overlap 回调叠加导致 N×伤害。",
+          "type": "code",
+          "priority": 139,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.shutdown() 存在并清理所有 events.on 监听器",
+            "shutdown 中调用 tweens.killAll()",
+            "连续快速重启10次后 overlap 回调计数不增长",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-628",
+          "title": "ResultScene events.on(\"update\") 泄漏 — 每次创建叠加一个监听器",
+          "description": "ResultScene.create() 用 this.events.on(\"update\", ...) 注册键盘监听，但从不 off。每次重新显示 ResultScene 就叠加一个 listener，导致 Space/Enter 触发多次 scene.start(\"GameScene\")。需改为 this.input.keyboard.on(\"keydown-SPACE\", ...) 或在 shutdown 中 off。",
+          "type": "code",
+          "priority": 140,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 不使用 events.on(\"update\") 监听键盘",
+            "改为 this.input.keyboard.once 或在 shutdown 中 off",
+            "连续输10次后按 Space 只触发1次 restart",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-629",
+          "title": "endGame 与 endGameInternal 重复逻辑合并",
+          "description": "GameScene 有 endGame() 和 endGameInternal() 两个方法，代码几乎相同（计算elapsedTime/roomsExplored/scoreBreakdown），仅 gameOver guard 和 delay 时长不同。death animation callback 需绕过 guard 走 internal，但应统一为一个方法，用参数控制 guard 和 delay。当前两份代码容易改漏。",
+          "type": "code",
+          "priority": 141,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGameInternal 删除，合并为 endGame(result, options?) 一个方法",
+            "options.skipGuard 和 options.delay 覆盖两种调用场景",
+            "死亡和胜利都走同一个方法",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-630",
+          "title": "掉落物 overlap 重复注册 — spawnDropCoin/Potion/AttackBoost 每次掉落新增 overlap",
+          "description": "spawnDropCoin() 中 this.physics.add.overlap(player, coin, callback) 每次掉落新增一个 overlap detector。如果同一屏有多个掉落物，每个都独立注册。问题: player 是同一个引用，overlap 回调在 coin destroy 前一直存在。虽然 coin destroy 后 Phaser 会清理，但如果掉落动画期间 overlap 已注册但 coin 还未落地，可能触发空中拾取。需确认 coin 在 popup 动画期间 active=false 或 overlap 延迟到动画结束后注册。",
+          "type": "code",
+          "priority": 142,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落物 popup 动画期间不可拾取（active=false 或 body.disable）",
+            "popup 动画结束后才启用 overlap 拾取",
+            "空中掉落物不会提前触发拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-631",
+          "title": "Skeleton 追踪时跳过 HP bar 跟随 — 丢失 HP bar 定位",
+          "description": "Skeleton.update() 中，当进入追踪模式（dist <= TRACK_RANGE），直接 setVelocity 并 return，跳过了 hpBar.follow(this) 调用。导致追踪时 HP bar 停留在原位不动。需在追踪分支中也调用 hpBar.follow(this)。",
+          "type": "code",
+          "priority": 143,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪玩家时 hpBar.follow(this) 正常调用",
+            "HP bar 在追踪/游荡/击退状态下都跟随敌人",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-632",
+          "title": "Player 死亡后仍触发胜利检查 — update 中死亡分支缺少 return",
+          "description": "GameScene.update() 中 checkLoseCondition() 设置 gameOver=true 并 return，但 player.playDeathAnimation 是异步的。如果在死亡动画播放期间（gameOver=true 但 endGameInternal 尚未调用），checkWinCondition() 不应该被检查。当前代码是安全的（因为 gameOver guard），但 endGameInternal 在死亡回调中绕过了 gameOver。如果未来有人在 gameOver 前移动 checkWinCondition，就会出 bug。建议在 lose 分支 return 后不再检查 win。",
+          "type": "code",
+          "priority": 144,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "死亡后确保不会误触发胜利",
+            "checkWinCondition 只在 player.alive 为 true 时执行",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-633",
+          "title": "Slime/Skeleton die() 中 destroy 顺序 — 事件触发后立即 destroy 可能导致 callback 异常",
+          "description": "Slime.die() 和 Skeleton.die() 先 emit(\"enemy-death\") 再 destroy()。但 enemy-death 回调 (handleEnemyDeathDrop) 会读取 this.x, this.y 并 spawn 新对象。如果 enemy-death handler 中有异步操作引用已 destroy 的 sprite，可能出问题。当前同步调用是安全的，但建议在 die() 中先保存 x,y 到局部变量，再传给 emit。",
+          "type": "code",
+          "priority": 145,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "die() 方法在 emit 前 x,y 已缓存为局部变量",
+            "enemy-death 事件 payload 使用缓存值而非 this.x/this.y",
+            "即使 enemy 已 destroy，drop 位置仍正确",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"
