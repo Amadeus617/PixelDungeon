@@ -1257,7 +1257,7 @@
           "description": "ResultScene 用 events.on('update') 轮询按键且从不清理，导致监听器累积泄漏。重启直接跳 GameScene 不经过 TitleScene，流程不完整。应改为 keyboard.on('keydown') + 重启到 TitleScene。\\n\\n合并自: US-127, US-175, US-199, US-208, US-246, US-253, US-265, US-276, US-332, US-370, US-386, US-393, US-467, US-499, US-513, US-522",
           "type": "code",
           "priority": 62,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "events.on('update') 替换为 keyboard.on('keydown')",

@@ -354,23 +354,24 @@ export class ResultScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // Input to restart
+    // Input to restart — keyboard events instead of update polling
     if (this.input.keyboard) {
-      const spaceKey = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.SPACE
-      );
-      const enterKey = this.input.keyboard.addKey(
-        Phaser.Input.Keyboard.KeyCodes.ENTER
-      );
+      this.input.keyboard.once("keydown-SPACE", () => this.restart());
+      this.input.keyboard.once("keydown-ENTER", () => this.restart());
+    }
+  }
 
-      this.events.on("update", () => {
-        if (
-          Phaser.Input.Keyboard.JustDown(spaceKey) ||
-          Phaser.Input.Keyboard.JustDown(enterKey)
-        ) {
-          this.scene.start("GameScene");
-        }
-      });
+  private restart(): void {
+    if (!this.scene.isActive()) return;
+    // Go through TitleScene for proper flow (run count, boot assets)
+    this.scene.start("TitleScene");
+  }
+
+  shutdown(): void {
+    // Clean up keyboard listeners to prevent leaks
+    if (this.input.keyboard) {
+      this.input.keyboard.off("keydown-SPACE");
+      this.input.keyboard.off("keydown-ENTER");
     }
   }
 }
