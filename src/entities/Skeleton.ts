@@ -140,6 +140,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
         this.isKnockedBack = false;
         this.pickWanderDirection();
       }
+      if (this.hpBar && this.hpBar.active) this.hpBar.follow(this);
       return;
     }
 
@@ -158,6 +159,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
         vx = (dx / dist) * speed;
         vy = (dy / dist) * speed;
         this.setVelocity(vx, vy);
+        if (this.hpBar && this.hpBar.active) this.hpBar.follow(this);
         return;
       }
     }

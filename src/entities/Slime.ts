@@ -145,6 +145,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
         this.isKnockedBack = false;
         this.pickDirection();
       }
+      if (this.hpBar && this.hpBar.active) this.hpBar.follow(this);
       return;
     }
 

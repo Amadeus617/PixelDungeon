@@ -1226,7 +1226,7 @@
           "description": "Skeleton chase 分支和 Slime knockback 分支的 early return 跳过 hpBar.follow()，导致 HP 条脱离 sprite。所有 update() 的 early-return 路径都必须在 return 前调用 hpBar.follow()。\\n\\n合并自: US-136, US-234, US-244, US-245, US-279, US-308, US-328, US-375, US-391, US-397, US-434, US-463, US-482, US-491, US-501, US-512, US-520, US-526, US-528, US-544, US-575, US-241",
           "type": "code",
           "priority": 60,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Skeleton.update chase 分支 return 前 hpBar.follow()",
