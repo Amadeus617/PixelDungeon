@@ -1304,7 +1304,7 @@
           "description": "Slime.onHitWall() 和 Skeleton.onHitWall() 无条件调用 pickDirection/pickWanderDirection，在 knockback 期间覆盖击退速度方向。应添加 isKnockedBack 守卫跳过方向切换。\\n\\n合并自: US-099, US-100, US-172, US-207, US-368, US-442, US-464, US-487, US-500, US-511, US-525, US-544",
           "type": "code",
           "priority": 65,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime.onHitWall: if isKnockedBack return",
@@ -2673,6 +2673,90 @@
             "不与无敌帧/dash无敌冲突",
             "连续命中不叠加(最长30ms)",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-649",
+          "title": "Dash 冲刺期间缺乏粒子拖尾视觉反馈",
+          "description": "玩家 dash 冲刺时仅有蓝色 tint 和速度变化，缺少运动感视觉元素。建议添加 3-5 帧半透明残影(alpha 0.3→0)或速度线粒子，提升闪避动作的满足感。DASH_DURATION=150ms 内每 30ms 生成一个残影 sprite。",
+          "type": "code",
+          "priority": 161,
+          "status": "pending",
+          "dependsOn": [
+            "US-056"
+          ],
+          "acceptanceCriteria": [
+            "dash 期间每 30-50ms 生成半透明残影",
+            "残影 200ms 后自动 fadeout 并 destroy",
+            "dash 结束时清理所有残影",
+            "残影不影响性能（对象池或限制最大数量）"
+          ]
+        },
+        {
+          "id": "US-650",
+          "title": "Slime 缺乏主动攻击行为 — 接触伤害仅被动触发",
+          "description": "当前 Slime 纯随机移动，只有碰巧碰到玩家才造成伤害。建议给 Slime 添加接近感知(100px)：当玩家进入范围时转为朝玩家缓慢移动(速度40px/s)，模拟主动追击但不具备 Skeleton 的精确追踪能力。这使 Slime 成为有意义的低级威胁而非纯随机障碍。",
+          "type": "code",
+          "priority": 162,
+          "status": "pending",
+          "dependsOn": [
+            "US-575"
+          ],
+          "acceptanceCriteria": [
+            "Slime 在 100px 范围内检测到玩家时转向追踪",
+            "追踪速度 40px/s（低于随机移动 60px/s，降低威胁但仍提供主动感）",
+            "超出范围后恢复随机移动",
+            "不同 Slime 追踪行为有随机延迟(0-500ms)，避免同步追击",
+            "追踪方向仍为 4 方向（非 8 方向），减少走廊抖动"
+          ]
+        },
+        {
+          "id": "US-651",
+          "title": "宝箱开启缺少音效和奖励弹出动画",
+          "description": "US-565 实现了 Chest 战利品掉落但宝箱开启本身无音效和视觉仪式感。开启瞬间应有(1)宝箱音效、(2)金色光芒爆发动画(6-8个粒子, 300ms)、(3)战利品弹出的弹簧动画(small bounce)。这些反馈让玩家获得宝箱时有明确的正反馈。",
+          "type": "code",
+          "priority": 163,
+          "status": "pending",
+          "dependsOn": [
+            "US-565"
+          ],
+          "acceptanceCriteria": [
+            "宝箱开启播放金属/木质开箱音效",
+            "6-8 个金色粒子从宝箱中心爆发，300ms 扩散",
+            "战利品弹出使用 ease-out bounce tween(50ms 上浮 + 100ms 回弹)",
+            "SoundManager 添加 playChestOpen() 方法"
+          ]
+        },
+        {
+          "id": "US-652",
+          "title": "走廊过渡期间缺少方向指示箭头",
+          "description": "房间过渡使用 camera follow 纯位移，玩家没有方向感知。建议在 fade 期间显示 1-2 帧的方向箭头(↑↓←→)指引玩家移动方向，降低新手迷路感。实现：RoomCameraSystem.isTransitioning() 为 true 时在 HUD 层绘制方向箭头(从当前房间中心到目标房间中心的方向)。",
+          "type": "code",
+          "priority": 164,
+          "status": "pending",
+          "dependsOn": [
+            "US-623"
+          ],
+          "acceptanceCriteria": [
+            "走廊过渡期间显示方向箭头(1-2帧，透明度 0.5)",
+            "箭头方向基于当前房间到目标房间的相对位置",
+            "箭头在到达目标房间后 fadeout",
+            "不影响走廊移动速度和 camera 过渡逻辑"
+          ]
+        },
+        {
+          "id": "US-653",
+          "title": "玩家攻击缺少冷却进度条视觉指示",
+          "description": "ATTACK_COOLDOWN=400ms 期间玩家无任何视觉反馈确认攻击是否就绪。建议在玩家脚下或 HUD 上添加微型冷却条：攻击后从满到空 400ms，冷却完毕时闪烁一下确认。这降低了新手频繁无效点击的挫败感。",
+          "type": "code",
+          "priority": 165,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击后玩家脚下出现 16x2px 冷却条(从绿到空，400ms)",
+            "冷却完毕闪烁白色 100ms",
+            "攻击中(buffed)冷却条变为蓝色",
+            "冷却条 scrollFactor=0 固定在玩家脚下不随 camera 移动"
           ]
         }
       ],

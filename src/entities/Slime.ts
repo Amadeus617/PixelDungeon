@@ -75,6 +75,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
 
   /** Called when slime collides with a wall – bounce into a new direction */
   onHitWall(): void {
+    if (this.isKnockedBack) return;
     this.pickDirection();
   }
 

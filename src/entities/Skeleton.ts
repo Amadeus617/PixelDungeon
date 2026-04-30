@@ -71,6 +71,7 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
 
   /** Called when skeleton collides with a wall – pick new direction */
   onHitWall(): void {
+    if (this.isKnockedBack) return;
     this.pickWanderDirection();
   }
 

@@ -277,6 +277,49 @@
       "target": 200,
       "note": "US-537: 与敌人击退300px/s严重不对称，提升至200px/s",
       "enemyKnockbackSpeed": 300
+    },
+    "dashTrail": {
+      "description": "US-649: Dash冲刺拖尾残影参数",
+      "trailInterval": 30,
+      "trailAlpha": 0.3,
+      "trailFadeMs": 200,
+      "maxTrails": 5
+    },
+    "slimeProximityChase": {
+      "description": "US-650: Slime接近感知追踪参数",
+      "detectionRange": 100,
+      "chaseSpeed": 40,
+      "chaseDirection": "4-way",
+      "reactionDelayMs": "random 0-500",
+      "note": "Slime在玩家100px内转为简单追踪，速度低于随机移动(60)，提供主动威胁但不精确"
+    },
+    "chestOpenFeedback": {
+      "description": "US-651: 宝箱开启反馈参数",
+      "particleCount": 8,
+      "particleDurationMs": 300,
+      "particleSpreadRadius": 20,
+      "particleColor": "0xffd700",
+      "bounceUpMs": 50,
+      "bounceDownMs": 100,
+      "bounceHeight": 10,
+      "note": "宝箱开启音效+粒子+弹簧弹出动画"
+    },
+    "corridorDirectionArrow": {
+      "description": "US-652: 走廊过渡方向箭头参数",
+      "arrowAlpha": 0.5,
+      "arrowDurationMs": 200,
+      "arrowSize": 12,
+      "note": "过渡期间HUD层方向指示"
+    },
+    "attackCooldownBar": {
+      "description": "US-653: 攻击冷却进度条参数",
+      "barWidth": 16,
+      "barHeight": 2,
+      "barOffsetY": 12,
+      "flashDurationMs": 100,
+      "buffColor": "0x4488ff",
+      "normalColor": "0x00ff00",
+      "note": "玩家脚下微型冷却条"
     }
   },
   "designLog": [
@@ -2781,6 +2824,66 @@
         "US-585: getEnemyConfigForRoom 不接入 runCount — 难度不随局数增长"
       ],
       "priority": "US-564 (核心循环) + US-636 (重启路径) 是最高优先级。US-562 (shutdown) + US-582 (BootScene 幂等) 次之 — 影响稳定性。"
+    },
+    {
+      "round": 70,
+      "date": "2026-04-30",
+      "title": "第70轮设计审查 — 代码验证+战斗深度+视觉反馈+新手引导",
+      "summary": "验证最新代码(US-560~564已实现)后，聚焦于5个之前审查未覆盖的新维度改进：(1) Dash冲刺缺少拖尾粒子影响闪避满足感；(2) Slime纯随机移动不具备主动威胁性，应添加简单接近感知使战斗更动态；(3) 宝箱开启无音效/粒子反馈导致探索奖励正反馈断裂；(4) 走廊过渡无方向指示导致新手迷路；(5) 攻击冷却无进度条导致新手误判攻击就绪。本轮刻意避免重复96条pending US已覆盖的问题。",
+      "newUserStories": [
+        "US-649",
+        "US-650",
+        "US-651",
+        "US-652",
+        "US-653"
+      ],
+      "changes": [
+        {
+          "area": "combat/movement",
+          "change": "US-649: Dash 拖尾残影 — 3-5帧半透明残影(alpha 0.3→0)，30ms间隔",
+          "priority": "P2"
+        },
+        {
+          "area": "combat/ai",
+          "change": "US-650: Slime 接近感知追踪(100px范围) — 主动威胁感但不精确追踪(40px/s, 4方向)",
+          "priority": "P1"
+        },
+        {
+          "area": "feedback/reward",
+          "change": "US-651: 宝箱开启音效+金色粒子+弹簧弹出动画 — 探索奖励正反馈闭环",
+          "priority": "P1"
+        },
+        {
+          "area": "navigation/ux",
+          "change": "US-652: 走廊过渡方向箭头 — 降低新手迷路感",
+          "priority": "P2"
+        },
+        {
+          "area": "combat/feedback",
+          "change": "US-653: 攻击冷却微型进度条 — 减少无效攻击点击挫败感",
+          "priority": "P2"
+        }
+      ],
+      "codeVerification": {
+        "note": "第70轮审查验证了最近5个commit的代码实现状态",
+        "verified_done": [
+          "US-560: Player.takeDamage() 返回 boolean — 代码验证通过",
+          "US-561: Skeleton/Slime HP bar chase/knockback follow — 代码验证通过，所有分支包含 hpBar.follow()",
+          "US-562: GameScene shutdown() 统一资源清理 — 代码验证通过",
+          "US-563: ResultScene keyboard events + restart via TitleScene — 代码验证通过",
+          "US-564: checkWinCondition 增加 key/chest 检查 — 代码验证通过"
+        ],
+        "still_pending": [
+          "US-566: onHitWall() knockback 守卫 — Slime/Skeleton onHitWall 仍无条件调用 pickDirection",
+          "US-575/642: Slime 难度缩放 — SLIME_MAX_HP=2, SLIME_SPEED=60 仍为常量",
+          "US-567/629: endGame/endGameInternal ~30行重复代码",
+          "US-577: Minimap 无楼梯出口标记",
+          "US-581/644: ScoreSystem 无 combo 连击计分",
+          "US-359/648: 无 Hitstop/Freeze Frame",
+          "US-574: 玩家 knockback 125px/s（KNOCKBACK_DISTANCE=25/DURATION=200）"
+        ]
+      },
+      "priority": "US-650(Slime主动追踪)和US-651(宝箱反馈)是P1 — 分别影响战斗动态性和核心探索奖励回路。"
     }
   ],
   "improvements": {
