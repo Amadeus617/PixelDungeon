@@ -255,9 +255,8 @@ export class GameScene extends Phaser.Scene {
       this.player,
       this.slimeGroup,
       (_playerObj, slimeObj) => {
-        const wasHurt = this.player.alive;
-        this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
-        if (wasHurt && this.player.hp < this.player.maxHp) {
+        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
+        if (wasHurt) {
           this.soundManager.playHurt();
         }
       }
@@ -268,8 +267,8 @@ export class GameScene extends Phaser.Scene {
       this.player,
       this.skeletonGroup,
       (_playerObj, skeletonObj) => {
-        this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
-        if (this.player.hp < this.player.maxHp) {
+        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
+        if (wasHurt) {
           this.soundManager.playHurt();
         }
       }
@@ -351,8 +350,10 @@ export class GameScene extends Phaser.Scene {
       trap.setCallbacks(
         (amount: number) => {
           // Damage from trap — use source position of trap itself for knockback
-          this.player.takeDamage(amount, trap.x, trap.y);
-          this.soundManager.playHurt();
+          const wasHurt = this.player.takeDamage(amount, trap.x, trap.y);
+          if (wasHurt) {
+            this.soundManager.playHurt();
+          }
         },
         (multiplier: number, duration: number) => {
           this.player.applySlow(multiplier, duration);

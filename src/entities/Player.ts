@@ -187,8 +187,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     return this._hp - before;
   }
 
-  takeDamage(amount: number, sourceX?: number, sourceY?: number): void {
-    if (this.isInvincible || !this.alive) return;
+  takeDamage(amount: number, sourceX?: number, sourceY?: number): boolean {
+    if (this.isInvincible || !this.alive) return false;
     this._hp = Math.max(0, this._hp - amount);
     this.isInvincible = true;
     this.invincibleTimer = INVINCIBLE_DURATION;
@@ -213,6 +213,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.isKnockedBack = true;
       this.knockbackTimer = KNOCKBACK_DURATION;
     }
+
+    return true;
   }
 
   /** Play death animation: red flash + fade out + brief delay before callback */
