@@ -8855,6 +8855,83 @@
             "ResultScene 金币数与实际拾取一致",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-550",
+          "title": "endGame/endGameInternal 重复代码合并 — 统一为单一 endGame 方法",
+          "description": "endGame() 和 endGameInternal() 各约30行代码，逻辑几乎完全相同（physics.pause、elapsedTime计算、timeBonus、scene.start参数）。唯一区别：endGame有800ms延迟（胜利过渡），endGameInternal无延迟（死亡回调后直接跳转）。应合并为单一endGame(result, delay)方法，消除40行重复代码和维护风险。",
+          "type": "code",
+          "priority": 535,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 和 endGameInternal 合并为单一方法 endGame(result: GameResult, delay?: number)",
+            "死亡路径调用 endGame(\"lose\", 200)，胜利路径调用 endGame(\"win\", 800)",
+            "scene.start 参数传递逻辑只有一份",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-551",
+          "title": "动态掉落 overlap 回调泄漏 — spawnDropCoin/Potion/AttackBoost overlap 不随道具 destroy 移除",
+          "description": "spawnDropCoin、spawnDropPotion、spawnDropAttackBoost 每次创建道具时注册 physics.add.overlap 回调。道具被拾取后 collect()→destroy()，但 overlap 监听器仍保留在 physics 引擎中，指向已销毁对象。长时间游玩（尤其 US-050 敌人重生循环）后 overlap 回调累积，可能导致 GC 压力和潜在崩溃。需改用 collider 替代或在 collect 时主动移除 overlap。",
+          "type": "code",
+          "priority": 536,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "动态掉落道具的 overlap 回调在 collect/destroy 时被显式移除",
+            "或改用对象池 + 统一 collider 管理方案",
+            "100+次掉落后无 overlap 回调累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-552",
+          "title": "PRD 去重终极执行 — 549 条 US 压缩至 ≤80 条权威条目并删除重复",
+          "description": "PRD 已膨胀至 549 条 US（477 pending）。同一问题被重复报告 5-15 次：takeDamage 返回值有 10+ 条、HP bar 跟随有 15+ 条、checkWinCondition 有 10+ 条、GameScene shutdown 有 10+ 条、PRD去重自身有 15+ 条。这种膨胀严重降低 PRD 可操作性，新审查者无法判断哪些是权威条目。需执行一次性去重：(1) 为每个顽固问题保留一个权威 US；(2) 删除所有重复条目；(3) 添加 priority tier 标签（P0-P3）。",
+          "type": "design",
+          "priority": 537,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个唯一问题只保留一个权威 US 条目",
+            "总 US 数 ≤ 80 条 pending",
+            "每条 US 有 P0/P1/P2/P3 优先级标签",
+            "已删除的重复条目不再出现在 PRD 中"
+          ]
+        },
+        {
+          "id": "US-553",
+          "title": "胜利过渡仪式感 — Win 场景金色粒子爆发 + 延迟跳转",
+          "description": "当前胜利直接调用 endGame 800ms 后硬跳转 ResultScene，无任何胜利视觉仪式。对比死亡路径有 playDeathAnimation（渐隐+倒地），胜利缺少等效反馈。应在 endGame(\"win\") 时：(1) 玩家位置爆发金色粒子；(2) 屏幕金色边框闪烁；(3) 短暂 slowdown 效果；(4) 延长跳转延迟到 1200ms 搭配淡出。",
+          "type": "design",
+          "priority": 538,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "胜利时玩家位置爆发 12-16 个金色粒子",
+            "屏幕边缘金色边框闪烁 500ms",
+            "跳转延迟从 800ms 延长到 1200ms",
+            "搭配画面淡出过渡",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-554",
+          "title": "RoomCameraSystem 无 destroy/cleanup 方法 — setOnRoomChanged 回调持有旧引用",
+          "description": "RoomCameraSystem 在 GameScene.create() 中通过 setOnRoomChanged 注册回调（包含 tryRespawnClearedRooms 闭包）。GameScene 无 shutdown() 方法（已有独立 US），但 RoomCameraSystem 本身也缺少 destroy 方法来取消内部事件订阅和清理引用。即使未来 GameScene 添加 shutdown，也需要 RoomCameraSystem.destroy() 来解除 camera 事件监听和回调引用，防止跨场景泄漏链。",
+          "type": "code",
+          "priority": 539,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "RoomCameraSystem 添加 destroy() 方法",
+            "destroy() 中清除 onRoomChanged 回调引用",
+            "destroy() 中取消 camera 相关事件监听",
+            "GameScene shutdown 时调用 roomCameraSystem.destroy()",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

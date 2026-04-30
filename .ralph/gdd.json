@@ -242,21 +242,23 @@
     "playerKnockbackSpeed_proposed": "200px/s (40px/200ms)",
     "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知",
     "_codeAudit": {
-      "date": "2026-04-29",
-      "note": "第61轮审查代码实际值验证",
+      "date": "2026-04-30",
+      "note": "第65轮审查代码实际值验证",
       "confirmed": [
-        "checkWinCondition 仅检查楼梯距离 < STAIRS_REACH_DISTANCE，不含key/chest检查",
-        "Player.takeDamage 返回 void（L190），heal 返回 number（L188）",
-        "Skeleton.onHitWall() 无条件调用 pickWanderDirection()，不检查 isKnockedBack",
-        "Slime.onHitWall() 无条件调用 pickDirection()，不检查 isKnockedBack",
-        "Skeleton knockback分支(L137-145) return前不调用hpBar.follow",
-        "Skeleton chase分支(L160-168) return前不调用hpBar.follow",
-        "Slime knockback分支(L142-150) return前不调用hpBar.follow",
-        "GameScene 无shutdown方法，事件监听器（L436/447）无清理",
-        "ResultScene events.on(update) 轮询按键（L366），重启到GameScene",
-        "endGame/endGameInternal 代码重复（L1277-L1340约40行）",
-        "getEnemyConfigForRoom 已接入房间深度，slimeCount随runCount递增"
-      ]
+        "checkWinCondition 仅检查楼梯距离 < STAIRS_REACH_DISTANCE，注释 'chest decoupled from win (US-057)'",
+        "Player.takeDamage 返回 void (L190)",
+        "Skeleton chase 分支 (L160-168) return 前不调用 hpBar.follow",
+        "Slime knockback 分支 (L142-150) return 前不调用 hpBar.follow",
+        "Skeleton/Slime onHitWall() 无条件调用 pickWanderDirection/pickDirection，不检查 isKnockedBack",
+        "GameScene 无 shutdown() 方法",
+        "ResultScene events.on('update') 轮询按键，重启到 GameScene",
+        "endGame + endGameInternal 约40行重复代码",
+        "spawnDropCoin/Potion/AttackBoost overlap 回调不随 destroy 移除",
+        "RoomCameraSystem 无 destroy 方法",
+        "Chest loot 掉落已实现 (US-431/US-057) — 3-5金币 + 30%药水 + 20%攻击增强",
+        "Enemy respawn 不重新注册 overlap (US-531已修) — 使用 slimeGroup/skeletonGroup 统一 overlap"
+      ],
+      "round": 65
     },
     "playerKnockbackSpeed": {
       "current": 125,
@@ -2512,6 +2514,63 @@
         "Player knockback 125px/s vs 敌人 300px/s — 严重不对称"
       ],
       "priority": "US-545(respawn伤害倍增)是P0-CRITICAL — 玩家会被瞬间秒杀。US-546(PRD去重)是meta-P0 — 544条US已完全不可维护。"
+    },
+    {
+      "round": 65,
+      "date": "2026-04-30",
+      "title": "第65轮设计审查 — endGame代码重复+掉落overlap泄漏+胜利仪式感+RoomCameraSystem清理",
+      "summary": "第65轮审查在64轮基础上深入分析 endGame 生命周期、动态掉落 overlap 管理、胜利体验完整性、系统级资源清理。发现5个改进点：(1) endGame/endGameInternal 约40行重复代码，维护风险高；(2) 动态掉落道具的 overlap 回调在 collect/destroy 后不随道具移除，长时间游玩后累积泄漏；(3) 胜利场景完全无仪式感，对比死亡有 playDeathAnimation 体验不对称；(4) PRD 膨胀至549条含大量重复需执行去重；(5) RoomCameraSystem 缺少 destroy 方法导致回调引用链无法彻底清理。",
+      "newUserStories": [
+        "US-550",
+        "US-551",
+        "US-552",
+        "US-553",
+        "US-554"
+      ],
+      "changes": [
+        {
+          "area": "GameScene/lifecycle",
+          "change": "US-550: endGame + endGameInternal 合并为单一方法",
+          "priority": "P1"
+        },
+        {
+          "area": "GameScene/overlap",
+          "change": "US-551: 动态掉落 overlap 回调泄漏修复",
+          "priority": "P0"
+        },
+        {
+          "area": "meta",
+          "change": "US-552: PRD 去重终极执行 549→≤80",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "visual/win",
+          "change": "US-553: 胜利过渡金色粒子+延迟跳转仪式感",
+          "priority": "P2"
+        },
+        {
+          "area": "systems/RoomCameraSystem",
+          "change": "US-554: destroy/cleanup 方法添加",
+          "priority": "P1"
+        }
+      ],
+      "confirmedFindings": [
+        "checkWinCondition 仅检查楼梯距离，不含 key/chest 检查 — 代码确认注释 'chest decoupled from win (US-057)'",
+        "Player.takeDamage 返回 void (L190) — 阻塞 hurt 音效/统计等下游功能",
+        "Skeleton chase 分支 L160-168 return 前不调用 hpBar.follow — 43+轮顽固视觉bug",
+        "Slime knockback 分支 L142-150 return 前不调用 hpBar.follow — 与 Skeleton 同类",
+        "Skeleton/Slime onHitWall() 无 isKnockedBack 守卫 — 击退效果被碰墙覆盖",
+        "GameScene 无 shutdown() 方法 — 事件监听器泄漏",
+        "ResultScene events.on('update') 轮询 + 重启到 GameScene 跳过 TitleScene",
+        "endGame/endGameInternal 约40行几乎完全相同的代码",
+        "spawnDropCoin/Potion/AttackBoost overlap 回调不随 destroy 移除"
+      ],
+      "fixedSinceLastReview": [
+        "US-531: Enemy respawn overlap 重复注册伤害倍增 — 代码确认已用注释说明不重新注册",
+        "US-063: 宝箱开启动画缩放弹跳+金色闪光 — 已实现",
+        "US-061: 空格键交互优先级 — handleChestInteraction 在 player.update 之前执行"
+      ],
+      "priority": "US-551 (overlap泄漏) 是P0 — 影响长时间游玩稳定性。US-550 (endGame合并) 和 US-554 (RoomCameraSystem destroy) 是P1。US-552 (PRD去重) 是最高meta优先级。"
     }
   ],
   "improvements": {
