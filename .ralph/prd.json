@@ -8932,6 +8932,86 @@
             "GameScene shutdown 时调用 roomCameraSystem.destroy()",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-555",
+          "title": "PRD 终极去重执行 — 554 条 US 去重合并为 ≤60 条权威条目",
+          "description": "PRD 膨胀至 554 条（481 pending），同一问题重复 10-15 次。例如 takeDamage 返回值有 15+ 条（US-117/171/200/252/274/330/367/384/388/438/465/472/494/497/509/519 等），HP bar 跟随有 11+ 条，checkWinCondition key 检查有 12+ 条，Chest 奖励有 10+ 条，shutdown 有 12+ 条。执行去重：识别所有重复簇，每簇保留 1 条权威条目（取最完整描述），删除其余重复。目标 554→≤60 条。",
+          "type": "code",
+          "priority": 540,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有重复 US 合并为权威条目",
+            "每条权威 US 包含被合并的原始 US ID 列表",
+            "总 US 数 ≤ 60",
+            "PRD JSON 通过 json.load 无报错",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-556",
+          "title": "核心游戏循环闭合 — checkWinCondition 增加 chest 已开启检查",
+          "description": "checkWinCondition() 仅检查楼梯距离，注释 \"chest decoupled from win (US-057)\"。updateStairsProximityHint 也注释 \"chest is no longer required\"。导致 key→chest 系统虽逻辑存在但对通关无意义：玩家可直接走到楼梯通关，跳过整个探索奖励循环。修复：checkWinCondition 在距离判定通过后额外检查 this.chests.every(c => c.isOpen) 或引入 chestRequiredForWin 标志。这是 55+ 轮审查中反复标记但从未实际修复的最严重设计缺陷。",
+          "type": "code",
+          "priority": 541,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "checkWinCondition 检查所有宝箱已开启",
+            "updateStairsProximityHint 恢复提示功能 — 未开宝箱时显示引导",
+            "key→chest→stairs 形成完整闭合循环",
+            "测试：无钥匙时走到楼梯不触发胜利",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-557",
+          "title": "endGame/endGameInternal 50行重复代码合并 — 统一为单一方法",
+          "description": "endGame() 和 endGameInternal() 功能完全相同（physics.pause + elapsedTime + timeBonus + scene.start），唯一区别是 delayedCall 延迟（800ms vs 200ms）。endGameInternal 是因为 endGame 开头有 if(gameOver) return 守卫导致 playDeathAnimation 回调无法触发而创建的 workaround。正确做法：移除 endGame 的 gameOver 守卫，将 delay 作为参数传入，删除 endGameInternal。",
+          "type": "code",
+          "priority": 542,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "只剩一个 endGame(result, delay) 方法",
+            "endGameInternal 删除",
+            "playDeathAnimation 回调传 delay=200",
+            "正常胜利传 delay=800",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-558",
+          "title": "Slime 难度缩放缺失 — HP/速度不随房间深度递增",
+          "description": "Slime 构造器不接受任何 multiplier 参数，HP 固定为 SLIME_MAX_HP=2，速度固定为 SLIME_SPEED=60。对比 Skeleton 已有 speedMultiplier 参数并被 getEnemyConfigForRoom 使用。3-5 房间后期 Slime 一击即杀，与难度递增设计矛盾。修复：Slime 构造器添加 hpMultiplier 和 speedMultiplier 参数，getEnemyConfigForRoom 返回值增加 slimeHpMultiplier/slimeSpeedMultiplier 字段，按房间深度和 runCount 缩放。",
+          "type": "code",
+          "priority": 543,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 构造器接受 hpMultiplier 和 speedMultiplier",
+            "getEnemyConfigForRoom 返回 Slime 缩放因子",
+            "3 房间最后战斗房间 Slime HP >= 3",
+            "5 房间出口房间 Slime HP >= 4",
+            "GDD balance 同步更新",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-559",
+          "title": "Coin 分配仍包含 entrance 房间 — 降低探索动力",
+          "description": "Coin 生成用 rooms[i % length] 分配，i 从 0 开始，导致第 0 个 coin 总是在 entrance 房间。虽然 US-243/US-399/US-212 多轮标记，代码中仍然未修复。修复：coinRoom 索引改为 (i+1) % length 或 rooms[1 + (i % (length-1))] 跳过 entrance。",
+          "type": "code",
+          "priority": 544,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "entrance 房间不生成任何 coin",
+            "coin 均匀分配在战斗房间中",
+            "2 房间地牢所有 coin 在唯一战斗房间",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

@@ -2571,6 +2571,59 @@
         "US-061: 空格键交互优先级 — handleChestInteraction 在 player.update 之前执行"
       ],
       "priority": "US-551 (overlap泄漏) 是P0 — 影响长时间游玩稳定性。US-550 (endGame合并) 和 US-554 (RoomCameraSystem destroy) 是P1。US-552 (PRD去重) 是最高meta优先级。"
+    },
+    {
+      "round": 66,
+      "date": "2026-04-30",
+      "title": "第66轮设计审查 — 核心循环闭合+PRD去重+Slime缩放+代码合并+Coin分配",
+      "summary": "全面审查20个源文件和554条PRD后发现5个改进机会（US-555~US-559）：(1) PRD膨胀至554条（481 pending），同一问题重复10-15次，需去重至≤60条；(2) checkWinCondition仍不检查宝箱，key→chest→stairs循环断裂（55+轮反复标记）；(3) endGame/endGameInternal约50行完全重复代码需合并为单一方法+delay参数；(4) Slime构造器不接受multiplier参数，HP/速度固定不变，与Skeleton缩放体系不对称；(5) Coin分配仍包含entrance房间。同时确认：Chest掉落已实现（US-057）、Slime die()事件已修复、SpikeTrap仍继承GameObjects.Sprite、takeDamage仍返回void、GameScene仍无shutdown。",
+      "newUserStories": [
+        "US-555",
+        "US-556",
+        "US-557",
+        "US-558",
+        "US-559"
+      ],
+      "changes": [
+        {
+          "area": "meta",
+          "change": "US-555: PRD终极去重 554→≤60条权威条目",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-556: checkWinCondition增加chest开启检查 — 55+轮反复标记的最严重设计缺陷",
+          "priority": "P0"
+        },
+        {
+          "area": "code-quality",
+          "change": "US-557: endGame/endGameInternal 50行重复代码合并为单一方法+delay参数",
+          "priority": "P1"
+        },
+        {
+          "area": "balance",
+          "change": "US-558: Slime hpMultiplier/speedMultiplier构造器参数 — 房间深度难度递增",
+          "priority": "P1"
+        },
+        {
+          "area": "exploration",
+          "change": "US-559: Coin分配跳过entrance房间 — 修复多轮标记未落地问题",
+          "priority": "P2"
+        }
+      ],
+      "confirmed": [
+        "checkWinCondition 仅检查楼梯距离 < STAIRS_REACH_DISTANCE，注释 \"chest decoupled from win\"",
+        "Chest 掉落已实现 (US-057) — 3-5金币 + 30%药水 + 20%攻击增强",
+        "Slime die() emit enemy-death 已修复",
+        "Skeleton 有 speedMultiplier，Slime 无任何 multiplier 参数",
+        "takeDamage 返回 void (L190)",
+        "GameScene 无 shutdown() 方法",
+        "ResultScene events.on(\"update\") 轮询按键，重启到 GameScene 跳过 TitleScene",
+        "Skeleton/Slime onHitWall() 不检查 isKnockedBack",
+        "Skeleton chase 分支 return 前不调用 hpBar.follow",
+        "Slime knockback 分支 return 前不调用 hpBar.follow",
+        "Coin 分配 rooms[i % length] 包含 entrance"
+      ]
     }
   ],
   "improvements": {
