@@ -1030,7 +1030,7 @@
           "description": "当前 endGame() 只传递 { result, score } 到 ResultScene。应扩展 scene data 传递 coins、killCount、roomsVisited 等统计，为 US-048 通关统计面板做数据准备。这步只改数据传递，不改 ResultScene UI。",
           "type": "code",
           "priority": 47,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-048"
           ],
