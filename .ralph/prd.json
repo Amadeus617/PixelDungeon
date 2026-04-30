@@ -8735,6 +8735,53 @@
             "M键切换静音并localStorage记忆",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-542",
+          "title": "第64轮审查总结：PRD去重强制执行 + 核心循环落地验证",
+          "description": "第64轮审查确认：470条pending US中约300条为重复条目（同一问题被标记4-15次）。强制执行去重：(1) 合并为≤40条权威P0/P1条目；(2) 删除所有重复条目；(3) 核心循环三重断裂（Chest无产出→US-057改为奖励型但Chest.open()仍无掉落代码、checkWinCondition不需key/chest→US-387标done但代码无chest检查、Space JustDown被攻击先消费）在61轮后仍未修复。本轮不新增功能US，只新增2个验证型US。",
+          "type": "review",
+          "priority": 527,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "PRD pending US ≤ 40 条（当前470条）",
+            "每个权威条目合并所有重复US编号",
+            "checkWinCondition 含 key/chest 检查",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-543",
+          "title": "Chest.open() 战利品掉落实际代码实现验证",
+          "description": "US-057 将宝箱改为奖励型道具，GameScene.handleChestInteraction 中有掉落逻辑（3-5金币+30%药水），但 Chest.open() 本身不生成掉落物。需验证 handleChestInteraction 的掉落代码是否在所有入口路径都能正确触发。如果宝箱交互被 Space 时序 bug 阻断（US-061/US-374/US-458），则掉落逻辑永远不执行。",
+          "type": "code",
+          "priority": 528,
+          "status": "pending",
+          "dependsOn": [
+            "US-529"
+          ],
+          "acceptanceCriteria": [
+            "宝箱交互不被攻击抢夺 Space JustDown",
+            "Chest 开启后生成 3-5 金币 + 30% 概率药水",
+            "掉落物出现在宝箱附近 30px 范围内",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-544",
+          "title": "Slime onHitWall knockback 保护验证 — 确认代码已修复",
+          "description": "Slime.ts L77 onHitWall() 调用 pickDirection()，但 L142-150 isKnockedBack 分支在 return 前不调用 hpBar.follow()。需确认：(1) onHitWall 是否检查 isKnockedBack 守卫（当前代码不检查）；(2) knockback 期间碰墙是否覆盖 velocity。第63轮审查仍标记此问题，但 isKnockedBack 属性已存在且在 knockback 分支使用——可能是 onHitWall 需要添加守卫而非 knockback 分支问题。",
+          "type": "code",
+          "priority": 529,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.onHitWall() 添加 if (this.isKnockedBack) return 守卫",
+            "Skeleton.onHitWall() 同步添加守卫",
+            "knockback 期间碰墙不覆盖 velocity",
+            "tsc + build 通过"
+          ]
         }
       ]
     }

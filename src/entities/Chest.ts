@@ -26,11 +26,28 @@ export class Chest extends Phaser.GameObjects.Sprite {
     return Math.sqrt(dx * dx + dy * dy) <= INTERACT_RANGE;
   }
 
-  /** Open the chest. Returns true on success. */
+  /** Open the chest. Returns true on success. Plays scale bounce + golden flash animation (US-063). */
   open(): boolean {
     if (this.opened) return false;
     this.opened = true;
     this.setTexture("chest_open");
+
+    // Golden flash on open
+    this.setTint(0xffdd44);
+
+    // Scale bounce animation: 3 (current) → 3.9 → 3 over 300ms
+    this.scene.tweens.add({
+      targets: this,
+      scaleX: { from: 3, to: 3.9 },
+      scaleY: { from: 3, to: 3.9 },
+      duration: 150,
+      ease: "Quad.easeOut",
+      yoyo: true,
+      onComplete: () => {
+        this.clearTint();
+      },
+    });
+
     return true;
   }
 }

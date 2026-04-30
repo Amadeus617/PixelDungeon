@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（当前状态 — 第60轮审查）\n⚠️ 问题：US-057 将宝箱改为奖励型道具时从 checkWinCondition 移除了 chest 检查，导致玩家可直接走到楼梯通关。\n代码注释明确写着 \"chest decoupled from win\"。key/chest 系统再次无意义。\nUS-387 曾添加 key+chest 检查，但被 US-057 覆盖。\n\n当前代码 checkWinCondition 仅检查：玩家与楼梯距离 < 40px。\n不含 key/chest/任何门控条件。\n\n### 核心循环状态（第60轮）\n- key 拾取 → 可开宝箱 ✅ 逻辑存在\n- 宝箱开启 → 生成掉落物 ✅ 在 GameScene.handleChestInteraction 中实现\n- 但 SPACE 时序问题可能导致宝箱交互无法触发 ⚠️\n- 通关 → 不需要 key/chest ❌ US-057 解耦导致循环断裂\n- 宝箱纯奖励型 → 通关不依赖探索 ❌ 降低探索动力",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（第64轮审查确认 — 未修复）\n⚠️ CRITICAL: checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。\n不含 key/chest 任何门控条件。\n代码注释: \"chest decoupled from win\" (US-057 引入)。\nUS-387 标记 done 但实际未落地 — 代码中无 chest 检查。\n\n### 核心循环状态（第64轮）\n- key 拾取 → 可开宝箱 ✅ 逻辑存在\n- 宝箱开启 → 掉落3-5金币+30%药水 ⚠️ handleChestInteraction有代码但Space时序可能阻断\n- 通关 → 不需要 key/chest ❌ 核心循环断裂\n- Player.takeDamage → void ❌ 阻塞10+下游功能\n- GameScene → 无shutdown ❌ 事件监听器泄漏\n- Slime/Skeleton → onHitWall不保护knockback ❌ 击退效果被覆盖",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -2434,6 +2434,27 @@
         }
       ],
       "priority": "US-523(PRD去重)是最高meta优先级 — 522条US已严重阻碍开发效率。US-525/526是代码根因修复。"
+    },
+    {
+      "round": 64,
+      "date": "2026-04-30",
+      "title": "第64轮设计审查 — PRD膨胀治理现状+核心循环落地验证",
+      "summary": "第64轮代码审查确认：544条US中470条pending，约300条为重复（同一问题4-15条US）。核心循环三重断裂仍未修复：(1) checkWinCondition仅检查楼梯距离，注释明确写\"chest decoupled from win\"；(2) US-057将宝箱改为奖励型但掉落逻辑在handleChestInteraction中，若Space时序bug阻断则永不触发；(3) Player.takeDamage返回void阻塞10+下游。GameScene无shutdown方法，Slime/Skeleton onHitWall不保护knockback。本轮新增3条验证型US(US-542~544)，不重复添加已有470条pending覆盖的问题。",
+      "findings": [
+        "PRD膨胀至470条pending，约300条重复，维护成本失控",
+        "checkWinCondition仅检查楼梯距离<STAIRS_REACH_DISTANCE，无key/chest门控",
+        "Player.takeDamage(L190)返回void，heal(L188)返回number，不对称",
+        "Slime/Skeleton onHitWall不检查isKnockedBack，knockback碰墙被覆盖",
+        "GameScene无shutdown方法，player-attack/enemy-death事件无清理",
+        "ResultScene用events.on(update)轮询按键，监听器不清理",
+        "endGame/endGameInternal代码重复约40行"
+      ],
+      "newUserStories": [
+        "US-542",
+        "US-543",
+        "US-544"
+      ],
+      "priority": "P0: 核心循环修复 > PRD去重 > shutdown泄漏 > knockback保护"
     }
   ],
   "improvements": {
