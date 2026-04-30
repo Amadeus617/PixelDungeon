@@ -2727,6 +2727,48 @@
         }
       ],
       "priority": "P0: 核心游戏循环闭合(US-564) > takeDamage返回值(US-560) > HP bar跟随(US-561) > knockback守卫(US-566)"
+    },
+    {
+      "round": 67,
+      "date": "2026-04-30",
+      "title": "第67轮设计审查 — 核心循环确认+架构耦合+生命周期统一",
+      "summary": "全面审查25个源文件和160条US（75 done, 85 pending）后发现: (1) 核心游戏循环仍断裂 — checkWinCondition 仅检查楼梯距离不含 key/chest 条件 (US-564 pending); (2) Chest.open() 战利品掉落已由代码实现，标记 US-565 为 done; (3) Player 通过 (this.scene as any).spaceConsumedByChest 跨模块直接访问 GameScene 私有属性，脆弱耦合; (4) TitleScene 3个独立键盘监听器在 startGame 后不清理; (5) ResultScene 直接重启 GameScene 导致 runCount 不递增且路径与首次运行不一致。新增 3 个 US (US-634~636)，标记 1 个为 done。",
+      "newUserStories": [
+        "US-634",
+        "US-635",
+        "US-636"
+      ],
+      "changes": [
+        {
+          "area": "arch",
+          "change": "US-634: Player-GameScene 耦合重构 — spaceConsumedByChest 改用事件/registry通信",
+          "priority": "P2"
+        },
+        {
+          "area": "scenes/TitleScene",
+          "change": "US-635: 键盘监听器清理 — startGame 后移除孤立 once listeners",
+          "priority": "P3"
+        },
+        {
+          "area": "flow",
+          "change": "US-636: ResultScene 重启路径统一 — 改为 TitleScene 保持流程一致和 runCount 递增",
+          "priority": "P1"
+        }
+      ],
+      "fixedInReview": [
+        "US-565: Chest.open() 战利品掉落 — spawnChestLoot 已实现 3-5 金币 + 30% 药水 + 20% 攻击增强"
+      ],
+      "confirmedStillBroken": [
+        "US-564: checkWinCondition 不检查 key/chest — 核心游戏循环断裂",
+        "US-562: GameScene 无 shutdown() — 事件监听器/tween/overlap 泄漏",
+        "US-570/628: ResultScene events.on('update') 监听器泄漏",
+        "US-567: endGame/endGameInternal 约 40 行重复代码",
+        "US-574: 玩家 knockback 125px/s vs 敌人 300px/s 不对称",
+        "US-575: Slime 无难度缩放（不接受 speedMultiplier 参数）",
+        "US-582: BootScene 12 个 anims.create 无 exists() 幂等保护",
+        "US-585: getEnemyConfigForRoom 不接入 runCount — 难度不随局数增长"
+      ],
+      "priority": "US-564 (核心循环) + US-636 (重启路径) 是最高优先级。US-562 (shutdown) + US-582 (BootScene 幂等) 次之 — 影响稳定性。"
     }
   ],
   "improvements": {

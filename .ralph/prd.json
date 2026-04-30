@@ -1287,7 +1287,7 @@
           "description": "宝箱开启后生成随机掉落（3-5金币 + 30%药水 + 20%攻击增强），形成 key→chest→reward 探索奖励闭环。US-057 设计但 PRD 状态混乱。\\n\\n合并自: US-057, US-119, US-263, US-306, US-317, US-373, US-382, US-389, US-405, US-431, US-437, US-462, US-469, US-477, US-484, US-492, US-496, US-508, US-518, US-543",
           "type": "code",
           "priority": 64,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Chest.open() 触发 handleChestLoot",
@@ -2429,6 +2429,59 @@
             "die() 方法在 emit 前 x,y 已缓存为局部变量",
             "enemy-death 事件 payload 使用缓存值而非 this.x/this.y",
             "即使 enemy 已 destroy，drop 位置仍正确",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-634",
+          "title": "Player-GameScene 耦合重构 — spaceConsumedByChest 属性通信方式",
+          "description": "Player.update() 通过 (this.scene as any).spaceConsumedByChest 访问 GameScene 私有属性，属于脆弱耦合。应改为通过事件系统或 scene data 传递 chest 交互状态，避免跨模块直接属性访问。当前代码如果 GameScene 重命名该字段，Player 会静默失败（spaceConsumedByChest 为 undefined → false，导致宝箱附近攻击无法被抑制，退回到 US-061 修复前的 bug）。",
+          "type": "code",
+          "priority": 146,
+          "status": "pending",
+          "dependsOn": [
+            "US-061",
+            "US-090"
+          ],
+          "acceptanceCriteria": [
+            "Player 不再通过 (this.scene as any) 访问 GameScene 属性",
+            "改用 Phaser 场景 data/registry 或自定义事件传递 chest 交互状态",
+            "US-061 宝箱交互优先级功能不受影响",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-635",
+          "title": "TitleScene 键盘监听器清理 — startGame 后移除孤立监听器",
+          "description": "TitleScene.create() 注册了 3 个独立键盘监听器: keydown-SPACE (once), keydown-ENTER (once), 以及 500ms 后的 keydown (once)。当第一个触发 startGame() 后，其他 2 个监听器仍留在 keyboard 上不清理。虽然 isActive guard 防止了双重执行，但孤立监听器在场景 lifecycle 中不清理是资源浪费和潜在 bug 源。应在 startGame() 中显式移除所有 keyboard listeners。",
+          "type": "code",
+          "priority": 147,
+          "status": "pending",
+          "dependsOn": [
+            "US-158"
+          ],
+          "acceptanceCriteria": [
+            "startGame() 调用后立即清理所有 3 个 keyboard listener",
+            "或改为单一 listener (keydown) 统一处理",
+            "不引入 startGame 双重触发回归",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-636",
+          "title": "ResultScene 重启路径统一 — 重启走 TitleScene 保持流程一致性",
+          "description": "当前游戏重启路径不一致: 首次运行 TitleScene → BootScene → GameScene，但 ResultScene 重启直接 GameScene。虽然 BootScene 的 anims 已注册（Phaser 全局持久），且 ResultScene 流程闭环已由 US-563 追踪，但更深层问题是: (1) ResultScene 直接重启 GameScene 导致 runCount 不递增（因为 runCount 在 TitleScene.startGame() 中递增）; (2) 跳过 TitleScene 意味着无法选择 seed/难度; (3) 从未经过 BootScene 意味着如果未来 BootScene preload 新增必要资源，重启后会缺失。应统一为 ResultScene → TitleScene 路径。",
+          "type": "code",
+          "priority": 148,
+          "status": "pending",
+          "dependsOn": [
+            "US-563",
+            "US-621"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene 重启走 TitleScene 而非直接 GameScene",
+            "runCount 在每次游戏结束后正确递增",
+            "TitleScene startGame 路径不变 (TitleScene → BootScene → GameScene)",
             "tsc + build 通过"
           ]
         }
