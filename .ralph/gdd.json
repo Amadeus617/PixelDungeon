@@ -2955,6 +2955,62 @@
         }
       ],
       "priority": "US-654 (Input Buffer) 是最高优先级 — 直接影响操作手感核心。US-658 (ResultScene面板) 和 US-659 (Slime追踪) 次之。US-663 (PRD去重) 是最高元优先级。"
+    },
+    {
+      "round": 70,
+      "date": "2026-04-30",
+      "title": "第70轮设计审查 — SoundManager资源回收/死亡转场冻结/HUD性能/Slime追踪AI/PRD去重",
+      "summary": "全面审查25个源文件和663条PRD后，发现6个改进机会。本轮确认：核心游戏循环已闭合(US-564 done)、takeDamage已返回boolean、HP bar跟随已修复、GameScene shutdown已实现、knockback保护已添加、ResultScene已改用keyboard事件。这些43+轮反复标记的顽固bug终于修复。新发现：(1) SoundManager每次播放创建AudioNode但从不disconnect；(2) endGame后敌人/陷阱继续update浪费CPU；(3) HUD每帧240+无效setText产生GC压力；(4) BootScene缺少loaderror健壮性；(5) Slime完全被动无追踪降低前期紧张感；(6) PRD膨胀至663条需去重。",
+      "newUserStories": [
+        "US-664",
+        "US-665",
+        "US-666",
+        "US-667",
+        "US-668",
+        "US-669"
+      ],
+      "changes": [
+        {
+          "area": "audio/resource",
+          "change": "US-664: SoundManager AudioNode disconnect — 每次播放后回收音频节点",
+          "priority": "P2"
+        },
+        {
+          "area": "lifecycle",
+          "change": "US-665: endGame后冻结敌人/陷阱update — 消除死亡转场CPU浪费",
+          "priority": "P1"
+        },
+        {
+          "area": "performance",
+          "change": "US-666: HUD dirty flag缓存 — 消除每帧240+无效setText调用",
+          "priority": "P1"
+        },
+        {
+          "area": "robustness",
+          "change": "US-667: BootScene preload loaderror fallback — 加载失败不崩溃",
+          "priority": "P3"
+        },
+        {
+          "area": "ai",
+          "change": "US-668: Slime接近感知追踪 — 100px检测范围/40px/s追踪/4方向",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-669: PRD去重压缩 — 663→~80条权威条目",
+          "priority": "meta-P0"
+        }
+      ],
+      "fixedInReview": [
+        "US-564: checkWinCondition 增加 key/chest 检查 ✅ 已验证代码",
+        "US-560: takeDamage 返回 boolean ✅ 已验证代码",
+        "US-561: Skeleton/Slime HP bar chase/knockback follow ✅ 已验证代码",
+        "US-562: GameScene shutdown() ✅ 已验证代码",
+        "US-563: ResultScene keyboard events + TitleScene restart ✅ 已验证代码",
+        "US-566: Slime/Skeleton onHitWall knockback guard ✅ 已验证代码",
+        "US-642: Slime HP/速度随runCount难度缩放 ✅ 已验证代码"
+      ],
+      "priority": "US-665 (死亡转场冻结) 和 US-666 (HUD性能) 是最高优先级 — 影响游戏运行质量和性能。US-669 (PRD去重) 是最高元优先级。"
     }
   ],
   "improvements": {

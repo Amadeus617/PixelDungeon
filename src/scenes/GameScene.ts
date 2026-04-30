@@ -1370,60 +1370,33 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Internal end-game helper — no gameOver guard, used by death animation callback */
-  private endGameInternal(result: GameResult): void {
-    this.physics.pause();
-    this.player.setVelocity(0, 0);
-
-    const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
-    const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
-
-    // Add time bonus for wins (US-053)
-    let timeBonus = 0;
-    if (result === "win") {
-      timeBonus = this.scoreSystem.addTimeBonus(elapsedTime);
+  /** End the game — transitions to ResultScene.
+   *  @param result   "win" or "lose"
+   *  @param skipGuard If true, skip the gameOver guard (used by death animation callback
+   *                  where gameOver is already set externally). Also uses a shorter delay.
+   */
+  private endGame(result: GameResult, skipGuard = false): void {
+    if (!skipGuard) {
+      if (this.gameOver) return;
+      this.gameOver = true;
     }
-
-    const bd = this.scoreSystem.breakdown;
-    this.time.delayedCall(200, () => {
-      this.scene.start("ResultScene", {
-        result,
-        score: this.scoreSystem.score,
-        killCount: this.killCount,
-        coinCount: this.coinCount,
-        elapsedTime,
-        potionUsedCount: this.potionUsedCount,
-        roomsExplored,
-        scoreBreakdown: {
-          coins: bd.coins,
-          enemies: bd.enemies,
-          roomClears: bd.roomClears,
-          timeBonus: bd.timeBonus,
-        },
-      });
-    });
-  }
-
-  private endGame(result: GameResult): void {
-    if (this.gameOver) return;
-    this.gameOver = true;
 
     // Freeze gameplay
     this.physics.pause();
     this.player.setVelocity(0, 0);
 
-    // Transition to result scene after a short delay
     const elapsedTime = Math.floor((Date.now() - this.startTime) / 1000); // seconds (US-035)
     const roomsExplored = this.roomCameraSystem.getVisitedRooms().size;
 
     // Add time bonus for wins (US-053)
-    let timeBonus = 0;
     if (result === "win") {
-      timeBonus = this.scoreSystem.addTimeBonus(elapsedTime);
+      this.scoreSystem.addTimeBonus(elapsedTime);
     }
 
     const bd = this.scoreSystem.breakdown;
-    this.time.delayedCall(800, () => {
+    // Shorter delay when called from death animation (skipGuard), longer for normal end
+    const delay = skipGuard ? 200 : 800;
+    this.time.delayedCall(delay, () => {
       this.scene.start("ResultScene", {
         result,
         score: this.scoreSystem.score,
@@ -1564,8 +1537,7 @@ export class GameScene extends Phaser.Scene {
       if (!this.gameOver) {
         this.gameOver = true; // block gameplay but not endGame yet
         this.player.playDeathAnimation(() => {
-          // endGame checks gameOver guard — use internal helper to bypass
-          this.endGameInternal("lose");
+          this.endGame("lose", true); // skip guard — gameOver already set above
         });
       }
       return;

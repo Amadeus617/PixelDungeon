@@ -1319,7 +1319,7 @@
           "description": "endGame 和 endGameInternal 约40行重复代码，endGame 有 gameOver 守卫而 endGameInternal 无守卫。应合并为单一方法。\\n\\n合并自: US-457, US-474, US-478, US-504, US-515, US-527, US-550, US-557",
           "type": "code",
           "priority": 66,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "endGameInternal 删除",
@@ -2923,6 +2923,97 @@
             "标注所有被合并的原始US编号",
             "最终pending US不超过60条",
             "GDD设计日志记录合并操作"
+          ]
+        },
+        {
+          "id": "US-664",
+          "title": "SoundManager AudioNode 资源回收 — 每次播放创建的节点需disconnect",
+          "description": "SoundManager所有play方法(playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen)创建OscillatorNode/BufferSource/Filter/GainNode，连接到destination后播放。当前代码未在stop后disconnect节点，长时间运行(>30min)会积累大量未回收的AudioNode。虽然浏览器GC会回收已stop的节点，但主动disconnect可降低内存峰值。应在每个play方法中添加onended回调执行disconnect链。",
+          "type": "code",
+          "priority": 436,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "每个play方法创建的节点在stop后执行disconnect()",
+            "长时间运行30分钟后AudioNode数量不持续增长",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-665",
+          "title": "endGame后冻结全部敌人/陷阱update — 死亡转场期间CPU浪费",
+          "description": "GameScene.update()在gameOver=true时直接return，但敌人(Slime/Skeleton)和陷阱(SpikeTrap)各有独立的update/preUpdate方法不受此影响。死亡动画800ms内，所有敌人继续移动/追踪/碰撞检测浪费CPU，且可能出现死亡后仍受伤的视觉异常。应在endGame设置gameOver后，通知所有敌人冻结状态。",
+          "type": "code",
+          "priority": 437,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame后所有敌人停止移动和追踪",
+            "SpikeTrap停止动画和碰撞检测",
+            "死亡/胜利转场期间无无效CPU开销",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-666",
+          "title": "HUD dirty flag缓存优化 — 消除每帧240+无效setText调用",
+          "description": "HUD.update()每帧(60fps)对所有文本元素执行setText()，即使值未变化。包括scoreLabel/coinLabel/keyLabel/hpText/attackBoostLabel等。每次setText()在Phaser内部触发脏标记导致不必要的渲染重绘和字符串GC压力。应添加dirty flag模式：仅在值变化时setText，未变化时跳过。",
+          "type": "code",
+          "priority": 438,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD文本仅在值变化时调用setText",
+            "60fps下无效setText调用降为0(无变化时)",
+            "显示效果无退化",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-667",
+          "title": "BootScene preload加载失败处理 — 缺失资源不崩溃",
+          "description": "BootScene的preload()如果引用了不存在的纹理或加载失败，Phaser会抛出未捕获异常导致游戏白屏。当前无load.on(\"loaderror\")处理。虽然当前使用程序化纹理生成不依赖外部文件，但未来添加资源加载时缺少健壮性保护。应添加loaderror监听和fallback纹理机制。",
+          "type": "code",
+          "priority": 439,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "load.on(\"loaderror\")有fallback处理",
+            "缺失资源不导致游戏崩溃",
+            "加载失败时显示占位纹理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-668",
+          "title": "Slime接近感知追踪 — 玩家100px内简单追踪AI",
+          "description": "当前Slime完全随机移动，仅接触伤害被动触发。对比Skeleton有200px追踪范围，Slime作为前期敌人虽不应太强，但完全被动导致玩家可轻松绕过。GDD中已有slimeProximityChase参数(detectionRange:100, chaseSpeed:40)但代码未实现。应在Slime.update()中添加：检测玩家距离<100px时，以40px/s速度向玩家4方向移动，0-500ms随机延迟反应。",
+          "type": "code",
+          "priority": 440,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家进入100px范围后Slime开始追踪",
+            "追踪速度40px/s(低于随机移动60px/s)",
+            "随机反应延迟0-500ms",
+            "4方向追踪不穿过墙壁",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-669",
+          "title": "PRD去重压缩执行 — 663条合并精简至~80条权威条目 [权威元任务]",
+          "description": "PRD严重膨胀至663条US，同一问题被重复编号4-11次：takeDamage返回值有9+条、HP bar跟随有11+条、checkWinCondition key检查有8+条、GameScene shutdown有7+条、ResultScene流程有6+条。已done条目散布在多个milestone中未清理。应执行：1)所有done条目归档到deduplication log；2)相同问题的重复pending合并为单一条目，保留最详细的描述和验收标准；3)目标从109条pending精简至~50条无重复的权威条目。",
+          "type": "code",
+          "priority": 441,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "done条目归档或标记为archived",
+            "每个问题仅保留1条权威US",
+            "pending条目数从109降至~50",
+            "所有保留US的acceptanceCriteria完整无遗漏",
+            "tsc + build 通过"
           ]
         }
       ],
