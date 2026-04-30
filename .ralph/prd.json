@@ -2484,6 +2484,85 @@
             "TitleScene startGame 路径不变 (TitleScene → BootScene → GameScene)",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-637",
+          "title": "TitleScene startGame() 多次触发防护缺失 — once + delayedCall once 叠加",
+          "description": "TitleScene.create() 中注册了 keydown-SPACE once、keydown-ENTER once、以及一个 500ms delayedCall 后的 keydown once。三个监听器都可触发 startGame()。虽然 startGame() 有 isActive 检查，但场景切换是异步的 — 在 scene.start(\"BootScene\") 执行前，其余监听器仍存在于输入系统中。\n\n场景切换后这些监听器不会被自动清理（Phaser 不保证清理前场景的 input listeners）。残留监听器在新场景中被 Phaser GC 时可能触发异常回调。\n\n修复方案：(1) startGame() 中立即 this.input.keyboard.removeAllListeners()；(2) 或使用单一 guard flag 并在 startGame 首行清除所有 once 监听。",
+          "type": "code",
+          "priority": 149,
+          "status": "pending",
+          "dependsOn": [
+            "US-635"
+          ],
+          "acceptanceCriteria": [
+            "startGame() 被调用后立即清除所有 keyboard listeners",
+            "连续快速按键不会触发两次 startGame",
+            "场景切换后无残留 input listener 警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-638",
+          "title": "Coin 飘浮动画 tween 未在 collect/destroy 前停止",
+          "description": "Coin._startFloatTween() 在构造时注册了两个 repeat:-1 的 tween（y 飘浮 + angle 摇摆）。collect() 调用 destroy() 时，如果 tween 回调在 destroy 后触发，可能导致 \"Cannot read property of destroyed object\" 错误。\n\n虽然 Phaser 通常会清理被 destroy 对象的 tween，但在高帧率或 overlap 回调时序竞争下，tween.onUpdate 可能在 destroy 和 tween.kill 之间执行。\n\n修复方案：在 collect() 中先 this.scene.tweens.killTweensOf(this) 再 destroy()。",
+          "type": "code",
+          "priority": 150,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin.collect() 先 killTweensOf(this) 再 destroy",
+            "HealthPotion/AttackBoost 如有类似 tween 也一并修复",
+            "多次 collect 调用无异常",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-639",
+          "title": "ResultScene 创建 new ScoreSystem() 实例仅用于读取 localStorage — 浪费实例化",
+          "description": "ResultScene.create() 第270行创建了一个完整的 ScoreSystem 实例（包含 score state、breakdown tracking 等），但仅用于调用 getHighScore() 和间接的 localStorage 读写。GameScene 已经传递了 score 数据。\n\n问题：(1) ResultScene 中的 ScoreSystem 是无状态的空实例，不应该承载 high score 读写职责；(2) 该实例的 saveHighScore 从未调用但 getHighScore 被调用；(3) localStorage 高分写入直接内联在 ResultScene 中而非通过 ScoreSystem。\n\n修复方案：(1) 将 high score 读写提取为独立的 utility 函数；(2) 或通过 scene data 传递 prevHigh 值避免重新实例化。",
+          "type": "code",
+          "priority": 151,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 不再 new ScoreSystem()",
+            "High score 读写走统一 utility 或从 GameScene data 传入",
+            "ResultScene 功能不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-640",
+          "title": "HUD 房间名 onRoomChanged 回调覆盖 — setOnRoomChanged 每次只支持一个 callback",
+          "description": "HUD 构造函数中调用 roomCameraSystem.setOnRoomChanged() 注册了房间名显示回调。但 GameScene.create() 中也调用了 setOnRoomChanged()（约第458行）注册 respawn 逻辑。后者会覆盖前者的 callback。\n\nRoomCameraSystem 的 onRoomChangedCallback 是单一赋值，setOnRoomChanged 直接替换。这导致 HUD 的房间名 overlay 永远不会触发 — 被 respawn 回调覆盖了。\n\n修复方案：(1) 改用事件发射器模式（支持多 listener）；(2) 或在 GameScene 中用组合回调同时调用两者。",
+          "type": "code",
+          "priority": 152,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "RoomCameraSystem 支持多个 room changed listener",
+            "HUD 房间名 overlay 正常显示",
+            "Respawn 回调正常触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-641",
+          "title": "endGame/endGameInternal 延迟不同但逻辑相同 — 死亡 200ms vs 胜利 800ms 缺乏设计意图文档",
+          "description": "US-629 已追踪重复逻辑问题，但补充一个被忽视的细节：endGameInternal (死亡路径) 用 200ms 延迟，endGame (胜利路径) 用 800ms 延迟。两个方法内部逻辑完全相同（physics.pause、计算 elapsedTime、addTimeBonus、scene.start），仅延迟时间不同。\n\n这不是 bug 而是设计 debt：(1) 延迟时间应该是参数而非两个方法；(2) 胜利场景应该有额外的胜利仪式动画占满 800ms，而非空白等待。\n\n修复方案：合并为 endGame(result, delayMs)，胜利时增加场景过渡动画填充延迟。",
+          "type": "code",
+          "priority": 153,
+          "status": "pending",
+          "dependsOn": [
+            "US-629"
+          ],
+          "acceptanceCriteria": [
+            "单一代码路径 endGame(result, delayMs)",
+            "死亡延迟 200ms、胜利延迟 800ms 通过参数控制",
+            "胜利过渡有视觉填充（闪光/渐变/文字）",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"

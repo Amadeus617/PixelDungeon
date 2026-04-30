@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（第66轮审查确认）\n⚠️ CRITICAL: checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。\n不含 key/chest 任何门控条件。US-057 引入的 \"chest decoupled from win\" 导致核心循环断裂。\nUS-387 标记 done 但代码中无 chest 检查。已在 US-613 中跟踪。\n\n### 场景生命周期（第66轮审查）\n- GameScene → 无 shutdown() ❌ events.on/tweens/overlap 泄漏 (US-627)\n- ResultScene → events.on(\"update\") 泄漏 ❌ 每次重建叠加 (US-628)\n- endGame/endGameInternal 重复逻辑 ⚠️ 改漏风险 (US-629)\n\n### 掉落系统（第66轮审查）\n- spawnDropCoin/Potion/AttackBoost 在 popup 动画期间即注册 overlap ⚠️ 可能空中拾取 (US-630)\n- Slime/Skeleton die() emit(\"enemy-death\") 后立即 destroy — 当前安全但脆弱 (US-633)\n\n### 已修复问题\n- US-560: Player.takeDamage() 返回 boolean ✅\n- US-531: enemy respawn overlap 重复注册 N×伤害 ✅ (group 级 overlap)\n- US-061: Space 键宝箱交互优先于攻击 ✅\n- US-063: 宝箱开启动画 ✅\n\n### 仍存在的 Bug\n- Skeleton 追踪时跳过 hpBar.follow() → HP bar 不跟随 (US-631)\n- GameScene 无 shutdown → 内存泄漏 (US-627)\n- ResultScene events 泄漏 → 多次触发 restart (US-628)",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（第68轮审查确认）\n⚠️ CRITICAL: checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。\n不含 key/chest 任何门控条件。US-057 引入的 \"chest decoupled from win\" 导致核心循环断裂。\nUS-387 标记 done 但代码中无 chest 检查。已在 US-613 中跟踪。\n\n### 场景生命周期（第68轮审查）\n- GameScene → shutdown() ✅ (US-562 已实现) — 清理 events/tweens/timers/hints/arrays\n- ResultScene → events.on(\"update\") 泄漏 ❌ 每次重建叠加 (US-628)\n- TitleScene → input.keyboard listeners 残留 ⚠️ once + delayedCall once 叠加 (US-637)\n- endGame/endGameInternal → 重复逻辑待合并 ⚠️ 延迟参数化 (US-629, US-641)\n\n### 掉落系统（第68轮审查）\n- spawnDropCoin/Potion/AttackBoost 在 popup 动画期间即注册 overlap ⚠️ 可能空中拾取 (US-630)\n- Coin 飘浮 tween 未在 collect 前停止 ⚠️ destroy 时序风险 (US-638)\n- Slime/Skeleton die() emit(\"enemy-death\") 后立即 destroy — 当前安全但脆弱 (US-633)\n\n### 回调架构问题（第68轮新发现）\n- RoomCameraSystem.setOnRoomChanged() 仅支持单一 callback — HUD 注册被 GameScene respawn 回调覆盖\n  → HUD 房间名 overlay 永远不触发 ⚠️ (US-640)\n\n### 已修复问题\n- US-560: Player.takeDamage() 返回 boolean ✅\n- US-531: enemy respawn overlap 重复注册 N×伤害 ✅ (group 级 overlap)\n- US-061: Space 键宝箱交互优先于攻击 ✅\n- US-063: 宝箱开启动画 ✅\n- US-562: GameScene shutdown() 统一资源清理 ✅\n\n### 仍存在的 Bug\n- Skeleton 追踪时跳过 hpBar.follow() → HP bar 不跟随 (US-631)\n- ResultScene events 泄漏 → 多次触发 restart (US-628)\n- HUD 房间名 overlay 不显示 → callback 被覆盖 (US-640)\n- TitleScene keyboard listeners 残留 → 潜在异常回调 (US-637)",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -4321,5 +4321,30 @@
       "US-541"
     ],
     "summary": "PRD膨胀达534条US(464 pending)，核心循环第三次断裂(chest奖励+win条件+Space时序)，难度缩放体系断裂(Slime不受runCount影响)，overlap重复注册导致伤害倍增"
+  },
+  "architectureDebt": {
+    "review68": {
+      "date": "2026-04-30",
+      "findings": [
+        "TitleScene 3个 input.once 监听器在 startGame 后残留 (US-637)",
+        "Coin float tween 未在 collect 前 kill — destroy 时序风险 (US-638)",
+        "ResultScene new ScoreSystem() 仅用 getHighScore — 应提取 utility (US-639)",
+        "RoomCameraSystem 单 callback 设计导致 HUD 房间名 overlay 失效 (US-640)",
+        "endGame/endGameInternal 重复逻辑 — 应参数化 delay (US-641)"
+      ],
+      "previouslyTracked": [
+        "US-613: 胜利条件缺少 chest 门控 (CRITICAL)",
+        "US-627: GameScene shutdown 清理 ✅ 已修复",
+        "US-628: ResultScene events 泄漏",
+        "US-629: endGame 重复逻辑",
+        "US-630: 掉落物空中拾取",
+        "US-631: Skeleton HP bar 不跟随",
+        "US-632: 死亡后触发胜利检查",
+        "US-633: die() destroy 顺序",
+        "US-634: Player-GameScene 耦合",
+        "US-635: TitleScene 键盘监听清理",
+        "US-636: ResultScene 重启路径统一"
+      ]
+    }
   }
 }
