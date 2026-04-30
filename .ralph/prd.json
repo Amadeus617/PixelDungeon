@@ -2570,7 +2570,7 @@
           "description": "当前难度缩放仅调整slime数量上限(BASE→CAP)和skeleton速度乘数，但Slime个体HP(固定2)和速度(固定60)完全不受runCount影响。多次游玩后Slime远弱于Skeleton，导致3-5房间的Slime成为纯送分怪，中期空洞问题加剧。应让Slime HP和速度也随runCount小幅递增。",
           "type": "code",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime HP = base_hp + floor(runCount/4)，上限4",
@@ -2757,6 +2757,172 @@
             "冷却完毕闪烁白色 100ms",
             "攻击中(buffed)冷却条变为蓝色",
             "冷却条 scrollFactor=0 固定在玩家脚下不随 camera 移动"
+          ]
+        },
+        {
+          "id": "US-654",
+          "title": "攻击输入缓冲 (Input Buffer) — 100ms预输入窗口提升操作手感",
+          "description": "当前攻击冷却期间按键完全被忽略，玩家需要精确等待冷却结束再按键，操作手感僵硬。GDD已定义 inputBuffer.windowMs=100 参数但代码未实现。应在攻击冷却最后100ms内缓存玩家输入，冷却结束时自动执行。参考：Celeste/Hollow Knight 的输入缓冲设计。",
+          "type": "code",
+          "priority": 166,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击冷却最后100ms内按键被缓冲",
+            "冷却结束后立即执行缓冲的攻击",
+            "仅缓冲一次输入，不累积",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-655",
+          "title": "金币磁吸效果 — 接近金币30px内自动吸引拾取",
+          "description": "当前金币必须精确碰撞才能拾取，在快节奏战斗中频繁miss拾取体验差。GDD已定义 coinMagnet.attractRange=30/attractSpeed=20 参数但代码未实现。金币应在玩家进入30px范围后被缓慢吸引向玩家，提升拾取流畅度且不破坏战斗节奏。",
+          "type": "code",
+          "priority": 167,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家进入30px范围后金币被吸引",
+            "吸引速度20px/s，不影响战斗节奏",
+            "仅对金币生效，药水/钥匙/AttackBoost不触发",
+            "已有overlap拾取逻辑保持不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-656",
+          "title": "房间进入信息横幅 — 显示房间名/类型/敌人数",
+          "description": "当前房间切换无任何文字提示，玩家不知道进入了哪个房间、还有多少敌人。GDD已定义 roomEnterBanner.displayDurationMs=800/fadeOutMs=300/showRoomType/showEnemyCount 参数但代码未实现。应在新房间淡入完成后显示800ms横幅，包含房间类型标签和存活敌人数量。",
+          "type": "code",
+          "priority": 168,
+          "status": "pending",
+          "dependsOn": [
+            "US-622"
+          ],
+          "acceptanceCriteria": [
+            "进入新房间后显示横幅800ms",
+            "横幅包含房间类型（normal/treasure/danger）和敌人数",
+            "300ms淡出动画",
+            "不遮挡战斗视线",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-657",
+          "title": "M键静音切换 — 全局音量控制",
+          "description": "当前没有音量控制机制，玩家无法静音。GDD已定义 volumeControl.muteToggleKey=M/localStorageKey 参数但代码未实现。按M键切换静音状态并持久化到localStorage，HUD显示静音图标。",
+          "type": "code",
+          "priority": 169,
+          "status": "pending",
+          "dependsOn": [
+            "US-583"
+          ],
+          "acceptanceCriteria": [
+            "按M键切换静音/恢复",
+            "静音状态持久化到localStorage",
+            "HUD显示🔇图标表示静音",
+            "静音时所有音效和BGM不播放",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-658",
+          "title": "ResultScene 通关/失败数据面板 — 击杀数/金币数/房间数/时间/分数明细",
+          "description": "当前ResultScene仅显示总分，缺少详细统计。US-062标记done但实际数据传递不完整。应显示：击杀数、收集金币、探索房间数、通关时间、分数明细（金币分/击杀分/房间清除分/时间奖励）。失败时应显示到达的房间深度和死因（哪个敌人/陷阱）。",
+          "type": "code",
+          "priority": 170,
+          "status": "pending",
+          "dependsOn": [
+            "US-612"
+          ],
+          "acceptanceCriteria": [
+            "胜利面板显示：击杀数、金币数、探索房间、通关时间、分数明细",
+            "失败面板显示：到达深度、死因提示、存活时间",
+            "数据从GameScene通过scene.start传递",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-659",
+          "title": "Slime 主动追踪行为 — 玩家进入100px后简单追踪",
+          "description": "Slime目前完全随机移动，即使玩家就在身边也不会靠近，是最无威胁的敌人。GDD已定义 slimeProximityChase.detectionRange=100/chaseSpeed=40/reactionDelayMs=random 0-500 参数但代码未实现（US-650仅描述问题无具体参数）。追踪速度40低于随机速度60，提供主动威胁感但不精确。",
+          "type": "code",
+          "priority": 171,
+          "status": "pending",
+          "dependsOn": [
+            "US-575"
+          ],
+          "acceptanceCriteria": [
+            "玩家进入100px范围后Slime切换为4方向追踪",
+            "追踪速度40px/s（低于随机移动60px/s）",
+            "进入追踪有0-500ms随机反应延迟",
+            "玩家离开范围后恢复随机移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-660",
+          "title": "Dash冲刺拖尾残影效果 — 提升冲刺视觉辨识度",
+          "description": "Dash冲刺（US-056已实现）仅改变速度，无视觉特效导致玩家难以感知冲刺状态。GDD已定义 dashTrail.trailInterval=30/trailAlpha=0.3/trailFadeMs=200/maxTrails=5 参数但代码未实现。冲刺期间每30ms创建一个半透明残影，200ms渐隐消失。",
+          "type": "code",
+          "priority": 172,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "冲刺期间每30ms创建半透明残影sprite",
+            "残影alpha=0.3，200ms线性渐隐至0后destroy",
+            "最多同时5个残影",
+            "非冲刺状态无残影",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-661",
+          "title": "走廊过渡方向指示箭头 — 过渡期间HUD方向提示",
+          "description": "走廊过渡（450ms fade）期间玩家完全看不到方向，频繁迷失。GDD已定义 corridorDirectionArrow.arrowAlpha=0.5/arrowDurationMs=200/arrowSize=12 参数但代码未实现（US-652仅描述无参数）。应在fade开始时在屏幕中央显示方向箭头指示目标房间方位。",
+          "type": "code",
+          "priority": 173,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊过渡开始时显示方向箭头（上下左右）",
+            "箭头alpha=0.5，200ms后消失",
+            "箭头大小12px，位于屏幕中央偏移",
+            "方向基于目标房间相对方位",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-662",
+          "title": "玩家攻击冷却进度条 — 脚下微型冷却指示器",
+          "description": "攻击冷却期间无视觉反馈，玩家不知道何时可以再次攻击。GDD已定义 attackCooldownBar.barWidth=16/barHeight=2/barOffsetY=12 参数但代码未实现（US-653描述无参数）。应在玩家脚下显示2px高的微型进度条，冷却中从满到空，就绪时闪绿。",
+          "type": "code",
+          "priority": 174,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家脚下显示16x2px进度条",
+            "冷却期间从右到左递减",
+            "冷却就绪时100ms绿色闪烁",
+            "AttackBoost buff期间进度条变蓝色",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-663",
+          "title": "PRD 去重压缩 — 100条pending合并精简至~50条权威条目",
+          "description": "当前PRD共180条US（80 done + 100 pending），pending中大量条目描述相同问题的不同角度。例如：HP bar跟随相关3条、Slime难度缩放3条、房间过渡动画2条、combo计分2条、新手引导2条、陷阱预警2条、接触伤害冷却2条。应将100条pending去重合并为~50条权威条目，每个标注所有合并来源。",
+          "type": "meta",
+          "priority": 175,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "识别所有重复/近重复pending US",
+            "合并为权威条目，保留最完整的描述和验收标准",
+            "标注所有被合并的原始US编号",
+            "最终pending US不超过60条",
+            "GDD设计日志记录合并操作"
           ]
         }
       ],

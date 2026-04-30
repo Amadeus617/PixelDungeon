@@ -127,6 +127,8 @@ export class GameScene extends Phaser.Scene {
   private runCount = 1;
   private slimeCount = BASE_SLIME_COUNT;
   private skeletonSpeedMultiplier = 1.0;
+  private slimeHpMultiplier = 1.0;
+  private slimeSpeedMultiplier = 1.0;
 
   // Seed for deterministic dungeon generation (US-054)
   private seed: number | undefined;
@@ -182,6 +184,12 @@ export class GameScene extends Phaser.Scene {
       1.0 + (this.runCount - 1) * SPEED_INCREASE_PER_RUN,
       SPEED_CAP_MULTIPLIER
     );
+    // Slime difficulty scaling (US-642)
+    this.slimeHpMultiplier = 1.0 + Math.floor((this.runCount - 1) / 4) * 0.5;
+    this.slimeSpeedMultiplier = Math.min(
+      1.0 + (this.runCount - 1) * 0.08,
+      1.6 // 1.6x cap
+    );
     // --- End difficulty scaling ---
 
     this.dungeonMap = new DungeonMap(this, this.seed);
@@ -228,7 +236,7 @@ export class GameScene extends Phaser.Scene {
       // Spawn slimes for this room
       for (let s = 0; s < config.slimeCount; s++) {
         const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
-        const slime = new Slime(this, spos.x, spos.y);
+        const slime = new Slime(this, spos.x, spos.y, this.slimeHpMultiplier, this.slimeSpeedMultiplier);
         this.physics.add.collider(slime, wallLayer, (_slimeObj) => {
           slime.onHitWall();
         });
@@ -422,7 +430,8 @@ export class GameScene extends Phaser.Scene {
         getHealthPotions: () => this.healthPotions,
         getKeyItem: () => this.keyItem,
       },
-      this.runCount
+      this.runCount,
+      { hpMult: this.slimeHpMultiplier, speedMult: this.slimeSpeedMultiplier }
     );
 
     // --- Build room→enemies index (US-050) ---
@@ -1149,7 +1158,7 @@ export class GameScene extends Phaser.Scene {
 
       for (let s = 0; s < config.slimeCount; s++) {
         const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
-        const slime = new Slime(this, spos.x, spos.y);
+        const slime = new Slime(this, spos.x, spos.y, this.slimeHpMultiplier, this.slimeSpeedMultiplier);
         this.physics.add.collider(slime, wallLayer, () => {
           slime.onHitWall();
         });

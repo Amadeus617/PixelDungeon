@@ -2884,6 +2884,77 @@
         ]
       },
       "priority": "US-650(Slime主动追踪)和US-651(宝箱反馈)是P1 — 分别影响战斗动态性和核心探索奖励回路。"
+    },
+    {
+      "round": 70,
+      "date": "2026-04-30",
+      "title": "第70轮设计审查 — GDD参数落地+视觉反馈增强+PRD去重",
+      "summary": "审查发现GDD中有10+组参数定义但代码从未实现且无对应pending US：(1) Input Buffer 100ms预输入；(2) 金币磁吸30px吸引；(3) 房间进入横幅800ms显示；(4) M键静音切换；(5) ResultScene详细统计面板。同时将US-650(Slime主动追踪)、US-649(Dash拖尾)、US-652(走廊箭头)、US-653(冷却进度条)的GDD参数正式关联到新增权威US。最后识别出100条pending US中存在大量重复需去重。新增US-654~US-663。",
+      "newUserStories": [
+        "US-654",
+        "US-655",
+        "US-656",
+        "US-657",
+        "US-658",
+        "US-659",
+        "US-660",
+        "US-661",
+        "US-662",
+        "US-663"
+      ],
+      "changes": [
+        {
+          "area": "controls/feel",
+          "change": "US-654: Input Buffer 100ms攻击预输入 — 操作手感核心优化",
+          "priority": "P1"
+        },
+        {
+          "area": "collectibles",
+          "change": "US-655: 金币磁吸30px吸引 — 拾取流畅度提升",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/information",
+          "change": "US-656: 房间进入横幅 — 房间类型+敌人数量显示",
+          "priority": "P2"
+        },
+        {
+          "area": "audio",
+          "change": "US-657: M键静音切换+localStorage持久化",
+          "priority": "P3"
+        },
+        {
+          "area": "ui/result",
+          "change": "US-658: ResultScene详细统计面板 — 分数明细+死因",
+          "priority": "P1"
+        },
+        {
+          "area": "ai/slime",
+          "change": "US-659: Slime 100px主动追踪(chaseSpeed=40) — 提升威胁感",
+          "priority": "P2"
+        },
+        {
+          "area": "visual/dash",
+          "change": "US-660: Dash拖尾残影(trailAlpha=0.3, fadeMs=200)",
+          "priority": "P2"
+        },
+        {
+          "area": "visual/corridor",
+          "change": "US-661: 走廊过渡方向箭头(arrowAlpha=0.5, size=12)",
+          "priority": "P2"
+        },
+        {
+          "area": "visual/combat",
+          "change": "US-662: 攻击冷却进度条(16x2px, 脚下微型)",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-663: PRD去重 — 100条pending精简至~50条",
+          "priority": "meta-P0"
+        }
+      ],
+      "priority": "US-654 (Input Buffer) 是最高优先级 — 直接影响操作手感核心。US-658 (ResultScene面板) 和 US-659 (Slime追踪) 次之。US-663 (PRD去重) 是最高元优先级。"
     }
   ],
   "improvements": {

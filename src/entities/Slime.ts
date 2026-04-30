@@ -2,10 +2,12 @@ import Phaser from "phaser";
 import { EnemyHpBar } from "@/ui/EnemyHpBar";
 
 const SLIME_SPEED = 60;
+const SLIME_SPEED_CAP = 96; // 1.6x base
 const HP_BAR_Y_OFFSET = -20;
 const DIR_CHANGE_MIN = 1500;
 const DIR_CHANGE_MAX = 3500;
 const SLIME_MAX_HP = 2;
+const SLIME_MAX_HP_CAP = 4;
 const KNOCKBACK_SPEED = 300;
 const KNOCKBACK_DURATION = 150;
 
@@ -23,8 +25,9 @@ const DIRECTIONS: Array<{ vx: number; vy: number }> = [
 export class Slime extends Phaser.Physics.Arcade.Sprite {
   private dirTimer: number = 0;
   private dirInterval: number = 2000;
-  private _hp: number = SLIME_MAX_HP;
-  private _maxHp: number = SLIME_MAX_HP;
+  private _hp: number;
+  private _maxHp: number;
+  private _speed: number;
   private isKnockedBack: boolean = false;
   private knockbackTimer: number = 0;
   private hpBar!: EnemyHpBar;
@@ -42,10 +45,15 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     return this._hp <= 0;
   }
 
-  constructor(scene: Phaser.Scene, x: number, y: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, hpMultiplier: number = 1, speedMultiplier: number = 1) {
     super(scene, x, y, "slime");
     scene.add.existing(this);
     scene.physics.add.existing(this);
+
+    // Apply difficulty scaling
+    this._maxHp = Math.min(Math.ceil(SLIME_MAX_HP * hpMultiplier), SLIME_MAX_HP_CAP);
+    this._hp = this._maxHp;
+    this._speed = Math.min(SLIME_SPEED * speedMultiplier, SLIME_SPEED_CAP);
 
     this.setScale(3);
     this.setCollideWorldBounds(true);
@@ -57,7 +65,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     );
 
     // HP bar (above sprite)
-    this.hpBar = new EnemyHpBar(scene, x, y + HP_BAR_Y_OFFSET, SLIME_MAX_HP);
+    this.hpBar = new EnemyHpBar(scene, x, y + HP_BAR_Y_OFFSET, this._maxHp);
 
     this.pickDirection();
     this.play("slime-move", true);
@@ -66,7 +74,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private pickDirection(): void {
     const d = DIRECTIONS[Phaser.Math.Between(0, DIRECTIONS.length - 1)];
     const len = Math.sqrt(d.vx * d.vx + d.vy * d.vy) || 1;
-    this.setVelocity((d.vx / len) * SLIME_SPEED, (d.vy / len) * SLIME_SPEED);
+    this.setVelocity((d.vx / len) * this._speed, (d.vy / len) * this._speed);
 
     // Random interval before next direction change
     this.dirInterval = Phaser.Math.Between(DIR_CHANGE_MIN, DIR_CHANGE_MAX);

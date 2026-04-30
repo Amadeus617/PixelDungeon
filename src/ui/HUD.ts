@@ -49,6 +49,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private difficultyLevel: number;
   private difficultyLabel!: Phaser.GameObjects.Text;
   private difficultyBg!: Phaser.GameObjects.Rectangle;
+  private slimeScalingLabel!: Phaser.GameObjects.Text | null;
 
   // Room exploration progress (US-039)
   private roomProgressLabel!: Phaser.GameObjects.Text;
@@ -86,7 +87,8 @@ export class HUD extends Phaser.GameObjects.Container {
       getHealthPotions: () => Phaser.GameObjects.Sprite[];
       getKeyItem: () => Phaser.GameObjects.Sprite | null;
     },
-    difficultyLevel: number = 1
+    difficultyLevel: number = 1,
+    slimeScaling?: { hpMult: number; speedMult: number }
   ) {
     super(scene, 10, 10);
     scene.add.existing(this);
@@ -261,6 +263,23 @@ export class HUD extends Phaser.GameObjects.Container {
       strokeThickness: 2,
     });
     this.add(this.difficultyLabel);
+
+    // --- Slime scaling info (US-642) ---
+    if (slimeScaling && (slimeScaling.hpMult > 1 || slimeScaling.speedMult > 1)) {
+      const scaleText = `Slime HP:${slimeScaling.hpMult.toFixed(1)}x Spd:${slimeScaling.speedMult.toFixed(1)}x`;
+      this.slimeScalingLabel = scene.add.text(12, diffY + 24, scaleText, {
+        fontSize: "10px",
+        color: "#cccccc",
+        fontFamily: "monospace",
+        stroke: "#000000",
+        strokeThickness: 2,
+      });
+      this.add(this.slimeScalingLabel);
+      // Expand bg to fit scaling text
+      this.difficultyBg.setSize(160, 52);
+    } else {
+      this.slimeScalingLabel = null;
+    }
 
     // --- Room exploration progress (US-039) ---
     const totalRooms = roomCameraSystem ? roomCameraSystem.getDungeonData().rooms.length : 1;
