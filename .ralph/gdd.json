@@ -60,7 +60,19 @@
         "note": "US-290: 每4次run增加1个药水，上限6"
       },
       "slimeHpScaling": "2 + floor((runCount-1)/3), cap 5",
-      "slimeSpeedScaling": "60 * (1 + (runCount-1)*0.05), cap 90"
+      "slimeSpeedScaling": "60 * (1 + (runCount-1)*0.05), cap 90",
+      "slimeHPScale": {
+        "description": "Slime HP随runCount递增(US-642)",
+        "formula": "base_hp + floor(runCount/4)",
+        "maxHP": 4,
+        "status": "pending"
+      },
+      "slimeSpeedScale": {
+        "description": "Slime速度随runCount递增(US-642)",
+        "formula": "base_speed * (1 + (runCount-1)*0.08)",
+        "maxMultiplier": 1.6,
+        "status": "pending"
+      }
     },
     "timeBonusThresholds": {
       "note": "US-286: 通关时间奖励",
@@ -3684,6 +3696,13 @@
         }
       ],
       "recommendation": "建议实施优先级：US-200(takeDamage返回值) > US-207(knockback保护) > US-209(Skeleton HP bar) > US-205(敌人冻结) > US-206(死亡alpha) > US-211(spawn分布) > US-208(TitleScene流程) > US-210(shutdown清理)"
+    },
+    "midGameGap": {
+      "date": "2026-04-30",
+      "finding": "3-5房间中期难度曲线空洞: combat rooms中间房间敌人配置偏弱(depth<0.4只有slime)",
+      "impact": "多次游玩后Slime成为纯送分怪，缺乏紧张感",
+      "fix": "US-643: 中间combat rooms最低1 skeleton + 走廊巡逻密度递增",
+      "status": "pending"
     }
   },
   "healthPotionHeal": 3,
@@ -3970,6 +3989,27 @@
           "plannedFix": "endGame 时遍历重置活跃陷阱纹理"
         }
       }
+    },
+    "comboSystem": {
+      "description": "连续击杀combo计分系统(US-644)",
+      "window": "3000ms",
+      "tiers": [
+        1.0,
+        1.25,
+        1.5,
+        1.75
+      ],
+      "baseMultiplier": 1.0,
+      "tierBonus": 0.25,
+      "maxTier": 3,
+      "status": "pending"
+    },
+    "hitstopSystem": {
+      "description": "攻击命中freeze frame增强打击感(US-648)",
+      "freezeDuration": 30,
+      "unit": "ms",
+      "stacking": false,
+      "status": "pending"
     }
   },
   "gameProgression": {
@@ -3992,6 +4032,20 @@
         "US-339",
         "US-340",
         "US-341"
+      ]
+    },
+    {
+      "date": "2026-04-30",
+      "round": 69,
+      "type": "review",
+      "changes": [
+        "US-642: Slime HP/速度runCount缩放(填补难度缩放空白)",
+        "US-643: 中期房间难度曲线修正(消除空洞)",
+        "US-644: Combo连击计分系统(丰富玩法深度)",
+        "US-645: 方向感知房间过渡动画(增强沉浸感)",
+        "US-646: SpikeTrap视觉预警(公平性)",
+        "US-647: 首次操作提示浮层(新手友好)",
+        "US-648: Hitstop冻结帧打击感(核心手感)"
       ]
     }
   ],
@@ -4032,11 +4086,10 @@
       "healFlash": "绿色闪光"
     },
     "roomTransition": {
-      "type": "淡入淡出黑屏",
-      "duration": 600,
-      "breakdown": "300ms淡出+300ms淡入",
-      "nameOverlay": "过渡完成后显示1.5秒",
-      "exitIndicator": "距离出口<30px时显示方向箭头"
+      "description": "方向感知房间过渡动画(US-645)",
+      "duration": 200,
+      "type": "directional_wipe",
+      "status": "pending"
     },
     "hudAutoFade": {
       "roomName": "3秒后淡出",
@@ -4044,6 +4097,12 @@
       "minimap": "战斗中缩至70%，清除后恢复",
       "scorePopup": "scale 1→1.3→1弹跳动画200ms",
       "lowHpPulse": "HP≤3时HP条脉动，越低越快"
+    },
+    "spikeTrapWarning": {
+      "description": "陷阱视觉预警脉冲+声效(US-646)",
+      "pulseCycle": 1500,
+      "preTriggerWarning": 300,
+      "status": "pending"
     }
   },
   "tutorialSystem": {
@@ -4076,7 +4135,17 @@
       }
     ],
     "completionFlag": "pixeldungeon_tutorial_done",
-    "animation": "淡入淡出，执行操作后1秒消失"
+    "animation": "淡入淡出，执行操作后1秒消失",
+    "firstPlayHints": {
+      "description": "首次游戏操作提示浮层(US-647)",
+      "trigger": "首次进入GameScene",
+      "dismissConditions": [
+        "拾取首个道具",
+        "5秒超时"
+      ],
+      "persistentFlag": "tutorial_shown",
+      "status": "pending"
+    }
   },
   "fogOfWar": {
     "note": "US-425: 战争迷雾/视野系统",
@@ -4303,24 +4372,49 @@
         "prd_dedup": "20条重复→US-535权威",
         "difficulty_scaling": "8条重复→US-539权威"
       }
+    },
+    {
+      "round": 69,
+      "date": "2026-04-30T16:15:00Z",
+      "focus": "难度曲线+打击感+新手引导+视觉反馈",
+      "findings": [
+        "Slime个体HP/速度不受runCount缩放→多次游玩后送分怪",
+        "3-5房间中期难度空洞→中间combat rooms只有slime",
+        "ScoreSystem combo连击(US-581)需详细设计→US-644",
+        "房间过渡无视觉反馈(US-344)→US-645",
+        "SpikeTrap无预警(US-348)→US-646",
+        "无新手操作引导(US-624)→US-647",
+        "攻击命中缺乏hitstop打击感(US-359)→US-648"
+      ],
+      "newUS": [
+        "US-642",
+        "US-643",
+        "US-644",
+        "US-645",
+        "US-646",
+        "US-647",
+        "US-648"
+      ],
+      "totalPendingAfter": 97,
+      "criticalBlockers": 1
     }
   ],
   "lastReviewInfo": {
-    "round": 63,
-    "date": "2026-04-29T22:05:00Z",
-    "criticalIssues": 3,
+    "round": 69,
+    "date": "2026-04-30T16:15:00Z",
+    "criticalIssues": 1,
     "balanceIssues": 2,
-    "maintenanceIssues": 2,
+    "maintenanceIssues": 0,
     "newUS": [
-      "US-535",
-      "US-536",
-      "US-537",
-      "US-538",
-      "US-539",
-      "US-540",
-      "US-541"
+      "US-642",
+      "US-643",
+      "US-644",
+      "US-645",
+      "US-646",
+      "US-647",
+      "US-648"
     ],
-    "summary": "PRD膨胀达534条US(464 pending)，核心循环第三次断裂(chest奖励+win条件+Space时序)，难度缩放体系断裂(Slime不受runCount影响)，overlap重复注册导致伤害倍增"
+    "summary": "第69轮审查: 发现难度缩放体系对Slime完全无效(HP/速度固定), 中期房间敌人配置空洞, 补充combo系统/hitstop/新手引导/过渡动画/陷阱预警7个US。CORE-001(chest无门控)仍未修复。"
   },
   "architectureDebt": {
     "review68": {

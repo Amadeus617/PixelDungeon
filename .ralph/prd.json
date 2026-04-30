@@ -2563,6 +2563,117 @@
             "胜利过渡有视觉填充（闪光/渐变/文字）",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-642",
+          "title": "Slime HP/速度不受runCount难度缩放影响",
+          "description": "当前难度缩放仅调整slime数量上限(BASE→CAP)和skeleton速度乘数，但Slime个体HP(固定2)和速度(固定60)完全不受runCount影响。多次游玩后Slime远弱于Skeleton，导致3-5房间的Slime成为纯送分怪，中期空洞问题加剧。应让Slime HP和速度也随runCount小幅递增。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime HP = base_hp + floor(runCount/4)，上限4",
+            "Slime速度 = base_speed * (1 + (runCount-1)*0.08)，上限1.6x",
+            "难度选择界面或HUD显示实际缩放参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-643",
+          "title": "3-5房间中期难度曲线空洞 — 增加Skeleton巡逻密度",
+          "description": "当前getEnemyConfigForRoom在depth<0.4时只出slime(2个)、depth>=0.4时混合(2slime+1skeleton)，但3-5房间的中间房间(combatIndex 1, depth~0.3-0.5)仍然偏弱。当totalRooms=3时只有1个combat room(2slime+1skeleton)，4-5房间时中间房间的skeleton=0或1。建议：combat rooms总数>=3时，中间房间至少1个skeleton+走廊patrol skeleton，消除\"轻松区\"。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "totalRooms>=4时，中间combat rooms至少1 skeleton",
+            "走廊Skeleton巡逻数随totalRooms递增(1-2→1-3)",
+            "难度曲线平滑无突降(每房间难度≥前一房间)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-644",
+          "title": "ScoreSystem combo连击计分 — 连续击杀加速得分",
+          "description": "US-581已标记pending但无详细实现方案。设计：3秒内连续击杀敌人触发combo，每层+25%击杀分(最高3层=+75%)，3秒无击杀重置。HUD显示当前combo层级和倒计时。这激励玩家主动进攻而非躲藏，增强roguelike重玩性。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem新增comboTier和comboTimer字段",
+            "击杀敌人时：若距上次击杀<3s → comboTier++(max3)；否则重置为1",
+            "击杀分 = ENEMY_POINTS * (1 + 0.25 * (comboTier-1))",
+            "HUD显示combo层级(×1/×1.25/×1.5/×1.75)和剩余时间条",
+            "combo归零时播放视觉反馈(闪烁消失)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-645",
+          "title": "房间过渡动画增强 — 方向感知淡入淡出",
+          "description": "US-344标记pending但无详细方案。当前RoomCameraSystem切换房间时只是相机跟随，无视觉过渡。建议：切换房间时，屏幕从移动方向对侧擦入(向左走→从右擦入黑幕)，持续200ms。增强空间感和探索沉浸感。同时走廊区域可添加渐暗边缘效果。",
+          "type": "code",
+          "priority": 4,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "房间切换时方向性擦入动画(200ms)",
+            "走廊区域边缘渐暗(vignette效果)",
+            "过渡期间输入已冻结(现有逻辑保持)",
+            "动画不卡顿(60fps)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-646",
+          "title": "SpikeTrap视觉预警 — 触发前脉冲闪烁",
+          "description": "US-348标记pending。当前SpikeTrap只有active/inactive两种纹理，玩家无法预判陷阱位置。建议：inactive状态增加微妙脉冲动画(alpha 0.8→1.0循环1.5s)，让细心玩家能发现。触发前0.3s增加\"咔嗒\"声效预警，给反应时间。减速效果结束后加闪烁提示。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap inactive状态alpha脉冲动画(1.5s周期)",
+            "触发前0.3s播放\"咔嗒\"预警声",
+            "减速结束闪烁提示(绿色flash 200ms)",
+            "SoundManager新增trap相关音效方法",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-647",
+          "title": "新手引导系统 — 操作提示浮层",
+          "description": "US-624标记pending。当前游戏无任何操作说明，新玩家不知WASD/Space/Shift/ESC对应什么。建议：首次进入GameScene时，在入口房间显示半透明操作提示浮层(WASD移动/Space攻击交互/Shift冲刺/ESC暂停)，拾取首个道具后自动淡出。第二次游玩不再显示。",
+          "type": "code",
+          "priority": 6,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "首次GameScene显示操作提示浮层(WASD/Space/Shift/ESC)",
+            "浮层在拾取首个道具或5秒后淡出(取先到者)",
+            "localStorage标记tutorial_shown=true，后续不再显示",
+            "提示浮层不遮挡游戏核心区域",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-648",
+          "title": "Hitstop/Freeze Frame攻击命中反馈增强打击感",
+          "description": "US-359标记pending。当前攻击命中敌人仅有视觉闪白和knockback，缺乏\"重量感\"。建议：玩家攻击命中任何敌人时，冻结游戏逻辑30ms(物理和update全部暂停)，然后恢复正常。配合已有闪白和knockback，显著增强打击反馈。需注意不与无敌帧系统冲突。",
+          "type": "code",
+          "priority": 7,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中敌人时冻结所有游戏逻辑30ms",
+            "冻结期间显示单帧画面(不做额外渲染)",
+            "不与无敌帧/dash无敌冲突",
+            "连续命中不叠加(最长30ms)",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"
