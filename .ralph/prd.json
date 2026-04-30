@@ -8555,7 +8555,7 @@
           "description": "checkRespawnRooms() (L1128-1145) 每次重生都重新调用 this.physics.add.overlap(player, slimeGroup/skeletonGroup)。由于原始 overlap (L251-275) 从未移除，Phaser 会为同一 group 注册多个 overlap callback。N次重生后玩家每次接触敌人受到 N+1 倍伤害。这是 P0 bug，因为它是累积的且直接影响游戏体验。修复方案：(1) 不重新注册 overlap — 新敌人已加入 slimeGroup/skeletonGroup，原有 overlap 自动覆盖；(2) 删除 L1128-1145 两处 this.physics.add.overlap 调用即可。",
           "type": "code",
           "priority": 1,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "删除 checkRespawnRooms 中两处 this.physics.add.overlap 调用",
@@ -8780,6 +8780,79 @@
             "Slime.onHitWall() 添加 if (this.isKnockedBack) return 守卫",
             "Skeleton.onHitWall() 同步添加守卫",
             "knockback 期间碰墙不覆盖 velocity",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-545",
+          "title": "CRITICAL: Enemy respawn overlap 重复注册伤害倍增 — 每次 respawn 新增 overlap 叠加在旧的之上",
+          "description": "tryRespawnClearedRooms 在每次 respawn 敌人时调用 physics.add.overlap(player, slimeGroup/skeletonGroup)，但旧 overlap 从不移除。N 次 respawn 后 N 个 overlap 回调同时触发，玩家每帧受到 N×ENEMY_CONTACT_DAMAGE。这是直接可见的 runtime bug——玩家进入已清房间后被瞬间秒杀。修复方案：(1) 用 collider 替代 overlap 并保存引用，respawn 前 destroy 旧的再新建；(2) 或改用 overlap 回调内 active 检查 + 单次 overlap + group 自动管理。",
+          "type": "code",
+          "priority": 530,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "多次 respawn 后 enemy contact damage 不倍增",
+            "tsc + build 通过",
+            "3 次 respawn 后玩家受到的伤害与第 0 次相同"
+          ]
+        },
+        {
+          "id": "US-546",
+          "title": "PRD 终极去重 — 544 条 US 合并为 ≤60 条权威条目 + 执行清理",
+          "description": "PRD 已膨胀至 544 条（473 pending），同一问题被重复编号 4-15 次。示例：takeDamage 返回值 15+ 条、HP bar 跟随 11+ 条、checkWinCondition 6+ 条、shutdown 10+ 条、ResultScene 流程 8+ 条。维护成本已严重阻塞开发。执行方案：(1) 按问题域聚类（core-loop/interface/enemy/stability/performance）；(2) 每类保留 1 条权威条目，标注所有 duplicate IDs；(3) 将 duplicate US 状态改为 \"superseded-by: US-XXX\"；(4) 目标 pending ≤60 条。",
+          "type": "code",
+          "priority": 531,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "pending US ≤60 条",
+            "每个问题域只有 1 条权威 US",
+            "所有 superseded US 标注 superseded-by 字段",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-547",
+          "title": "Enemy respawn 系统缺少重叠实体保护 — 多次 respawn 同房间累积敌人",
+          "description": "tryRespawnClearedRooms 在清除房间后 respawn 敌人，但 roomEnemyMap 直接覆盖为 newSlimes/newSkeletons。然而旧 slimes/skeletons 数组仍在 scene 中活跃（push 到 this.slimes/skeletons），新敌人也 push 进去。如果旧敌人因某种原因未完全 destroy（如 delayedCall 闭包持有引用），新敌人会与旧敌人堆叠。同时 respawn 后新敌人立即注册新的 collider，与旧 collider 共存导致双重 onHitWall 触发。修复：respawn 前 destroy 房间内所有旧实体并从数组移除。",
+          "type": "code",
+          "priority": 532,
+          "status": "pending",
+          "dependsOn": [
+            "US-545"
+          ],
+          "acceptanceCriteria": [
+            "respawn 前旧实体完整 destroy + 从数组移除",
+            "roomEnemyMap 更新后不持有旧实体引用",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-548",
+          "title": "Overlap 回调 overlap(player, potion) 闭包捕获循环变量 coin/potion/boost — 后续回调引用错误对象",
+          "description": "GameScene 中 spawnDropCoin/spawnDropPotion/spawnDropAttackBoost 在循环内创建 overlap 回调，闭包捕获 coin/potion/boost 局部变量。JavaScript 闭包语义确保 let/const 每次迭代独立绑定，但如果回调在 entity destroy 后仍触发（overlap destroy 有一帧延迟），会操作已销毁对象。更关键的是 chest loot 的 spawnDropPotion 和地图 HealthPotion 的 overlap 回调逻辑不一致——前者无满血保护（US-060 只保护地图药水），chest 掉落药水在满血时仍可拾取浪费。",
+          "type": "code",
+          "priority": 533,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "chest 掉落药水也有满血保护",
+            "overlap 回调检查 entity.active",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-549",
+          "title": "ScoreSystem chest loot 金币不计入 coinCount — 通关统计面板数据不完整",
+          "description": "spawnChestLoot 掉落的金币通过 spawnDropCoin 创建，其 overlap 回调调用 scoreSystem.addCoinPoints()。但 GameScene.coinCount 只在地图初始金币的 overlap 回调中递增。chest loot 金币的拾取只增加 score 不增加 coinCount，导致 ResultScene 面板显示的金币收集数不包含宝箱掉落。修复：spawnDropCoin 的 overlap 回调中也递增 this.coinCount。",
+          "type": "code",
+          "priority": 534,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "chest loot 金币拾取同时递增 coinCount 和 score",
+            "ResultScene 金币数与实际拾取一致",
             "tsc + build 通过"
           ]
         }

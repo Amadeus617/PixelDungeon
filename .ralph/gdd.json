@@ -2455,6 +2455,63 @@
         "US-544"
       ],
       "priority": "P0: 核心循环修复 > PRD去重 > shutdown泄漏 > knockback保护"
+    },
+    {
+      "round": 65,
+      "date": "2026-04-30",
+      "title": "第65轮设计审查 — Respawn伤害倍增CRITICAL + PRD膨胀极限 + Chest loot数据遗漏",
+      "summary": "第65轮代码审查发现5个改进机会：(1) CRITICAL: tryRespawnClearedRooms每次respawn注册新的overlap回调不移除旧的，N次respawn后N×伤害/帧。这是第63/64轮标记但未修复的最严重runtime bug；(2) PRD膨胀至544条(473 pending)，同一问题重复4-15次，去重是最高meta优先级；(3) Respawn未清理旧实体可能导致堆叠+双collider；(4) Chest掉落药水缺少满血保护(US-060只保护地图药水)；(5) Chest loot金币不计入coinCount导致统计面板数据不完整。新增US-545~US-549。",
+      "findings": [
+        "CRITICAL: physics.add.overlap在每次respawn时叠加注册，不移除旧回调。N次respawn = N×overlap = N×伤害/帧",
+        "PRD 544条US中估计400+为重复，维护成本严重阻塞开发",
+        "Respawn未先destroy旧实体再spawn新实体，数组持续增长",
+        "spawnDropPotion(chest loot)的overlap回调无满血检查，US-060只保护地图药水",
+        "spawnDropCoin(chest loot)的overlap回调不递增coinCount，ResultScene面板金币数不准确"
+      ],
+      "newUserStories": [
+        "US-545",
+        "US-546",
+        "US-547",
+        "US-548",
+        "US-549"
+      ],
+      "changes": [
+        {
+          "area": "combat/critical",
+          "change": "US-545: Respawn overlap伤害倍增修复 — 保存overlap引用，respawn前destroy旧的",
+          "priority": "P0-CRITICAL"
+        },
+        {
+          "area": "meta",
+          "change": "US-546: PRD终极去重 544→≤60条权威条目",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "entities/respawn",
+          "change": "US-547: Respawn前完整destroy旧实体+数组清理",
+          "priority": "P1"
+        },
+        {
+          "area": "items/overlap",
+          "change": "US-548: Chest掉落药水满血保护 + overlap active检查",
+          "priority": "P2"
+        },
+        {
+          "area": "data/statistics",
+          "change": "US-549: Chest loot金币计入coinCount",
+          "priority": "P2"
+        }
+      ],
+      "confirmedStillBroken": [
+        "Player.takeDamage() 返回 void — 阻塞6+下游功能 (US-117→US-519反复标记)",
+        "checkWinCondition 不检查 key/chest — 核心循环断裂 (US-307→US-432反复标记)",
+        "Skeleton chase分支return跳过hpBar.follow — HP条脱离 (US-136→US-482反复标记)",
+        "Slime/Skeleton onHitWall不保护knockback — 击退被覆盖",
+        "GameScene无shutdown — 事件监听器泄漏",
+        "ResultScene events.on(update)不清理 + 重启跳过TitleScene",
+        "Player knockback 125px/s vs 敌人 300px/s — 严重不对称"
+      ],
+      "priority": "US-545(respawn伤害倍增)是P0-CRITICAL — 玩家会被瞬间秒杀。US-546(PRD去重)是meta-P0 — 544条US已完全不可维护。"
     }
   ],
   "improvements": {

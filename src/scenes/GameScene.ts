@@ -1128,28 +1128,8 @@ export class GameScene extends Phaser.Scene {
       this.skeletons.push(...newSkeletons);
       this.roomEnemyMap.set(roomIdx, { slimes: newSlimes, skeletons: newSkeletons });
 
-      // Re-register overlap for new enemies
-      this.physics.add.overlap(
-        this.player,
-        this.slimeGroup,
-        (_playerObj, slimeObj) => {
-          const wasHurt = this.player.alive;
-          this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
-          if (wasHurt && this.player.hp < this.player.maxHp) {
-            this.soundManager.playHurt();
-          }
-        }
-      );
-      this.physics.add.overlap(
-        this.player,
-        this.skeletonGroup,
-        (_playerObj, skeletonObj) => {
-          this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
-          if (this.player.hp < this.player.maxHp) {
-            this.soundManager.playHurt();
-          }
-        }
-      );
+      // NOTE: No need to re-register overlap — new enemies are added to slimeGroup/skeletonGroup,
+      // which already have overlap handlers from create(). Re-registering would cause N× damage (US-531).
 
       // Un-clear the room so it can be cleared again for bonus points
       this.clearedRooms.delete(roomIdx);
