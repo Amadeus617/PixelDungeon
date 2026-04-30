@@ -1272,7 +1272,7 @@
           "description": "checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。注释 'chest decoupled from win (US-057)' 但实际导致 key→chest→win 回路完全不工作。玩家可直接走到楼梯通关，key/chest 系统无意义。应要求持有 key 且宝箱已开启才能通关。\\n\\n合并自: US-307, US-318, US-372, US-381, US-387, US-401, US-405, US-422, US-432, US-437, US-517, US-529, US-556",
           "type": "code",
           "priority": 63,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "checkWinCondition 检查 inventory.has('key')",

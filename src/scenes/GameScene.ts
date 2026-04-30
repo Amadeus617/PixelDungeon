@@ -803,13 +803,57 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Show hint near stairs (US-387, decoupled from chest US-057) */
+  /** Show hint near stairs — remind player key/chest requirements (US-564) */
   private updateStairsProximityHint(): void {
-    // Stairs hint removed — chest is no longer required for win (US-057)
-    if (this.stairsHintText && this.stairsHintText.active) {
-      this.stairsHintText.destroy();
+    const stairsPos = this.dungeonMap.getStairsPos();
+    const dx = this.player.x - stairsPos.x;
+    const dy = this.player.y - stairsPos.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const nearStairs = dist < STAIRS_REACH_DISTANCE + 20;
+
+    if (!nearStairs) {
+      if (this.stairsHintText && this.stairsHintText.active) {
+        this.stairsHintText.destroy();
+      }
+      this.stairsHintText = null;
+      return;
     }
-    this.stairsHintText = null;
+
+    // Determine what's missing
+    const hasKey = this.inventory.has("key");
+    const chestOpened = this.chests.some((c) => c.isOpen);
+
+    let message = "";
+    let color = "#44ff44";
+    if (!hasKey && !chestOpened) {
+      message = "🔑 需要🔑钥匙 + 打开宝箱!";
+      color = "#ffaa00";
+    } else if (!hasKey) {
+      message = "🔑 需要钥匙才能通关!";
+      color = "#ffaa00";
+    } else if (!chestOpened) {
+      message = "📦 需要打开宝箱!";
+      color = "#ffaa00";
+    } else {
+      message = "🚪 可以通关了!";
+      color = "#44ff44";
+    }
+
+    if (this.stairsHintText && this.stairsHintText.active) {
+      // Update existing hint text and position
+      this.stairsHintText.setText(message);
+      this.stairsHintText.setPosition(stairsPos.x, stairsPos.y - 40);
+      this.stairsHintText.setColor(color);
+    } else {
+      this.stairsHintText = this.add.text(stairsPos.x, stairsPos.y - 40, message, {
+        fontSize: "14px",
+        color: color,
+        stroke: "#000000",
+        strokeThickness: 3,
+      });
+      this.stairsHintText.setOrigin(0.5);
+      this.stairsHintText.setDepth(500);
+    }
   }
 
   /** Get a random floor position within a corridor segment (world pixels) */
@@ -1231,12 +1275,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkWinCondition(): boolean {
-    // Win: reach the stairs in the exit room (US-057: chest decoupled from win)
+    // Win: reach the stairs in the exit room, requiring key held and chest opened (US-564)
     const stairsPos = this.dungeonMap.getStairsPos();
     const dx = this.player.x - stairsPos.x;
     const dy = this.player.y - stairsPos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    return dist < STAIRS_REACH_DISTANCE;
+    if (dist >= STAIRS_REACH_DISTANCE) return false;
+
+    // Must have key in inventory
+    if (!this.inventory.has("key")) return false;
+
+    // Must have opened the chest
+    const chestOpened = this.chests.some((c) => c.isOpen);
+    if (!chestOpened) return false;
+
+    return true;
   }
 
   private checkLoseCondition(): boolean {
