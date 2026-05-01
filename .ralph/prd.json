@@ -1416,12 +1416,13 @@
           "description": "玩家 knockback 速度 125px/s（25px/200ms）与敌人击退 300px/s 严重不对称，几乎不可感知。应提升至 200px/s（40px/200ms）。\\n\\n合并自: US-254, US-278, US-380, US-503, US-514, US-537",
           "type": "code",
           "priority": 73,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "knockback 速度 ≥200px/s",
             "被击中后有明显后退效果"
-          ]
+          ],
+          "doneReason": "Already implemented: KNOCKBACK_DISTANCE=40 at 200ms = 200px/s"
         },
         {
           "id": "US-575",
@@ -3703,6 +3704,112 @@
             "ResultScene 统计面板显示 'Run #N' 和 'Difficulty: Lv.X'",
             "难度颜色与 HUD 一致(绿/黄/红)",
             "tsc --noEmit + npm run build 通过"
+          ]
+        },
+        {
+          "id": "US-711",
+          "title": "Minimap 楼梯出口金色脉冲标记实现",
+          "description": "Minimap 从未标记楼梯出口位置。exitRoom 的 stairs tile 在小地图上无任何标识，玩家无法在小地图定位通关目标。应在 exitRoom 已访问时绘制金色脉冲圆点标记楼梯位置，未访问时隐藏。需在 Minimap 构造函数接收 getStairsPos 回调，update 中绘制带脉冲动画的金色标记。",
+          "type": "code",
+          "priority": 223,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap 构造函数新增 getStairsPos: () => {x:number,y:number} | null 参数",
+            "exitRoom 已访问时在楼梯位置绘制金色(0xffd700)脉冲圆点",
+            "未访问 exitRoom 时不显示楼梯标记",
+            "脉冲动画使用 sin(time) 调节 alpha 在 0.5-1.0 间",
+            "半径 4px 大于普通道具确保醒目",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-712",
+          "title": "ScoreSystem combo 连击计分系统实现",
+          "description": "GDD comboSystem 已完整定义（comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50），但 ScoreSystem.ts 中完全没有任何 combo 相关代码。连续击杀无额外奖励，战斗效率无策略激励。应在 ScoreSystem 中添加 combo 计数器、计时器、倍率计算，在 GameScene enemy-death 事件中调用 addKillWithCombo。",
+          "type": "code",
+          "priority": 224,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 comboCount, comboTimer, currentMultiplier 属性",
+            "addEnemyPoints() 改为 addKillWithCombo()，combo 窗口 3s 内连续击杀倍率+0.5",
+            "maxMultiplier 封顶 3.0x",
+            "combo 中断（3s 无击杀）倍率重置为 1.0x",
+            "HUD 显示当前 combo 倍率（>1.0x 时显示）",
+            "GDD comboSystem 参数与代码一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-713",
+          "title": "Hitstop 命中冻结 30ms 实现",
+          "description": "GDD hitstop 定义 durationMs=30 但代码中从未实现任何命中冻结机制。命中瞬间应暂停全局 physics 30ms 增强打击感（动作游戏标准技术如 Celeste/Hollow Knight）。应在 GameScene.handlePlayerAttack 命中分支中调用 scene.physics.pause() + 30ms delayedCall 后 resume()。",
+          "type": "code",
+          "priority": 225,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "handlePlayerAttack 命中敌人时触发 physics.pause()",
+            "30ms 后自动 physics.resume()（使用 time.delayedCall）",
+            "hitstop 期间 HUD 和动画正常渲染（仅 physics 冻结）",
+            "多个敌人同帧命中只触发一次 hitstop（防累积）",
+            "gameOver 后不触发 hitstop",
+            "GDD hitstop.durationMs=30 与代码一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-714",
+          "title": "金币磁吸效果实现 — 接近30px自动吸引",
+          "description": "GDD coinMagnet 定义 attractRange=30, attractSpeed=20 但代码中从未实现。Coin.ts 和 GameScene.ts 中无任何 magnet/attract 相关逻辑。玩家需要在精确位置拾取金币，快速通过时容易遗漏。应在 GameScene.update 中检查玩家与每个活跃 Coin 的距离，<30px 时以 20px/s 速度向玩家移动。",
+          "type": "code",
+          "priority": 226,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene.update 中检查玩家与活跃 Coin 距离",
+            "距离 < 30px 时 Coin 以 20px/s 向玩家移动",
+            "磁吸期间 Coin 可穿过墙壁（简化实现）",
+            "磁吸不会触发拾取，仍需 overlap 检测",
+            "已收集/不活跃 Coin 不参与磁吸",
+            "GDD coinMagnet 参数与代码一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-715",
+          "title": "SoundManager 音量控制与 M 键静音切换",
+          "description": "GDD volumeControl 定义 muteToggleKey=M, localStorageKey=pixeldungeon_muted 但 SoundManager.ts 中没有任何音量控制逻辑。玩家无法调节或关闭音效，长时间游戏体验差。应添加 setMuted()/isMuted() 方法，M 键切换静音状态，持久化到 localStorage，GameScene.update 中检测 M 键输入。",
+          "type": "code",
+          "priority": 227,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager 新增 _muted 属性和 setMuted/isMuted 方法",
+            "播放方法开头检查 _muted 为 true 时直接 return",
+            "M 键 keydown 切换静音状态",
+            "静音状态持久化到 localStorage key=pixeldungeon_muted",
+            "GameScene 启动时从 localStorage 恢复静音状态",
+            "HUD 显示静音图标（🔇）当静音时",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-716",
+          "title": "Minimap AttackBoost 道具显示 + SpikeTrap 红色标记",
+          "description": "Minimap 不显示 AttackBoost 道具位置（构造函数无 getAttackBoosts getter）和 SpikeTrap 位置。AttackBoost 是限时战斗 buff，玩家需要知道是否值得去拿；SpikeTrap 是伤害源，玩家需要在小地图上规避。应添加 getAttackBoosts 和 getSpikeTraps entity getter，分别用蓝色和红色标记显示。",
+          "type": "code",
+          "priority": 228,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap 构造函数新增 getAttackBoosts 和 getSpikeTraps getter",
+            "AttackBoost 用蓝色(0x4488ff)圆点 radius=2 显示",
+            "SpikeTrap 用红色(0xff4444)脉冲圆点显示（已激活的更亮）",
+            "仅在已访问房间中显示",
+            "GameScene 创建 Minimap 时传入对应 getter",
+            "tsc + build 通过"
           ]
         }
       ],

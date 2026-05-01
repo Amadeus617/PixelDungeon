@@ -3307,6 +3307,67 @@
         }
       ],
       "priority": "US-698 (连通性验证) 是 P1 — 直接影响游戏可完成性。US-695 (combo) 和 US-696 (hitstop) 是战斗深度和手感的核心缺失。US-699 (PRD去重) 是项目管理最高优先级。"
+    },
+    {
+      "round": 73,
+      "date": "2026-05-01",
+      "title": "第73轮设计审查 — GDD已定义但从未实现的6个核心功能",
+      "summary": "全面审查25个源文件，确认大量历史顽固bug已修复（takeDamage返回boolean、checkWinCondition key/chest检查、HP bar跟随、GameScene shutdown、HUD dirty flag、knockback速度提升等）。发现6个GDD已完整定义但代码从未实现的核心功能：(1) Minimap楼梯出口标记（GDD无参数但US-577/408/413/690多次标记）；(2) ScoreSystem combo连击（GDD comboSystem完整定义但ScoreSystem.ts零combo代码）；(3) Hitstop命中冻结（GDD hitstop.durationMs=30但代码从未实现）；(4) 金币磁吸（GDD coinMagnet attractRange=30但代码从未实现）；(5) SoundManager静音控制（GDD volumeControl定义但SoundManager无音量逻辑）；(6) Minimap缺少AttackBoost和SpikeTrap显示。新增US-711~US-716。",
+      "newUserStories": [
+        "US-711",
+        "US-712",
+        "US-713",
+        "US-714",
+        "US-715",
+        "US-716"
+      ],
+      "changes": [
+        {
+          "area": "ui/Minimap",
+          "change": "US-711: 楼梯出口金色脉冲标记 — 6+轮审查反复标记从未实现",
+          "priority": "P0"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-712: Combo连击计分 — GDD comboSystem完整定义但代码为零",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-713: Hitstop 30ms命中冻结 — GDD已定义但代码从未实现",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Coin",
+          "change": "US-714: 金币磁吸30px吸引 — GDD coinMagnet已定义但代码从未实现",
+          "priority": "P2"
+        },
+        {
+          "area": "audio",
+          "change": "US-715: SoundManager静音/M键切换 — GDD volumeControl已定义但代码从未实现",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/Minimap",
+          "change": "US-716: AttackBoost蓝色标记+SpikeTrap红色标记 — 实体getter缺失",
+          "priority": "P2"
+        }
+      ],
+      "fixedInReview": [
+        "US-560: takeDamage返回boolean — 代码确认返回boolean",
+        "US-564: checkWinCondition key/chest检查 — 代码确认检查hasKey && chestOpened",
+        "US-561: HP bar chase/knockback跟随 — 代码确认Skeleton/Slime所有分支有hpBar.follow()",
+        "US-567: endGame/endGameInternal合并 — 代码确认",
+        "US-568: endGame后冻结敌人 — 代码确认gameOver冻结",
+        "US-569: 动态掉落overlap泄漏 — 代码确认已修复",
+        "US-570: ResultScene监听器泄漏 — 代码确认有shutdown()",
+        "US-572: HUD dirty flag缓存 — 代码确认已实现",
+        "US-573: Physics.Arcade.Sprite转换 — 代码确认",
+        "US-574: Knockback速度200px/s — 代码确认",
+        "US-582: BootScene幂等保护 — 代码确认",
+        "US-602: 场景生命周期修复 — 代码确认"
+      ],
+      "priority": "US-711(楼梯标记)是P0 — 核心目标在小地图不可见。US-712(combo)和US-713(hitstop)是P1 — 战斗深度和手感。"
     }
   ],
   "improvements": {
