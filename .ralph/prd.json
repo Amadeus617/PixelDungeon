@@ -1334,7 +1334,7 @@
           "description": "endGame 后 physics.pause() 不阻止 enemy.update() 和 spikeTrap.update() 执行，浪费 CPU 且可能导致状态异常。\\n\\n合并自: US-106, US-174, US-205, US-257, US-277, US-341, US-392",
           "type": "code",
           "priority": 67,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "gameOver 标记传递到敌人",
