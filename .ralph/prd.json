@@ -3318,6 +3318,113 @@
             "AttackBoost 激活时进度条变为蓝色(0x4488ff)",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-689",
+          "title": "GDD coreLoop 文档与代码实际状态同步",
+          "description": "GDD coreLoop 区域仍标注已修复 bug 为活跃状态（checkWinCondition 不含 key/chest、场景生命周期泄漏、endGame/endGameInternal 重复、掉落 overlap 泄漏等），但代码均已修复（US-564/562/563/567/566/569/568/602 done）。文档中的虚假 bug 描述会误导未来审查和开发。",
+          "type": "code",
+          "priority": 201,
+          "status": "pending",
+          "dependsOn": [
+            "US-564",
+            "US-602"
+          ],
+          "acceptanceCriteria": [
+            "GDD coreLoop 移除所有已修复 bug 的 CRITICAL/warning 标注",
+            "GDD coreLoop 更新第71轮审查状态 — 确认所有已修复问题",
+            "GDD coreLoop 仅保留真正未修复的 bug（HUD roomName callback覆盖、Slime 8方向走廊抖动）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-690",
+          "title": "Minimap 楼梯出口金色标记 — 代码确认从未实现",
+          "description": "审查 Minimap.update() 代码确认：渲染了 coins/chests/potions/key/enemies/player 但完全没有 stairs/exit 标记。GDD balance.stairs 和 balance.exitRoom 数据存在但 Minimap 未使用。楼梯是游戏通关目标，玩家在小地图上无法定位出口严重影响探索体验。US-577/413/408/237 标记但代码从未实现。",
+          "type": "code",
+          "priority": 202,
+          "status": "pending",
+          "dependsOn": [
+            "US-577"
+          ],
+          "acceptanceCriteria": [
+            "Minimap 渲染楼梯位置标记（金色圆点）",
+            "仅在楼梯所在房间已被访问时显示",
+            "标记使用脉冲动画增强可见性",
+            "使用 dungeonMap.getStairsPos() 获取坐标",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-691",
+          "title": "Minimap AttackBoost 道具显示 — 代码确认从未实现",
+          "description": "审查 Minimap 代码确认 minimapEntityGetters 包含 getCoins/getChests/getHealthPotions/getKeyItem/getSlimes/getSkeletons/getPlayer 但缺少 getAttackBoosts。AttackBoost 是唯一在小地图上不显示的可拾取道具，信息不一致。",
+          "type": "code",
+          "priority": 203,
+          "status": "pending",
+          "dependsOn": [
+            "US-578"
+          ],
+          "acceptanceCriteria": [
+            "Minimap minimapEntityGetters 添加 getAttackBoosts",
+            "使用蓝色圆点标记 AttackBoost 位置",
+            "仅在已访问房间显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-692",
+          "title": "HUD roomName callback 被 GameScene respawn 回调覆盖 — 根因修复",
+          "description": "审查确认 RoomCameraSystem.setOnRoomChanged() 仅支持单一 callback。GameScene.create() 中先注册 HUD 的 setOnRoomChanged，然后注册 respawn 相关的另一个 setOnRoomChanged，后者覆盖前者。导致 HUD 房间名 overlay 永远不触发。修复方案：改为支持多个 callback（数组/事件发射器模式）。",
+          "type": "code",
+          "priority": 204,
+          "status": "pending",
+          "dependsOn": [
+            "US-640"
+          ],
+          "acceptanceCriteria": [
+            "RoomCameraSystem.setOnRoomChanged 改为 addOnRoomChanged（支持多个 callback）",
+            "GameScene.create() 中 HUD 和 respawn 均通过 addOnRoomChanged 注册",
+            "RoomCameraSystem.destroy/清理中移除所有 callback",
+            "HUD 房间名横幅在房间切换时正确触发显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-693",
+          "title": "HUD dirty flag 缓存优化 — setText 每帧无变化仍调用",
+          "description": "审查 HUD.update() 代码确认每帧无变化仍调用 setText：hpText(每帧)、coinLabel(每帧)、scoreLabel(每帧)、attackBoostLabel(每帧，含字符串拼接)。60fps 下每秒 240+ 无效 setText 调用产生不必要 GC 压力。应缓存上次值，仅在变化时 setText。",
+          "type": "code",
+          "priority": 205,
+          "status": "pending",
+          "dependsOn": [
+            "US-572"
+          ],
+          "acceptanceCriteria": [
+            "HUD 缓存 hpText/coinLabel/scoreLabel 上次值",
+            "仅在值变化时调用 setText",
+            "attackBoostLabel 仅在 boosted 状态变化或秒数变化时更新",
+            "dashBarFill 仅在 pct 变化超过 0.01 时更新",
+            "60fps 下 setText 调用减少至每秒 <10 次（静态状态）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-694",
+          "title": "Slime 移动方向限制为4方向为主 — 走廊斜向抖动修复",
+          "description": "审查 Slime 代码确认 DIRECTIONS 数组包含8个方向含4个斜向。在3-tile宽走廊中斜向移动导致频繁撞墙→方向切换→再撞墙循环，表现为视觉抖动和不自然运动。修复：80%概率选4方向，20%概率选8方向（保留少量随机性）。",
+          "type": "code",
+          "priority": 206,
+          "status": "pending",
+          "dependsOn": [
+            "US-677"
+          ],
+          "acceptanceCriteria": [
+            "pickDirection 中 80% 概率从4方向选择，20% 从8方向选择",
+            "走廊中运动明显减少抖动",
+            "房间中仍保持随机运动模式",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"
