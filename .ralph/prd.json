@@ -1472,7 +1472,7 @@
           "description": "Minimap minimapEntityGetters 缺少 getAttackBoosts，不显示攻击增强道具。走廊中的实体也不显示。\\n\\n合并自: US-185, US-238, US-295",
           "type": "code",
           "priority": 77,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "AttackBoost 在 minimap 显示",
@@ -3982,6 +3982,37 @@
             "endGame 传递 runCount 到 ResultScene",
             "ResultScene 显示当前难度/轮次信息",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-728",
+          "title": "攻击锥形代码注释与阈值不一致 — 注释写120°但实际151°",
+          "description": "Player.ts isEnemyInAttackRange() 第173行注释写\"±60° cone\"、\"cos(60°) = 0.5 — allow a 120° cone\"，但实际dot阈值为0.25。cos(75.5°)≈0.25，即±75.5°半角/151°总锥角。US-584/704标记了锥角过宽的游戏平衡性问题，但注释本身的错误未修复。错误注释误导未来开发者认为锥角是120°。修复方案A：阈值改为0.5匹配注释(收窄至120°)；方案B：注释改为\"±75° / 151° cone\"匹配当前阈值。tsc + build 通过。",
+          "type": "code",
+          "priority": 240,
+          "status": "pending",
+          "dependsOn": [
+            "US-584"
+          ],
+          "acceptanceCriteria": [
+            "代码注释与实际dot阈值一致",
+            "isEnemyInAttackRange行为不变或按US-584收窄",
+            "tsc --noEmit && vite build 通过"
+          ]
+        },
+        {
+          "id": "US-729",
+          "title": "走廊装饰glow circle对象未追踪 — shutdown后残留display list",
+          "description": "spawnCorridorDecorations()为每个火把创建2个this.tweens.add(sprite tween + glow circle tween)和1个glow circle game object。shutdown()通过this.tweens.killAll()停止tween，但glow circle对象未被任何数组追踪，也不会被主动destroy。Phaser scene restart会清理display list，但长时间运行的单局中这些对象会累积。应将装饰game objects(sprites+glow circles)加入tracked数组，或在shutdown中显式destroy。tsc + build 通过。",
+          "type": "code",
+          "priority": 241,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "装饰对象(sprites + glow circles)被追踪到数组",
+            "shutdown()中显式destroy装饰对象",
+            "无decor对象在shutdown后残留",
+            "tsc --noEmit && vite build 通过"
           ]
         }
       ],

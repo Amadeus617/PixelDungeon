@@ -27,6 +27,8 @@ const POTION_COLOR = 0x00ffff;
 const POTION_RADIUS = 2;
 const KEY_COLOR = 0xffff00;
 const KEY_RADIUS = 2;
+const ATTACK_BOOST_COLOR = 0xff00ff; // magenta
+const ATTACK_BOOST_RADIUS = 2;
 
 /** Exit stairs marker */
 const EXIT_COLOR = 0xffd700; // gold
@@ -59,6 +61,7 @@ export class Minimap extends Phaser.GameObjects.Container {
   private getChests: () => Phaser.GameObjects.Sprite[];
   private getHealthPotions: () => Phaser.GameObjects.Sprite[];
   private getKeyItem: () => Phaser.GameObjects.Sprite | null;
+  private getAttackBoosts: () => Phaser.GameObjects.Sprite[];
 
   // Graphics for drawing
   private graphics!: Phaser.GameObjects.Graphics;
@@ -75,7 +78,8 @@ export class Minimap extends Phaser.GameObjects.Container {
     getCoins: () => Phaser.GameObjects.Sprite[],
     getChests: () => Phaser.GameObjects.Sprite[],
     getHealthPotions: () => Phaser.GameObjects.Sprite[],
-    getKeyItem: () => Phaser.GameObjects.Sprite | null
+    getKeyItem: () => Phaser.GameObjects.Sprite | null,
+    getAttackBoosts: () => Phaser.GameObjects.Sprite[]
   ) {
     super(scene, 0, 0);
     scene.add.existing(this);
@@ -92,6 +96,7 @@ export class Minimap extends Phaser.GameObjects.Container {
     this.getChests = getChests;
     this.getHealthPotions = getHealthPotions;
     this.getKeyItem = getKeyItem;
+    this.getAttackBoosts = getAttackBoosts;
 
     const gameWidth = (scene.game.config.width as number) || 800;
 
@@ -240,7 +245,7 @@ export class Minimap extends Phaser.GameObjects.Container {
     const coins = this.getCoins();
     for (const coin of coins) {
       if (!coin.active) continue;
-      if (!this.isInVisitedRoom(coin.x, coin.y)) continue;
+      if (!this.isInVisibleArea(coin.x, coin.y)) continue;
       const pos = this.worldToMinimap(coin.x, coin.y);
       g.fillStyle(ITEM_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, ITEM_RADIUS);
@@ -250,7 +255,7 @@ export class Minimap extends Phaser.GameObjects.Container {
     const chests = this.getChests();
     for (const chest of chests) {
       if (!chest.active) continue;
-      if (!this.isInVisitedRoom(chest.x, chest.y)) continue;
+      if (!this.isInVisibleArea(chest.x, chest.y)) continue;
       const pos = this.worldToMinimap(chest.x, chest.y);
       g.fillStyle(CHEST_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, CHEST_RADIUS);
@@ -260,7 +265,7 @@ export class Minimap extends Phaser.GameObjects.Container {
     const potions = this.getHealthPotions();
     for (const potion of potions) {
       if (!potion.active) continue;
-      if (!this.isInVisitedRoom(potion.x, potion.y)) continue;
+      if (!this.isInVisibleArea(potion.x, potion.y)) continue;
       const pos = this.worldToMinimap(potion.x, potion.y);
       g.fillStyle(POTION_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, POTION_RADIUS);
@@ -268,17 +273,27 @@ export class Minimap extends Phaser.GameObjects.Container {
 
     // Key
     const keyItem = this.getKeyItem();
-    if (keyItem && keyItem.active && this.isInVisitedRoom(keyItem.x, keyItem.y)) {
+    if (keyItem && keyItem.active && this.isInVisibleArea(keyItem.x, keyItem.y)) {
       const pos = this.worldToMinimap(keyItem.x, keyItem.y);
       g.fillStyle(KEY_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, KEY_RADIUS);
+    }
+
+    // AttackBoost items
+    const attackBoosts = this.getAttackBoosts();
+    for (const boost of attackBoosts) {
+      if (!boost.active) continue;
+      if (!this.isInVisibleArea(boost.x, boost.y)) continue;
+      const pos = this.worldToMinimap(boost.x, boost.y);
+      g.fillStyle(ATTACK_BOOST_COLOR, 0.9);
+      g.fillCircle(ox + pos.x, oy + pos.y, ATTACK_BOOST_RADIUS);
     }
 
     // Draw enemies (only in visited rooms)
     const slimes = this.getSlimes();
     for (const slime of slimes) {
       if (!slime.active) continue;
-      if (!this.isInVisitedRoom(slime.x, slime.y)) continue;
+      if (!this.isInVisibleArea(slime.x, slime.y)) continue;
       const pos = this.worldToMinimap(slime.x, slime.y);
       g.fillStyle(ENEMY_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, ENEMY_RADIUS);
@@ -287,7 +302,7 @@ export class Minimap extends Phaser.GameObjects.Container {
     const skeletons = this.getSkeletons();
     for (const skeleton of skeletons) {
       if (!skeleton.active) continue;
-      if (!this.isInVisitedRoom(skeleton.x, skeleton.y)) continue;
+      if (!this.isInVisibleArea(skeleton.x, skeleton.y)) continue;
       const pos = this.worldToMinimap(skeleton.x, skeleton.y);
       g.fillStyle(ENEMY_COLOR, 0.9);
       g.fillCircle(ox + pos.x, oy + pos.y, ENEMY_RADIUS);
@@ -330,6 +345,12 @@ export class Minimap extends Phaser.GameObjects.Container {
     }
   }
 
+  /** Check if a world position is within any visited room or visited corridor */
+  private isInVisibleArea(worldX: number, worldY: number): boolean {
+    if (this.isInVisitedRoom(worldX, worldY)) return true;
+    return this.isInVisitedCorridor(worldX, worldY);
+  }
+
   /** Check if a world position is within any visited room */
   private isInVisitedRoom(worldX: number, worldY: number): boolean {
     const visited = this.roomCameraSystem.getVisitedRooms();
@@ -347,6 +368,33 @@ export class Minimap extends Phaser.GameObjects.Container {
         worldY >= roomPixelY &&
         worldY <= roomPixelY + roomPixelH
       ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Check if a world position is within a corridor adjacent to a visited room */
+  private isInVisitedCorridor(worldX: number, worldY: number): boolean {
+    const visited = this.roomCameraSystem.getVisitedRooms();
+    const px = this.tileSize * this.tileScale;
+
+    for (const corridor of this.dungeonData.corridors) {
+      // Only consider corridors adjacent to at least one visited room
+      if (!visited.has(corridor.fromRoom) && !visited.has(corridor.toRoom)) continue;
+
+      const startWorldX = corridor.start.col * px;
+      const startWorldY = corridor.start.row * px;
+      const endWorldX = (corridor.end.col + 1) * px;
+      const endWorldY = (corridor.end.row + 1) * px;
+
+      // Check if world position falls within the corridor bounding box
+      const minX = Math.min(startWorldX, endWorldX);
+      const maxX = Math.max(startWorldX, endWorldX);
+      const minY = Math.min(startWorldY, endWorldY);
+      const maxY = Math.max(startWorldY, endWorldY);
+
+      if (worldX >= minX && worldX <= maxX && worldY >= minY && worldY <= maxY) {
         return true;
       }
     }

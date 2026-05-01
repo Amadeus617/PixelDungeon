@@ -438,6 +438,7 @@ export class GameScene extends Phaser.Scene {
         getChests: () => this.chests,
         getHealthPotions: () => this.healthPotions,
         getKeyItem: () => this.keyItem,
+        getAttackBoosts: () => this.attackBoosts,
       },
       this.runCount,
       { hpMult: this.slimeHpMultiplier, speedMult: this.slimeSpeedMultiplier }

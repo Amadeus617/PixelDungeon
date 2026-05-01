@@ -320,6 +320,10 @@
       "buffColor": "0x4488ff",
       "normalColor": "0x00ff00",
       "note": "玩家脚下微型冷却条"
+    },
+    "playerAttack": {
+      "coneAngleComment": "注释声称120°(±60°, cos=0.5)但实际151°(±75.5°, dot=0.25) — US-728",
+      "coneDotThreshold": 0.25
     }
   },
   "designLog": [
@@ -3395,6 +3399,48 @@
         "US-569: 动态掉落overlap泄漏修复 — 代码确认active守卫"
       ],
       "priority": "US-717(config scene顺序)是P0 — 影响游戏启动流程。US-718(Coin入口)和US-721(Slime AI)是P1。US-719(Seed)和US-722(GDD同步)是P2。"
+    },
+    {
+      "round": 74,
+      "date": "2026-05-01",
+      "title": "第74轮设计审查 — 攻击锥形注释修正+走廊装饰资源泄漏+顽固问题状态确认",
+      "summary": "第74轮设计审查。确认多个历史顽固问题已由代码修复(US-061 Space时序、US-564 checkWinCondition key检查、US-560 takeDamage返回boolean、US-562 GameScene shutdown、US-563 ResultScene keyboard事件+TitleScene流程、US-565 Chest掉落、US-573 Physics.Arcade.Sprite统一、US-574 knockback 200px/s、US-576 Coin跳过entrance、US-577 Minimap楼梯标记、US-572 HUD dirty flag、US-571 HUD gameOver更新)。发现2个新问题：(1) Player.ts攻击锥形注释声称120°但实际阈值0.25对应151°，误导开发者(US-728)；(2) 走廊火把glow circle对象未tracked，shutdown不主动destroy(US-729)。代码质量显著提升，157条pending中大量为PRD去重前的历史重复条目。",
+      "newUserStories": [
+        "US-728",
+        "US-729"
+      ],
+      "changes": [
+        {
+          "area": "combat/correctness",
+          "change": "US-728: 攻击锥形注释与阈值不一致修正",
+          "priority": "P3"
+        },
+        {
+          "area": "stability/memory",
+          "change": "US-729: 走廊装饰glow对象shutdown清理",
+          "priority": "P3"
+        }
+      ],
+      "confirmedFixed": [
+        "US-061: Space JustDown宝箱交互时序 — GameScene.update中chest检查在player.update之前",
+        "US-564: checkWinCondition增加key+chest检查 — 代码已完整实现三重条件",
+        "US-560: Player.takeDamage返回boolean — 代码已返回boolean",
+        "US-562: GameScene shutdown() — 完整清理事件/tween/delayedCall/overlap",
+        "US-563: ResultScene keyboard事件替代update轮询 — once('keydown')正确实现",
+        "US-565: Chest.open()战利品掉落 — 50%coin+30%potion+20%attackBoost",
+        "US-573: 可拾取道具改用Physics.Arcade.Sprite",
+        "US-574: 玩家knockback速度125→200px/s",
+        "US-576: Coin分配跳过entrance房间",
+        "US-577: Minimap楼梯出口金色标记",
+        "US-572: HUD dirty flag缓存优化",
+        "US-571: HUD gameOver期间继续更新",
+        "US-566: Slime/Skeleton onHitWall knockback守卫",
+        "US-569: 动态掉落overlap回调清理",
+        "US-582: BootScene anims.create幂等保护",
+        "US-602: 场景生命周期完整修复"
+      ],
+      "balanceChanges": [],
+      "priority": "PRD去重(US-589)仍是最高meta优先级。US-728/729为低优先级代码质量问题。"
     }
   ],
   "improvements": {

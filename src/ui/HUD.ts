@@ -84,6 +84,7 @@ export class HUD extends Phaser.GameObjects.Container {
   private minimapGetChests: () => Phaser.GameObjects.Sprite[];
   private minimapGetHealthPotions: () => Phaser.GameObjects.Sprite[];
   private minimapGetKeyItem: () => Phaser.GameObjects.Sprite | null;
+  private minimapGetAttackBoosts: () => Phaser.GameObjects.Sprite[];
 
   constructor(
     scene: Phaser.Scene,
@@ -100,6 +101,7 @@ export class HUD extends Phaser.GameObjects.Container {
       getChests: () => Phaser.GameObjects.Sprite[];
       getHealthPotions: () => Phaser.GameObjects.Sprite[];
       getKeyItem: () => Phaser.GameObjects.Sprite | null;
+      getAttackBoosts: () => Phaser.GameObjects.Sprite[];
     },
     difficultyLevel: number = 1,
     slimeScaling?: { hpMult: number; speedMult: number }
@@ -124,6 +126,7 @@ export class HUD extends Phaser.GameObjects.Container {
     this.minimapGetChests = minimapEntityGetters?.getChests ?? (() => []);
     this.minimapGetHealthPotions = minimapEntityGetters?.getHealthPotions ?? (() => []);
     this.minimapGetKeyItem = minimapEntityGetters?.getKeyItem ?? (() => null);
+    this.minimapGetAttackBoosts = minimapEntityGetters?.getAttackBoosts ?? (() => []);
 
     // --- HP Bar ---
     const hpBarBg = scene.add.rectangle(
@@ -346,7 +349,8 @@ export class HUD extends Phaser.GameObjects.Container {
         this.minimapGetCoins,
         this.minimapGetChests,
         this.minimapGetHealthPotions,
-        this.minimapGetKeyItem
+        this.minimapGetKeyItem,
+        this.minimapGetAttackBoosts
       );
       this.add(this.minimap);
     }
