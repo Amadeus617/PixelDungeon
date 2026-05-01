@@ -1348,7 +1348,7 @@
           "description": "spawnDropCoin/Potion/AttackBoost 的 overlap 回调不随道具 destroy 移除，scene restart 后回调持有失效引用。\\n\\n合并自: US-169, US-215, US-310, US-311, US-334, US-475, US-551",
           "type": "code",
           "priority": 68,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "destroyed 道具 overlap 不再触发",
@@ -3091,6 +3091,120 @@
             "合并重复条目为权威条目",
             "删除已被权威done条目覆盖的旧pending",
             "最终pending数<=60",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-675",
+          "title": "HUD dirty flag 缓存优化 — 消除每帧无效 setText 调用",
+          "description": "HUD.update() 每帧对所有标签调用 setText()（HP、金币、分数、dash冷却、房间进度等），即使数值未变化也创建新字符串对象造成GC压力。应在HUD内部缓存上次显示值，仅在值变化时调用setText。预估每帧减少8-10次无效setText调用。",
+          "type": "code",
+          "priority": 187,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 内部缓存所有显示值的上一次状态",
+            "仅当值实际变化时调用 setText",
+            "60fps下每帧setText调用从~10次降至~1-2次",
+            "视觉行为完全不变 — 所有数值仍正确显示",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-676",
+          "title": "checkRoomClear 性能优化 — 缓存房间边界而非每帧重新计算",
+          "description": "checkRoomClear() 每帧调用 getDungeonData() 并遍历全部敌人数组，通过像素坐标与房间边界比较判定归属。应预计算房间边界缓存，且仅当敌人死亡事件触发时才检查对应房间（事件驱动替代轮询）。",
+          "type": "code",
+          "priority": 188,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "房间边界仅在 dungeonData 创建时计算一次",
+            "敌人死亡时发射事件触发对应房间的清除检查",
+            "消除每帧全量敌人遍历",
+            "房间清除行为与现有逻辑完全一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-677",
+          "title": "Slime 移动方向限制为4方向 — 消除走廊斜向抖动",
+          "description": "Slime DIRECTIONS 常量包含8个方向含4个斜向({1,1},{-1,1},{1,-1},{-1,-1})。在3tile宽的走廊中斜向移动会频繁碰墙导致方向切换抖动。应将Slime的DIRECTIONS限制为4方向(上下左右)，与走廊正交结构匹配。Skeleton使用wanderVx/wanderVy但可能存在同样问题。",
+          "type": "code",
+          "priority": 189,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime DIRECTIONS 仅包含4个正交方向",
+            "走廊中Slime移动不再频繁碰墙抖动",
+            "开阔房间中Slime移动仍自然",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-678",
+          "title": "ScoreSystem combo 连击计分实现 — GDD已定义但代码从未实现",
+          "description": "GDD balance.comboSystem 定义了完整参数（comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50），但 ScoreSystem.ts 无任何 combo 相关代码。应在 ScoreSystem 中添加 combo 追踪：每次 addEnemyPoints 检查距上次击杀是否在3秒窗口内，若是则累加 combo 计数器并应用倍率。HUD 显示当前 combo 倍率。",
+          "type": "code",
+          "priority": 190,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem 追踪 lastKillTime 和 currentCombo",
+            "3秒窗口内连续击杀倍率递增(1.5x→2.0x→2.5x→3.0x cap)",
+            "超过3秒窗口combo重置为0",
+            "击杀积分 = baseKillScore * currentMultiplier",
+            "HUD 显示 combo 倍率(当combo>0时)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-679",
+          "title": "Hitstop 命中冻结反馈 — GDD定义30ms但代码从未实现",
+          "description": "GDD balance.hitstop 定义 durationMs=30，但 handlePlayerAttack 和敌人 takeDamage 中无任何 hitstop 逻辑。应在攻击命中时暂停场景 physics 30ms（scene.physics.pause/resume via delayedCall），增强打击感。同时需确保 hitstop 期间不累积多次暂停。",
+          "type": "code",
+          "priority": 191,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中敌人时触发30ms physics pause",
+            "hitstop期间不可累积新的hitstop（防重叠）",
+            "hitstop结束后自动恢复physics",
+            "配合现有的knockback和闪白反馈形成完整命中反馈链",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-680",
+          "title": "金币磁吸效果 — GDD定义30px吸引范围但代码从未实现",
+          "description": "GDD balance.coinMagnet 定义 attractRange=30, attractSpeed=20，但 Coin.ts 和 GameScene 中无任何磁吸逻辑。应在 GameScene.update 中检测玩家与金币距离，30px内时将金币向玩家移动(速度20px/s)。仅对 Coin 类型生效，不影响药水/钥匙/AttackBoost。",
+          "type": "code",
+          "priority": 192,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家30px范围内的金币自动向玩家移动",
+            "磁吸速度20px/s",
+            "仅对Coin生效，其他道具不受影响",
+            "掉落动画(popup arc)期间不触发磁吸",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-681",
+          "title": "走廊击杀奖励机制 — 当前走廊击杀不触发任何奖励",
+          "description": "checkRoomClear 仅按房间像素边界判定敌人归属，走廊中的巡逻敌人（US-055）被击杀后不触发房间清除奖励也不被任何系统追踪。应在 handlePlayerAttack 击杀走廊敌人时给予独立奖励（如+25分走廊击杀奖励），或按距离归属到最近房间。",
+          "type": "code",
+          "priority": 193,
+          "status": "pending",
+          "dependsOn": [
+            "US-055"
+          ],
+          "acceptanceCriteria": [
+            "走廊中击杀敌人给予积分奖励",
+            "奖励金额合理（建议25分，房间清除的1/4）",
+            "走廊击杀计入 killCount 统计",
+            "不影响现有房间清除奖励机制",
             "tsc + build 通过"
           ]
         }

@@ -157,6 +157,9 @@ export class GameScene extends Phaser.Scene {
   // Space key consumed by chest interaction this frame (US-061)
   private spaceConsumedByChest = false;
 
+  // Dynamic overlap colliders for dropped items (US-569)
+  private dynamicOverlaps: Phaser.Physics.Arcade.Collider[] = [];
+
   // Enemy respawn tracking (US-050)
   private roomEnemyMap: Map<number, { slimes: Slime[]; skeletons: Skeleton[] }> = new Map();
   private respawnCooldowns: Map<number, number> = new Map(); // roomIndex → lastRespawnTime
@@ -325,6 +328,7 @@ export class GameScene extends Phaser.Scene {
     // Overlap: player picks up health potions (US-060: block at full HP)
     for (const potion of this.healthPotions) {
       this.physics.add.overlap(this.player, potion, () => {
+        if (!potion.active) return; // US-569: guard destroyed sprites
         if (this.player.hp >= this.player.maxHp) {
           // Full HP — show hint, don't collect
           this.showHpFullHint(potion.x, potion.y);
@@ -341,6 +345,7 @@ export class GameScene extends Phaser.Scene {
     // Overlap: player picks up attack boosts
     for (const boost of this.attackBoosts) {
       this.physics.add.overlap(this.player, boost, () => {
+        if (!boost.active) return; // US-569: guard destroyed sprites
         if (boost.collect()) {
           this.player.activateAttackBoost();
           this.soundManager.playPickup();
@@ -374,6 +379,7 @@ export class GameScene extends Phaser.Scene {
     // Overlap: player triggers spike traps
     for (const trap of this.spikeTraps) {
       this.physics.add.overlap(this.player, trap, () => {
+        if (!trap.active) return; // US-569: guard destroyed sprites
         trap.trigger();
       });
     }
@@ -381,6 +387,7 @@ export class GameScene extends Phaser.Scene {
     // Overlap: player picks up coins
     for (const coin of this.coins) {
       this.physics.add.overlap(this.player, coin, () => {
+        if (!coin.active) return; // US-569: guard destroyed sprites
         if (coin.collect()) {
           this.coinCount++;
           this.scoreSystem.addCoinPoints();
@@ -391,6 +398,7 @@ export class GameScene extends Phaser.Scene {
 
     // Overlap: player picks up key
     this.physics.add.overlap(this.player, this.keyItem, () => {
+      if (!this.keyItem.active) return; // US-569: guard destroyed sprites
       if (this.keyItem.collect()) {
         this.inventory.add("key");
         this.soundManager.playPickup();
@@ -976,14 +984,16 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Register overlap for pickup
-    this.physics.add.overlap(this.player, coin, () => {
+    // Register overlap for pickup (US-569: track + guard active)
+    const collider = this.physics.add.overlap(this.player, coin, () => {
+      if (!coin.active) return;
       if (coin.collect()) {
         this.coinCount++;
         this.scoreSystem.addCoinPoints();
         this.soundManager.playPickup();
       }
     });
+    this.dynamicOverlaps.push(collider);
   }
 
   /** Spawn a dropped small health potion with popup arc animation */
@@ -1011,8 +1021,9 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Register overlap for pickup (US-060: block at full HP)
-    this.physics.add.overlap(this.player, potion, () => {
+    // Register overlap for pickup (US-060: block at full HP, US-569: track + guard active)
+    const collider = this.physics.add.overlap(this.player, potion, () => {
+      if (!potion.active) return;
       if (this.player.hp >= this.player.maxHp) {
         this.showHpFullHint(potion.x, potion.y);
         return;
@@ -1023,6 +1034,7 @@ export class GameScene extends Phaser.Scene {
         this.soundManager.playPickup();
       }
     });
+    this.dynamicOverlaps.push(collider);
   }
 
   /** Show "HP Full" floating hint near a health potion (US-060) */
@@ -1091,14 +1103,15 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Register overlap for pickup
-    this.physics.add.overlap(this.player, boost, () => {
+    // Register overlap for pickup (US-569: track collider)
+    const collider = this.physics.add.overlap(this.player, boost, () => {
       if (!boost.active) return;
       if (boost.collect()) {
         this.player.activateAttackBoost();
         this.soundManager.playPickup();
       }
     });
+    this.dynamicOverlaps.push(collider);
   }
 
   /** Get room index at a world pixel position, or -1 if not in any room (US-050) */
@@ -1456,10 +1469,14 @@ export class GameScene extends Phaser.Scene {
       this.hpFullHintText = null;
     }
 
-    // --- Physics: dynamic overlaps are automatically cleaned by Phaser
-    //     when the scene shuts down (bodies are destroyed with the scene).
-    //     No manual overlap removal needed — Phaser handles this via
-    //     PhysicsWorld.shutdown() → Group.destroy() → Body.destroy().
+    // --- Physics: destroy tracked dynamic overlap colliders (US-569)
+    //     Prevents stale callbacks holding references to destroyed sprites.
+    for (const collider of this.dynamicOverlaps) {
+      if (collider.active) {
+        collider.destroy();
+      }
+    }
+    this.dynamicOverlaps = [];
 
     // --- Reset mutable state ---
     this.slimes = [];

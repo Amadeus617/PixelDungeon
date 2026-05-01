@@ -3069,6 +3069,71 @@
         "房间类型分化 (roomTypes)",
         "新手引导 (无GDD定义)"
       ]
+    },
+    {
+      "round": 70,
+      "date": "2026-05-01",
+      "title": "第70轮设计审查 — 代码验证+GDD已定义但从未实现的功能+性能优化",
+      "summary": "全面审查代码后确认大量已标记问题已修复（HP bar跟随、takeDamage返回boolean、checkWinCondition key检查、shutdown清理、ResultScene keyboard events、Slime die事件、endGame敌人冻结、onHitWall knockback保护），但发现GDD中已定义完整参数但代码从未实现的3个核心功能：combo连击计分、hitstop命中冻结、金币磁吸效果。同时发现HUD每帧无效setText性能浪费、checkRoomClear每帧全量遍历、Slime仍含8方向走廊抖动、走廊击杀无奖励等新问题。新增7个US(US-675~US-681)。",
+      "newUserStories": [
+        "US-675",
+        "US-676",
+        "US-677",
+        "US-678",
+        "US-679",
+        "US-680",
+        "US-681"
+      ],
+      "changes": [
+        {
+          "area": "performance",
+          "change": "US-675: HUD dirty flag — 每帧~10次无效setText优化",
+          "priority": "P2"
+        },
+        {
+          "area": "performance",
+          "change": "US-676: checkRoomClear 事件驱动替代每帧轮询",
+          "priority": "P2"
+        },
+        {
+          "area": "enemy-ai",
+          "change": "US-677: Slime 4方向限制 — 消除走廊抖动",
+          "priority": "P1"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-678: combo连击计分 — GDD已有参数代码从未实现",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-679: hitstop 30ms命中冻结 — GDD已有参数代码从未实现",
+          "priority": "P1"
+        },
+        {
+          "area": "items",
+          "change": "US-680: 金币磁吸30px — GDD已有参数代码从未实现",
+          "priority": "P2"
+        },
+        {
+          "area": "reward",
+          "change": "US-681: 走廊击杀奖励 — 走廊敌人击杀无反馈",
+          "priority": "P2"
+        }
+      ],
+      "fixedConfirmed": [
+        "US-564: checkWinCondition 增加 key/chest 检查 — 代码验证已实现",
+        "US-560: Player.takeDamage() 返回 boolean — 代码验证已实现",
+        "US-561: Skeleton/Slime HP bar chase/knockback 跟随 — 代码验证已实现",
+        "US-562: GameScene shutdown() 统一资源清理 — 代码验证已实现",
+        "US-563: ResultScene keyboard events + restart via TitleScene — 代码验证已实现",
+        "US-565: Chest.open() 战利品掉落实现 — 代码验证已实现",
+        "US-566: Slime/Skeleton onHitWall knockback guard — 代码验证已实现",
+        "US-567: endGame/endGameInternal 代码合并 — 代码验证已实现",
+        "US-568: endGame 后冻结敌人/陷阱 update — 代码验证已实现",
+        "US-642: Slime HP/速度随runCount难度缩放 — 代码验证已实现"
+      ],
+      "priority": "US-678(combo)和US-679(hitstop)是P1 — GDD已定义完整参数但代码从未实现，是手感提升的关键缺失。US-677(Slime 4方向)次之 — 影响走廊体验。"
     }
   ],
   "improvements": {
