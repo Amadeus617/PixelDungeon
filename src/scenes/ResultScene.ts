@@ -367,8 +367,15 @@ export class ResultScene extends Phaser.Scene {
     this.scene.start("TitleScene");
   }
 
+  /**
+   * Phaser scene lifecycle: called when this scene is shut down or replaced.
+   * Cleans up tweens, keyboard listeners, and event listeners to prevent memory leaks.
+   */
   shutdown(): void {
-    // Clean up keyboard listeners to prevent leaks
+    // Stop all tweens (blinking restart prompt, new record pulse, etc.)
+    this.tweens.killAll();
+
+    // Remove keyboard listeners
     if (this.input.keyboard) {
       this.input.keyboard.off("keydown-SPACE");
       this.input.keyboard.off("keydown-ENTER");

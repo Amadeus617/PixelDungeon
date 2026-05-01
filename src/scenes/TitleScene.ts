@@ -9,6 +9,8 @@ export class TitleScene extends Phaser.Scene {
   private versionText!: Phaser.GameObjects.Text;
   private particles: Phaser.GameObjects.Arc[] = [];
   private elapsed = 0;
+  private startTriggered = false;
+  private anyKeyTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() {
     super({ key: "TitleScene" });
@@ -109,13 +111,17 @@ export class TitleScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    // Input listeners
+    // Input listeners — use startTriggered guard to prevent double-fire
+    this.startTriggered = false;
     this.input.keyboard!.once("keydown-SPACE", () => this.startGame());
     this.input.keyboard!.once("keydown-ENTER", () => this.startGame());
 
     // Also allow any key after a short delay (so accidental taps during transition don't skip)
-    this.time.delayedCall(500, () => {
-      this.input.keyboard!.once("keydown", () => this.startGame());
+    this.anyKeyTimer = this.time.delayedCall(500, () => {
+      this.anyKeyTimer = null;
+      if (!this.startTriggered) {
+        this.input.keyboard!.once("keydown", () => this.startGame());
+      }
     });
   }
 
@@ -143,17 +149,43 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    // Guard against double-trigger
-    if (this.scene.isActive("TitleScene")) {
-      // Increment run count for difficulty scaling (US-028)
-      try {
-        const current = parseInt(localStorage.getItem(RUN_COUNT_KEY) || "0", 10);
-        localStorage.setItem(RUN_COUNT_KEY, String(current + 1));
-      } catch {
-        // localStorage unavailable — treat as run 1
-      }
-      this.scene.start("BootScene");
+    // Guard against double-trigger from multiple once listeners
+    if (this.startTriggered) return;
+    this.startTriggered = true;
+
+    // Increment run count for difficulty scaling (US-028)
+    try {
+      const current = parseInt(localStorage.getItem(RUN_COUNT_KEY) || "0", 10);
+      localStorage.setItem(RUN_COUNT_KEY, String(current + 1));
+    } catch {
+      // localStorage unavailable — treat as run 1
     }
+    this.scene.start("BootScene");
+  }
+
+  /**
+   * Phaser scene lifecycle: called when this scene is shut down or replaced.
+   * Cleans up particles, tweens, timers, and keyboard listeners to prevent memory leaks.
+   */
+  shutdown(): void {
+    // Cancel pending any-key timer
+    if (this.anyKeyTimer) {
+      this.anyKeyTimer.remove();
+      this.anyKeyTimer = null;
+    }
+
+    // Remove all keyboard listeners to prevent stale callbacks
+    if (this.input.keyboard) {
+      this.input.keyboard.off("keydown-SPACE");
+      this.input.keyboard.off("keydown-ENTER");
+      this.input.keyboard.off("keydown");
+    }
+
+    // Stop all tweens (title floating animation, etc.)
+    this.tweens.killAll();
+
+    // Clear particle references (objects are destroyed by scene shutdown)
+    this.particles = [];
   }
 
   private drawPixelSword(x: number, y: number): void {

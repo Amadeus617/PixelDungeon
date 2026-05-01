@@ -1795,7 +1795,7 @@
           "description": "合并自: US-073, US-075, US-083, US-090, US-092, US-098, US-103, US-116, US-135, US-135, US-135, US-157, US-250, US-281, US-291, US-291, US-322, US-423, US-467",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -3205,6 +3205,117 @@
             "奖励金额合理（建议25分，房间清除的1/4）",
             "走廊击杀计入 killCount 统计",
             "不影响现有房间清除奖励机制",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-682",
+          "title": "Combo 连击计分系统实现 — GDD 已定义但代码从未实现",
+          "description": "ScoreSystem 缺少 combo 连击机制。GDD 已定义 comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0，但 ScoreSystem 中无 lastKillTime/comboCount/comboMultiplier 等字段。当前击杀积分始终为固定50分，连续高效战斗无额外奖励，降低了roguelike战斗策略深度。需在 ScoreSystem 添加 combo 追踪状态、在 GameScene enemy-death 回调中更新 combo、在 HUD 显示 combo 倍率。",
+          "type": "code",
+          "priority": 194,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 lastKillTime/comboCount/comboMultiplier 字段",
+            "addEnemyPoints() 检查时间窗口，3秒内连续击杀倍率递增0.5x，上限3.0x",
+            "HUD 显示当前 combo 倍率（如 \"x1.5 COMBO\"）",
+            "combo 超时后倍率重置为1.0",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-683",
+          "title": "Hitstop 命中冻结反馈 — GDD 定义30ms但代码从未实现",
+          "description": "攻击命中敌人时缺少 hitstop（帧冻结）反馈。GDD 定义 hitstop.durationMs=30，这是动作游戏打击感的核心技术（Celeste/Hollow Knight均使用）。当前攻击命中仅有闪白+击退，缺少命中瞬间的\"时间停止\"感。需在 handlePlayerAttack 命中分支中添加 this.physics.world.pause() + 30ms delayedCall 恢复。",
+          "type": "code",
+          "priority": 195,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中敌人瞬间 physics.world.pause 30ms",
+            "30ms后自动恢复 physics.world.resume",
+            "hitstop 仅在命中时触发（空挥不触发）",
+            "hitstop 期间 HUD 仍正常渲染",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-684",
+          "title": "金币磁吸效果实现 — GDD 定义30px吸引范围但代码从未实现",
+          "description": "GDD 定义 coinMagnet.attractRange=30, attractSpeed=20，但 Coin.ts 和 GameScene 中无任何磁吸逻辑。当前金币必须精确走到上面才能拾取，操作感粗糙。需在 GameScene.update() 中检查玩家30px范围内的金币，以20px/s速度向玩家移动。",
+          "type": "code",
+          "priority": 196,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家30px范围内的金币自动向玩家移动，速度20px/s",
+            "磁吸仅对 Coin 生效，不影响药水/钥匙/AttackBoost",
+            "金币被收集后停止磁吸",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-685",
+          "title": "SpikeTrap 继承 Physics.Arcade.Sprite — overlap 检测可靠性修复",
+          "description": "SpikeTrap 当前继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite。Phaser 的 overlap 检测要求双方均有 physics body，GameObjects.Sprite 无 body 依赖内部 fallback 行为，可能在 Phaser 版本升级或特定场景下失效。US-573/US-249/US-371 均标记但未实现。需改为继承 Physics.Arcade.Sprite 并显式设置 body。",
+          "type": "code",
+          "priority": 197,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SpikeTrap 继承 Physics.Arcade.Sprite",
+            "构造函数中设置 physics body size 与 sprite 尺寸匹配",
+            "overlap 检测行为与修改前一致",
+            "trap trigger 逻辑不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-686",
+          "title": "Slime 主动追踪行为 — 玩家接近100px后简单追踪AI",
+          "description": "GDD 定义 slimeProximityChase.detectionRange=100, chaseSpeed=40，但 Slime 仅有随机移动逻辑，无任何主动追踪行为。玩家可以站在 Slime 旁边安全攻击而不会引起反应，削弱了战斗紧张感。需在 Slime.update() 中添加玩家距离检测，100px内切换为4方向追踪模式，速度40px/s（低于随机移动60px/s），提供主动威胁但不精确。",
+          "type": "code",
+          "priority": 198,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 检测玩家100px内切换为追踪模式",
+            "追踪速度40px/s，仅4方向（消除走廊斜向抖动）",
+            "追踪有0-500ms随机反应延迟",
+            "玩家离开100px后恢复随机移动",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-687",
+          "title": "Dash 冲刺拖尾残影效果 — 提升冲刺视觉辨识度",
+          "description": "Dash 冲刺机制已实现（US-056），但冲刺期间无任何视觉特效。GDD 定义 dashTrail.trailInterval=30, trailAlpha=0.3, trailFadeMs=200, maxTrails=5。玩家冲刺时缺乏视觉辨识度，难以判断冲刺是否生效。需在 Player.startDash 时启动残影定时器，每30ms创建一个半透明player sprite克隆，200ms渐隐后销毁，最多5个残影。",
+          "type": "code",
+          "priority": 199,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "冲刺期间每30ms生成一个残影sprite",
+            "残影alpha=0.3，200ms渐隐后销毁",
+            "同时最多5个残影",
+            "冲刺结束后残影继续渐隐完毕",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-688",
+          "title": "攻击冷却进度条 — 玩家脚下微型冷却指示器",
+          "description": "玩家攻击有400ms冷却但无视觉反馈，玩家无法判断何时可以再次攻击。GDD 定义 attackCooldownBar.barWidth=16, barHeight=2, barOffsetY=12, normalColor=0x00ff00, buffColor=0x4488ff。需在 Player 下方添加微型进度条，攻击后从满到空，冷却完毕时闪烁提示。AttackBoost 激活时颜色变为蓝色。",
+          "type": "code",
+          "priority": 200,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player 下方16x2px 进度条显示攻击冷却",
+            "攻击后从满到空线性减少，400ms后归零",
+            "归零瞬间100ms闪烁提示",
+            "AttackBoost 激活时进度条变为蓝色(0x4488ff)",
             "tsc + build 通过"
           ]
         }

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
 export class BootScene extends Phaser.Scene {
+  private animationsCreated = false;
   constructor() {
     super({ key: "BootScene" });
   }
@@ -264,82 +265,88 @@ export class BootScene extends Phaser.Scene {
       g.destroy();
     }
 
-    // Row 0 (frames 0-3):  down
-    // Row 1 (frames 4-7):  left
-    // Row 2 (frames 8-11): right
-    // Row 3 (frames 12-15): up
-    this.anims.create({
-      key: "walk-down",
-      frames: this.anims.generateFrameNumbers("knight", { start: 0, end: 3 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "walk-left",
-      frames: this.anims.generateFrameNumbers("knight", { start: 4, end: 7 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "walk-right",
-      frames: this.anims.generateFrameNumbers("knight", { start: 8, end: 11 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "walk-up",
-      frames: this.anims.generateFrameNumbers("knight", { start: 12, end: 15 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "idle-down",
-      frames: [{ key: "knight", frame: 0 }],
-      frameRate: 1,
-    });
-    this.anims.create({
-      key: "idle-left",
-      frames: [{ key: "knight", frame: 4 }],
-      frameRate: 1,
-    });
-    this.anims.create({
-      key: "idle-right",
-      frames: [{ key: "knight", frame: 8 }],
-      frameRate: 1,
-    });
-    this.anims.create({
-      key: "idle-up",
-      frames: [{ key: "knight", frame: 12 }],
-      frameRate: 1,
-    });
+    // Idempotent animation creation — skip if animations already exist
+    // (prevents duplicate key warnings on scene re-entry from TitleScene restart)
+    if (!this.animationsCreated) {
+      this.animationsCreated = true;
 
-    // Slime animations
-    this.anims.create({
-      key: "slime-idle",
-      frames: this.anims.generateFrameNumbers("slime", { start: 0, end: 1 }),
-      frameRate: 4,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "slime-move",
-      frames: this.anims.generateFrameNumbers("slime", { start: 2, end: 3 }),
-      frameRate: 6,
-      repeat: -1,
-    });
+      // Row 0 (frames 0-3):  down
+      // Row 1 (frames 4-7):  left
+      // Row 2 (frames 8-11): right
+      // Row 3 (frames 12-15): up
+      this.anims.create({
+        key: "walk-down",
+        frames: this.anims.generateFrameNumbers("knight", { start: 0, end: 3 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "walk-left",
+        frames: this.anims.generateFrameNumbers("knight", { start: 4, end: 7 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "walk-right",
+        frames: this.anims.generateFrameNumbers("knight", { start: 8, end: 11 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "walk-up",
+        frames: this.anims.generateFrameNumbers("knight", { start: 12, end: 15 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "idle-down",
+        frames: [{ key: "knight", frame: 0 }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: "idle-left",
+        frames: [{ key: "knight", frame: 4 }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: "idle-right",
+        frames: [{ key: "knight", frame: 8 }],
+        frameRate: 1,
+      });
+      this.anims.create({
+        key: "idle-up",
+        frames: [{ key: "knight", frame: 12 }],
+        frameRate: 1,
+      });
 
-    // Skeleton animations
-    this.anims.create({
-      key: "skeleton-idle",
-      frames: this.anims.generateFrameNumbers("skeleton", { start: 0, end: 1 }),
-      frameRate: 4,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "skeleton-move",
-      frames: this.anims.generateFrameNumbers("skeleton", { start: 2, end: 3 }),
-      frameRate: 6,
-      repeat: -1,
-    });
+      // Slime animations
+      this.anims.create({
+        key: "slime-idle",
+        frames: this.anims.generateFrameNumbers("slime", { start: 0, end: 1 }),
+        frameRate: 4,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "slime-move",
+        frames: this.anims.generateFrameNumbers("slime", { start: 2, end: 3 }),
+        frameRate: 6,
+        repeat: -1,
+      });
+
+      // Skeleton animations
+      this.anims.create({
+        key: "skeleton-idle",
+        frames: this.anims.generateFrameNumbers("skeleton", { start: 0, end: 1 }),
+        frameRate: 4,
+        repeat: -1,
+      });
+      this.anims.create({
+        key: "skeleton-move",
+        frames: this.anims.generateFrameNumbers("skeleton", { start: 2, end: 3 }),
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
 
     this.scene.start("GameScene");
   }
