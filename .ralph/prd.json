@@ -3514,6 +3514,143 @@
             "每个问题仅一条权威US",
             "tsc + build通过"
           ]
+        },
+        {
+          "id": "US-700",
+          "title": "Collectible 基类抽取 — Coin/HealthPotion/AttackBoost/KeyItem DRY 重构",
+          "description": "Coin.ts, HealthPotion.ts, AttackBoost.ts, KeyItem.ts 共享完全相同的模式：constructor (scale=3, depth=5, _startFloatTween), _startFloatTween() (y浮动+angle摆动 tween), collect() (idempotent guard + setActive(false) + setVisible(false) + destroy)。应提取为 CollectibleBase 基类或 mixin，子类只需指定 texture key 和浮动参数。减少 ~120 行重复代码，未来新增 collectible 类型只需 ~15 行。",
+          "type": "code",
+          "priority": 138,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "创建 CollectibleBase 抽象基类 (extends Phaser.GameObjects.Sprite)",
+            "Coin/HealthPotion/AttackBoost/KeyItem 继承 CollectibleBase",
+            "每个子类 < 20 行（仅 texture key + 浮动参数）",
+            "所有现有 collectible 行为不变（浮动动画、收集逻辑、overlap 回调）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-701",
+          "title": "config.ts scene 顺序修正 — BootScene 应在 TitleScene 之前",
+          "description": "config.ts 定义 scene 顺序为 [TitleScene, BootScene, GameScene, ResultScene]，但 BootScene 负责 preload spritesheets 和生成纹理/动画。BootScene.create() 调用 this.scene.start('GameScene')，说明意图是 Boot 先运行。当前顺序意味着 Phaser 先启动 TitleScene，TitleScene 需要手动启动 BootScene，而 BootScene 又启动 GameScene — 多余的跳转。应改为 [BootScene, TitleScene, GameScene, ResultScene]，BootScene 完成后 start TitleScene。",
+          "type": "code",
+          "priority": 139,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "config.ts scene 数组顺序改为 [BootScene, TitleScene, GameScene, ResultScene]",
+            "BootScene.create() 最后改为 this.scene.start('TitleScene')",
+            "TitleScene 启动游戏时启动 GameScene（而非 BootScene）",
+            "游戏启动流程：Boot → Title → Game → Result，无多余跳转",
+            "所有纹理和动画在进入 GameScene 前已就绪",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-702",
+          "title": "敌人数量随 runCount 缩放 — getEnemyConfigForRoom 接入难度系数",
+          "description": "当前 runCount 难度缩放仅影响 Slime HP/速度和 Skeleton 速度，但 getEnemyConfigForRoom() 返回的 slimeCount/skeletonCount 是静态值，完全不受 runCount 影响。这意味着第 20 次和第 1 次游戏面对相同数量的敌人，只有 HP/速度差异。应让 getEnemyConfigForRoom 接受 runCount 参数，在 base count 上叠加 min(floor((runCount-1)/3), 2) 的额外敌人，使后期局数显著增加战斗密度。",
+          "type": "code",
+          "priority": 140,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "getEnemyConfigForRoom 签名增加 runCount 参数",
+            "每3局增加1个额外 slime（上限+2），每4局增加1个额外 skeleton（上限+2）",
+            "GameScene.create() 传入 this.runCount",
+            "难度曲线平滑：run 1=基础, run 7≈+2 slimes/+1 skeleton, run 13≈封顶",
+            "不影响入口房间（roomIndex=0 仍无敌人）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-703",
+          "title": "掉落物品数组内存泄漏 — collected items 未从追踪数组清除",
+          "description": "GameScene.spawnDropCoin/Potion/AttackBoost 在敌人死亡掉落时创建新实例并 push 到 this.coins/this.healthPotions/this.attackBoosts。物品被收集后调用 destroy()，但从未从数组中移除引用。长时间游戏后这些数组会积累大量已销毁对象的引用，导致：1) 数组遍历变慢 2) GC 无法回收 3) checkRoomClear 的 allEnemies 检查遍历相关数组时遇到 destroyed sprites。应在 collect() 成功后从追踪数组中 splice 移除，或在 shutdown 时统一清理。",
+          "type": "code",
+          "priority": 141,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spawnDropCoin 掉落物被收集后从 this.coins 数组移除",
+            "spawnDropPotion 掉落物被收集后从 this.healthPotions 数组移除",
+            "spawnDropAttackBoost 掉落物被收集后从 this.attackBoosts 数组移除",
+            "shutdown() 中清空所有物品数组",
+            "掉落动画期间物品仍可正常被拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-704",
+          "title": "Player 攻击锥角过宽 — dot 阈值 0.25 对应 151° 总角度",
+          "description": "Player.isEnemyInAttackRange 使用 dot product 阈值 0.25 判断敌人是否在攻击方向内。代码注释说 120° 锥角 (cos60°=0.5)，但实际 0.25 对应 arccos(0.25)≈75.5° 半角 = 151° 总锥角，几乎是背后也能打到。这大幅降低了攻击方向选择的意义，玩家几乎不需要面对敌人。应将阈值改为 0.5（120° 锥角）或 0.7（约 90° 锥角），使攻击方向真正有战术意义。",
+          "type": "code",
+          "priority": 142,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "dot product 阈值从 0.25 改为 0.5（120° 锥角，cos60°）",
+            "攻击仍有合理范围：不会出现背对敌人也能命中的情况",
+            "斜向攻击（45°偏移）仍能命中（cos45°≈0.707 > 0.5）",
+            "60°偏移方向外的敌人不被命中",
+            "配合攻击冷却和方向选择形成有意义的战术决策",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-705",
+          "title": "SoundManager 音量控制与静音开关",
+          "description": "SoundManager 所有音效的 gain 值硬编码（0.15~0.25），无音量控制接口。玩家无法调节或关闭音效，长时间游戏时音效可能烦人。应添加：1) setMasterVolume(0~1) 方法统一缩放所有 gain 2) toggleMute() 方法 3) HUD 添加静音按钮（可选，US-673 新手引导实现后加）4) 音量设置持久化到 localStorage。",
+          "type": "code",
+          "priority": 143,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager 添加 masterVolume 属性 (0~1, 默认 0.7)",
+            "所有 play* 方法 gain 乘以 masterVolume",
+            "toggleMute() 方法：切换静音状态",
+            "音量/静音状态持久化到 localStorage (key: dungeon_roguelike_sound)",
+            "现有音效行为不变（音量比例关系保持一致）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-706",
+          "title": "GameScene shutdown() 补充 RoomCameraSystem/DungeonMap/HUD 清理",
+          "description": "GameScene.shutdown() 已清理事件监听器、tweens、timers、动态 overlap 和浮动提示，但遗漏了以下对象的清理：1) RoomCameraSystem — 持有 scene 引用和 tween 2) DungeonMap — 持有 tilemap 和 tile layer 引用 3) HUD — 持有多个 Phaser.GameObjects 4) SoundManager — 持有 AudioContext 引用 5) pauseOverlay — 未销毁。多次场景重启后这些对象的旧引用不会被 GC 回收。",
+          "type": "code",
+          "priority": 144,
+          "status": "pending",
+          "dependsOn": [
+            "US-538"
+          ],
+          "acceptanceCriteria": [
+            "shutdown() 调用 RoomCameraSystem.destroy()（如存在该方法）",
+            "shutdown() 调用 DungeonMap.destroy()",
+            "shutdown() 调用 HUD.destroy()（如存在该方法）",
+            "shutdown() 清理 pauseOverlay 容器及其子对象",
+            "SoundManager.ctx 置 null 释放 AudioContext 引用",
+            "所有引用置 null 防止悬挂引用",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-707",
+          "title": "Slime 死亡时 hpBar.destroy() 时序 — 应先 setVelocity(0) 再 emit event",
+          "description": "Slime.die() 方法中，先 emit 'enemy-death' 事件（触发 GameScene 掉落物生成），然后才 setActive(false) + destroy()。但 hpBar.destroy() 在 setActive(false) 之前调用。如果 enemy-death 事件处理中有任何异步操作或 tween 引用到已 destroyed 的 hpBar，会导致 null reference。虽然当前代码路径安全，但这是一个脆弱的时序依赖。建议统一死亡流程为：stop movement → destroy HP bar → emit event → deactivate → destroy self。",
+          "type": "code",
+          "priority": 145,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime.die() 死亡流程明确有序：setVelocity(0) → hpBar.destroy() → emit event → setActive(false) → destroy()",
+            "Skeleton.die() 如有类似模式也统一",
+            "emit event 时对象仍 active（便于 handler 读取位置等属性）",
+            "destroy() 是最后一步",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"

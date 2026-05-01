@@ -4360,6 +4360,27 @@
         "title": "dash 冲刺无碰撞保护 — 可能穿墙",
         "impact": "高速度 + 无碰撞检测 = 玩家可进入墙壁/无效区域",
         "existingUS": "US-303, US-316"
+      },
+      {
+        "id": "DRY-001",
+        "title": "4个 Collectible 类共享 ~120 行重复代码",
+        "impact": "维护成本高，新 collectible 类型需要复制粘贴；bug 修复需同步多处",
+        "existingUS": "US-700",
+        "codeRef": "src/entities/Coin.ts, HealthPotion.ts, AttackBoost.ts, KeyItem.ts"
+      },
+      {
+        "id": "MEM-001",
+        "title": "掉落物数组不清理已收集物品引用",
+        "impact": "长局游戏中 coins/potions/attackBoosts 数组持续增长，已 destroy 对象不被 GC",
+        "existingUS": "US-703",
+        "codeRef": "src/scenes/GameScene.ts spawnDropCoin/Potion/AttackBoost"
+      },
+      {
+        "id": "BAL-002",
+        "title": "攻击锥角 151° 远超设计意图 120°",
+        "impact": "玩家几乎不需要面对敌人方向，攻击方向选择无战术意义",
+        "existingUS": "US-704",
+        "codeRef": "src/entities/Player.ts isEnemyInAttackRange dot threshold 0.25"
       }
     ]
   },
@@ -4923,24 +4944,82 @@
       ],
       "totalPendingAfter": 97,
       "criticalBlockers": 1
+    },
+    {
+      "round": 72,
+      "date": "2026-05-01T12:22:30Z",
+      "newUsIds": [
+        "US-700",
+        "US-701",
+        "US-702",
+        "US-703",
+        "US-704",
+        "US-705",
+        "US-706",
+        "US-707"
+      ],
+      "categories": {
+        "refactor": [
+          "US-700"
+        ],
+        "bug": [
+          "US-701",
+          "US-703",
+          "US-704",
+          "US-706",
+          "US-707"
+        ],
+        "balance": [
+          "US-702"
+        ],
+        "ux": [
+          "US-705"
+        ]
+      },
+      "filesReviewed": [
+        "src/entities/Coin.ts",
+        "src/entities/HealthPotion.ts",
+        "src/entities/AttackBoost.ts",
+        "src/entities/KeyItem.ts",
+        "src/config.ts",
+        "src/scenes/BootScene.ts",
+        "src/scenes/GameScene.ts",
+        "src/entities/Player.ts",
+        "src/entities/Slime.ts",
+        "src/entities/Skeleton.ts",
+        "src/entities/SpikeTrap.ts",
+        "src/entities/Chest.ts",
+        "src/systems/SoundManager.ts",
+        "src/systems/ScoreSystem.ts",
+        "src/systems/RoomCameraSystem.ts",
+        "src/systems/Inventory.ts",
+        "src/ui/HUD.ts",
+        "src/ui/EnemyHpBar.ts",
+        "src/ui/Minimap.ts",
+        "src/map/DungeonMap.ts",
+        "src/map/dungeonData.ts",
+        "src/scenes/ResultScene.ts",
+        "src/scenes/TitleScene.ts"
+      ]
     }
   ],
   "lastReviewInfo": {
-    "round": 69,
-    "date": "2026-04-30T16:15:00Z",
+    "round": 72,
+    "date": "2026-05-01T12:22:30Z",
     "criticalIssues": 1,
     "balanceIssues": 2,
-    "maintenanceIssues": 0,
+    "maintenanceIssues": 3,
     "newUS": [
-      "US-642",
-      "US-643",
-      "US-644",
-      "US-645",
-      "US-646",
-      "US-647",
-      "US-648"
+      "US-700",
+      "US-701",
+      "US-702",
+      "US-703",
+      "US-704",
+      "US-705",
+      "US-706",
+      "US-707"
     ],
-    "summary": "第69轮审查: 发现难度缩放体系对Slime完全无效(HP/速度固定), 中期房间敌人配置空洞, 补充combo系统/hitstop/新手引导/过渡动画/陷阱预警7个US。CORE-001(chest无门控)仍未修复。"
+    "summary": "第72轮审查: 发现4类 collectible (Coin/HealthPotion/AttackBoost/KeyItem) 共享 ~120行重复代码→抽取基类(US-700); config.ts scene 启动顺序错误(US-701); 敌人数量不受 runCount 影响(US-702); 掉落数组内存泄漏(US-703); 攻击锥角 151° 远超设计意图 120°(US-704); SoundManager 无音量控制(US-705); shutdown 遗漏 4 个子系统清理(US-706); Slime die() 时序脆弱(US-707)。"
   },
   "architectureDebt": {
     "review68": {
