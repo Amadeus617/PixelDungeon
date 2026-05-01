@@ -303,7 +303,7 @@ export class GameScene extends Phaser.Scene {
     // Spawn coins across all rooms
     this.coinCount = 0;
     for (let i = 0; i < COIN_COUNT; i++) {
-      const coinRoom = dungeonData.rooms[i % dungeonData.rooms.length];
+      const coinRoom = dungeonData.rooms[(i + 1) % dungeonData.rooms.length];
       const coinPos = this.dungeonMap.getRandomFloorPosInRoom(coinRoom);
       const coin = new Coin(this, coinPos.x, coinPos.y);
       this.coins.push(coin);

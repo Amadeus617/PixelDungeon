@@ -1445,7 +1445,7 @@
           "description": "Coin 使用 rooms[i % length] 分配，导致 Coin 出现在出生房间降低探索动力。应改为 (i+1) % length 或显式跳过 entrance。\\n\\n合并自: US-108, US-212, US-243, US-399, US-559",
           "type": "code",
           "priority": 75,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "entrance 房间无 Coin",
@@ -3809,6 +3809,107 @@
             "SpikeTrap 用红色(0xff4444)脉冲圆点显示（已激活的更亮）",
             "仅在已访问房间中显示",
             "GameScene 创建 Minimap 时传入对应 getter",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-717",
+          "title": "config.ts scene顺序修正 — BootScene应在TitleScene之前",
+          "description": "config.ts中scene数组为[TitleScene, BootScene, GameScene, ResultScene]，导致TitleScene先于BootScene初始化。BootScene负责纹理和动画注册，必须在GameScene之前。正确顺序应为[BootScene, TitleScene, GameScene, ResultScene]。US-701声称已修但代码验证仍为错误顺序。",
+          "type": "code",
+          "priority": 229,
+          "status": "pending",
+          "dependsOn": [
+            "US-701"
+          ],
+          "acceptanceCriteria": [
+            "config.ts scene数组顺序为[BootScene, TitleScene, GameScene, ResultScene]",
+            "游戏启动流程: BootScene(纹理注册) → TitleScene(标题画面) → GameScene",
+            "BootScene不会因场景重启产生重复anim key警告"
+          ]
+        },
+        {
+          "id": "US-718",
+          "title": "Coin生成跳过entrance房间 — 当前rooms[0]=entrance仍生成Coin",
+          "description": "GameScene create()中Coin分配使用rooms[i % length]，当i=0时分配到room[0]=entrance。Potion和AttackBoost已用(i+1)%length跳过entrance，但Coin未同步修复。US-576/US-243/US-709均标记但代码仍未修复。",
+          "type": "code",
+          "priority": 230,
+          "status": "pending",
+          "dependsOn": [
+            "US-576",
+            "US-243"
+          ],
+          "acceptanceCriteria": [
+            "Coin分配使用(i+1)%length或显式跳过entranceRoom",
+            "entrance房间无Coin生成",
+            "Potion/AttackBoost/Coin三者均跳过entrance"
+          ]
+        },
+        {
+          "id": "US-719",
+          "title": "Seed PRNG统一接入 — drop/spawn逻辑仍用Math.random",
+          "description": "dungeonData.ts已实现seeded PRNG (mulberry32)，但GameScene中掉落率判断、道具spawn位置、敌人AI随机方向仍使用Math.random。这导致seed输入只能保证地图结构一致，不能完整复现一局游戏。US-354标记seed系统但从未完整接入。",
+          "type": "code",
+          "priority": 231,
+          "status": "pending",
+          "dependsOn": [
+            "US-354"
+          ],
+          "acceptanceCriteria": [
+            "GameScene通过dungeonData.rng参数获取seeded PRNG",
+            "掉落率/道具位置/敌人AI随机全部走seeded PRNG",
+            "相同seed产生完全可复现的游戏过程",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-720",
+          "title": "走廊过渡期间玩家可自由移动 — 输入冻结仅setVelocity(0)不阻断按键",
+          "description": "GameScene update中走廊过渡仅调用player.setVelocity(0,0)，但cursors/WASD按键仍被Player.update读取。如果过渡结束帧与按键帧重合，玩家会瞬间位移。需要player.frozen属性完全冻结输入（类似US-597的设计但走廊场景应用）。",
+          "type": "code",
+          "priority": 232,
+          "status": "pending",
+          "dependsOn": [
+            "US-597"
+          ],
+          "acceptanceCriteria": [
+            "走廊过渡期间Player.update完全跳过移动和攻击输入",
+            "过渡结束后恢复正常输入，无位移跳帧",
+            "Dash/攻击在过渡期间不可触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-721",
+          "title": "Slime主动追踪AI实现 — 当前仅随机移动无主动威胁",
+          "description": "GDD定义slimeProximityChase(detectionRange=100, chaseSpeed=40, 4-way)但代码从未实现。当前Slime仅有随机移动和碰墙反弹，对玩家无任何主动威胁。US-650/659/668/686均标记但代码中Slime.update仍是纯随机逻辑。实现方案: 在Slime.update中检测玩家距离，100px内切换为4方向追踪，速度低于随机移动(40 vs 60)提供威胁但不精确。",
+          "type": "code",
+          "priority": 233,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime检测玩家距离<100px时切换追踪模式",
+            "追踪使用4方向(上下左右)而非8方向",
+            "追踪速度40px/s低于随机移动60px/s",
+            "GDD slimeProximityChase参数完全对应",
+            "不影响走廊4方向优化(US-694)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-722",
+          "title": "GDD-代码参数全面同步审计 — 73轮审查发现多处文档脱节",
+          "description": "第73轮审查确认多个已实现功能在GDD中仍标记为未实现或参数过时。需系统性比对代码常量与GDD JSON值，确保一一对应。已知不一致: (1) config.ts scene顺序GDD未记录US-701修正;(2) Player knockback GDD已有target=200但旧值125仍在部分字段;(3) combo/hitstop/magnet GDD有定义但代码从未创建应标注implementation_status=missing。",
+          "type": "code",
+          "priority": 234,
+          "status": "pending",
+          "dependsOn": [
+            "US-593"
+          ],
+          "acceptanceCriteria": [
+            "GDD所有参数与代码常量逐一验证一致",
+            "GDD新增implementation_status字段标注已实现/未实现/部分实现",
+            "comboSystem/hitstop/coinMagnet标记为missing",
             "tsc + build 通过"
           ]
         }

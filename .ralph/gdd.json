@@ -3368,6 +3368,33 @@
         "US-602: 场景生命周期修复 — 代码确认"
       ],
       "priority": "US-711(楼梯标记)是P0 — 核心目标在小地图不可见。US-712(combo)和US-713(hitstop)是P1 — 战斗深度和手感。"
+    },
+    {
+      "round": 73,
+      "date": "2026-05-01",
+      "title": "第73轮设计审查 — 核心循环确认修复+新gap识别+6条US",
+      "summary": "全面审查25个源文件和716条PRD，确认大量历史顽固bug已修复（checkWinCondition key检查已实现、takeDamage返回boolean已修复、GameScene shutdown已实现、HP bar跟随已修复、knockback 200px/s已实现、HUD dirty flag已优化、场景生命周期已完整）。发现6个新改进机会：(1) config.ts scene顺序TitleScene在BootScene之前导致启动流程异常；(2) Coin生成仍在entrance房间（Potion/AttackBoost已修复但Coin未同步）；(3) Seed PRNG仅接入地图生成，drop/spawn仍用Math.random不能完整复现；(4) 走廊过渡仅setVelocity不阻断输入可穿墙；(5) Slime无主动追踪AI与GDD设计不符；(6) GDD参数与代码多处脱节需全面审计。",
+      "newUserStories": [
+        "US-717",
+        "US-718",
+        "US-719",
+        "US-720",
+        "US-721",
+        "US-722"
+      ],
+      "confirmedFixed": [
+        "US-564: checkWinCondition key+chest+stairs检查 — 代码确认已实现",
+        "US-560: takeDamage返回boolean — 代码确认已修复",
+        "US-567: GameScene shutdown() — 代码确认完整实现（事件/tween/timer/overlap清理）",
+        "US-561: Skeleton/Slime HP bar chase/knockback跟随 — 代码确认所有分支都有hpBar.follow",
+        "US-574: Player knockback 200px/s — 代码确认KNOCKBACK_DISTANCE=40, DURATION=200",
+        "US-572: HUD dirty flag缓存 — 代码确认已优化",
+        "US-582: BootScene anims幂等保护 — 代码确认anims.exists检查",
+        "US-602: 场景生命周期 — ResultScene/TitleScene shutdown已实现",
+        "US-568: endGame冻结敌人/陷阱 — 代码确认",
+        "US-569: 动态掉落overlap泄漏修复 — 代码确认active守卫"
+      ],
+      "priority": "US-717(config scene顺序)是P0 — 影响游戏启动流程。US-718(Coin入口)和US-721(Slime AI)是P1。US-719(Seed)和US-722(GDD同步)是P2。"
     }
   ],
   "improvements": {
