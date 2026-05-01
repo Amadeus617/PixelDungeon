@@ -1388,7 +1388,7 @@
           "description": "HUD update() 每帧无差别 setText 创建大量字符串对象，60fps 下产生 240+/秒 GC 压力。应添加 dirty flag 只在值变化时更新。\\n\\n合并自: US-141, US-223, US-266, US-267, US-305, US-377",
           "type": "code",
           "priority": 71,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "dirty flag 机制",
@@ -3424,6 +3424,95 @@
             "走廊中运动明显减少抖动",
             "房间中仍保持随机运动模式",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-695",
+          "title": "ScoreSystem combo连击计分实现 — GDD comboSystem完整定义但代码从未创建",
+          "description": "GDD已定义comboSystem(comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50)，但ScoreSystem.ts中零combo相关代码。US-357/470/581/644/670/678/682重复标记但从未实现。实现方案：(1)ScoreSystem新增comboCount/comboTimer/resetCombo方法 (2)击杀时检查上次击杀时间差<3000ms则comboCount++ (3)击杀积分=baseKillScore*(1+comboCount*0.5)上限3x (4)HUD显示当前combo数和倍率 (5)combo超时3秒自动重置",
+          "type": "code",
+          "priority": 207,
+          "status": "pending",
+          "dependsOn": [
+            "US-015",
+            "US-053"
+          ],
+          "acceptanceCriteria": [
+            "击杀敌人后3秒内再次击杀combo+1",
+            "积分=50*(1+combo*0.5)上限150",
+            "HUD显示combo数和倍率",
+            "3秒无击杀combo重置",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-696",
+          "title": "Hitstop命中冻结30ms实现 — GDD已定义但代码从未创建",
+          "description": "GDD hitstop.durationMs=30定义了攻击命中时全局冻结时间，但代码中零timeScale/freeze逻辑。US-359/648/671/679/683重复标记。实现方案：(1)handlePlayerAttack命中敌人时this.physics.world.timeScale=0 (2)scene.time.delayedCall(30,()=>{this.physics.world.timeScale=1}) (3)冻结期间UI/HUD正常渲染仅物理暂停 (4)与cameraShake并行触发增强打击感",
+          "type": "code",
+          "priority": 208,
+          "status": "pending",
+          "dependsOn": [
+            "US-008"
+          ],
+          "acceptanceCriteria": [
+            "攻击命中敌人时物理冻结30ms",
+            "30ms后自动恢复",
+            "冻结期间HUD正常渲染",
+            "不影响非战斗场景",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-697",
+          "title": "金币磁吸效果实现 — GDD定义attractRange=30但代码从未实现",
+          "description": "GDD coinMagnet定义attractRange=30, attractSpeed=20，金币在玩家30px内自动吸引拾取。Coin.ts/GameScene无磁吸逻辑。US-455/655/672/680/684重复标记。实现方案：(1)GameScene.update中遍历active coins检查与player距离 (2)距离<30px时coin.physics.moveTo(player, 200) (3)磁吸期间coin停止浮动tween避免抖动 (4)保持现有overlap收集触发不变",
+          "type": "code",
+          "priority": 209,
+          "status": "pending",
+          "dependsOn": [
+            "US-013"
+          ],
+          "acceptanceCriteria": [
+            "玩家30px内金币自动吸引",
+            "吸引速度200px/s",
+            "磁吸期间无视觉抖动",
+            "现有拾取逻辑不受影响",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-698",
+          "title": "地牢连通性BFS验证 — 确保所有房间可达",
+          "description": "DungeonMap.ts生成随机地牢后无连通性验证。极端随机种子可能生成孤立房间（走廊起点/终点计算错误、carve路径跳过等），导致钥匙/宝箱生成在不可达位置直接卡关。实现方案：(1)generate()后BFS从entranceRoom遍历所有房间 (2)如果有不可达房间则重新生成或强制添加走廊 (3)确保钥匙/宝箱必在可达房间 (4)可复现种子模式下保证连通性",
+          "type": "code",
+          "priority": 210,
+          "status": "pending",
+          "dependsOn": [
+            "US-016"
+          ],
+          "acceptanceCriteria": [
+            "地牢生成后BFS验证所有房间可达",
+            "不可达时重新生成",
+            "钥匙/宝箱不在孤立房间",
+            "可复现种子连通性一致",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-699",
+          "title": "PRD去重压缩执行 — 196条pending含~80条重复合并为权威条目",
+          "description": "PRD中~120条pending US存在大量重复。combo系统7条重复(US-357/470/581/644/670/678/682)、hitstop 5条(US-359/648/671/679/683)、金币磁吸5条(US-455/655/672/680/684)、takeDamage返回值9条、HP bar跟随11条、checkWinCondition key检查6条等。去重规则：保留编号最小+描述最完整的权威条目，其余标记为duplicate并注明权威条目ID。目标：196 pending → ~120条有效条目。",
+          "type": "code",
+          "priority": 211,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有重复US标记为duplicate状态",
+            "权威条目保留最完整描述",
+            "pending总数降至~120",
+            "每个问题仅一条权威US",
+            "tsc + build通过"
           ]
         }
       ],

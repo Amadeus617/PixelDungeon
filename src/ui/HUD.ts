@@ -55,6 +55,20 @@ export class HUD extends Phaser.GameObjects.Container {
   private roomProgressLabel!: Phaser.GameObjects.Text;
   private roomProgressBg!: Phaser.GameObjects.Rectangle;
 
+  // --- Dirty flag cache (US-572) ---
+  private _cacheHp: number = -1;
+  private _cacheMaxHp: number = -1;
+  private _cacheHpRatio: number = -1;
+  private _cacheHasKey: boolean | null = null;
+  private _cacheCoinCount: number = -1;
+  private _cacheScore: number = -1;
+  private _cacheBoosted: boolean | null = null;
+  private _cacheBoostSecs: number = -1;
+  private _cacheDashReady: boolean | null = null;
+  private _cacheDashPct: number = -1;
+  private _cacheVisited: number = -1;
+  private _cacheTotalRooms: number = -1;
+
   private player: Player;
   private inventory: Inventory;
   private getCoinCount: () => number;
@@ -381,53 +395,85 @@ export class HUD extends Phaser.GameObjects.Container {
 
   /** Call every frame to keep HUD in sync with player and inventory. */
   update(): void {
-    const ratio = this.player.hp / this.player.maxHp;
-    this.hpBarFill.width = HP_BAR_WIDTH * Math.max(0, ratio);
+    const hp = this.player.hp;
+    const maxHp = this.player.maxHp;
+    const ratio = hp / maxHp;
 
-    let color: number;
-    if (ratio > 0.6) {
-      color = 0x00ff00; // green
-    } else if (ratio > 0.3) {
-      color = 0xffff00; // yellow
-    } else {
-      color = 0xff0000; // red
+    // HP bar — only update when hp/maxHp/ratio changes
+    if (hp !== this._cacheHp || maxHp !== this._cacheMaxHp) {
+      this._cacheHp = hp;
+      this._cacheMaxHp = maxHp;
+      this._cacheHpRatio = ratio;
+
+      this.hpBarFill.width = HP_BAR_WIDTH * Math.max(0, ratio);
+
+      let color: number;
+      if (ratio > 0.6) {
+        color = 0x00ff00; // green
+      } else if (ratio > 0.3) {
+        color = 0xffff00; // yellow
+      } else {
+        color = 0xff0000; // red
+      }
+      this.hpBarFill.setFillStyle(color);
+      this.hpText.setText(`${hp}/${maxHp}`);
     }
-    this.hpBarFill.setFillStyle(color);
-    this.hpText.setText(`${this.player.hp}/${this.player.maxHp}`);
 
+    // Key indicator
     const hasKey = this.inventory.has("key");
-    this.keyIcon.setVisible(hasKey);
-    this.keyLabel.setVisible(hasKey);
-
-    this.coinLabel.setText(`Coins: ${this.getCoinCount()}`);
-
-    this.scoreLabel.setText(`Score: ${this.scoreSystem.score}`);
-
-    const boosted = this.getAttackBoosted();
-    this.attackBoostIcon.setVisible(boosted);
-    this.attackBoostLabel.setVisible(boosted);
-    if (boosted) {
-      const remaining = this.getAttackBoostRemaining();
-      const secs = Math.ceil(remaining / 1000);
-      this.attackBoostLabel.setText(`ATK x2 [${secs}s]`);
-    } else {
-      this.attackBoostLabel.setText("ATK x2!");
+    if (hasKey !== this._cacheHasKey) {
+      this._cacheHasKey = hasKey;
+      this.keyIcon.setVisible(hasKey);
+      this.keyLabel.setVisible(hasKey);
     }
 
-    // Update dash cooldown bar (US-056)
-    const dashCooldownMax = Player.DASH_COOLDOWN; // 1500ms
+    // Coin count
+    const coinCount = this.getCoinCount();
+    if (coinCount !== this._cacheCoinCount) {
+      this._cacheCoinCount = coinCount;
+      this.coinLabel.setText(`Coins: ${coinCount}`);
+    }
+
+    // Score
+    const score = this.scoreSystem.score;
+    if (score !== this._cacheScore) {
+      this._cacheScore = score;
+      this.scoreLabel.setText(`Score: ${score}`);
+    }
+
+    // Attack boost indicator
+    const boosted = this.getAttackBoosted();
+    const boostSecs = boosted ? Math.ceil(this.getAttackBoostRemaining() / 1000) : -1;
+    if (boosted !== this._cacheBoosted || (boosted && boostSecs !== this._cacheBoostSecs)) {
+      this._cacheBoosted = boosted;
+      this._cacheBoostSecs = boostSecs;
+      this.attackBoostIcon.setVisible(boosted);
+      this.attackBoostLabel.setVisible(boosted);
+      if (boosted) {
+        this.attackBoostLabel.setText(`ATK x2 [${boostSecs}s]`);
+      } else {
+        this.attackBoostLabel.setText("ATK x2!");
+      }
+    }
+
+    // Dash cooldown bar (US-056)
+    const dashCooldownMax = Player.DASH_COOLDOWN;
     const dashRemaining = this.player.dashCooldownRemaining;
     const dashReady = dashRemaining <= 0;
     const DASH_BAR_W = 100;
-    if (dashReady) {
-      this.dashBarFill.width = DASH_BAR_W;
-      this.dashBarFill.setFillStyle(0x44aaff);
-      this.dashLabel.setColor("#44aaff");
-    } else {
-      const pct = 1 - dashRemaining / dashCooldownMax;
-      this.dashBarFill.width = DASH_BAR_W * pct;
-      this.dashBarFill.setFillStyle(0x225588);
-      this.dashLabel.setColor("#225588");
+    const dashPct = dashReady ? 1 : 1 - dashRemaining / dashCooldownMax;
+    if (dashReady !== this._cacheDashReady || dashPct !== this._cacheDashPct) {
+      this._cacheDashReady = dashReady;
+      this._cacheDashPct = dashPct;
+      if (dashReady) {
+        this.dashBarFill.width = DASH_BAR_W;
+        this.dashBarFill.setFillStyle(0x44aaff);
+        this.dashLabel.setColor("#44aaff");
+      } else {
+        this.dashBarFill.width = DASH_BAR_W * dashPct;
+        this.dashBarFill.setFillStyle(0x225588);
+        this.dashLabel.setColor("#225588");
+      }
     }
 
     // Update minimap
@@ -435,11 +481,15 @@ export class HUD extends Phaser.GameObjects.Container {
       this.minimap.update();
     }
 
-    // Update room exploration progress (US-039)
+    // Room exploration progress (US-039)
     if (this.roomCameraSystem) {
       const visited = this.roomCameraSystem.getVisitedRooms().size;
       const total = this.roomCameraSystem.getDungeonData().rooms.length;
-      this.roomProgressLabel.setText(`Rooms: ${visited}/${total}`);
+      if (visited !== this._cacheVisited || total !== this._cacheTotalRooms) {
+        this._cacheVisited = visited;
+        this._cacheTotalRooms = total;
+        this.roomProgressLabel.setText(`Rooms: ${visited}/${total}`);
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "vision": "2D像素风roguelike，核心体验是在随机地牢中探索、战斗、收集",
-  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（第68轮审查确认）\n⚠️ CRITICAL: checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。\n不含 key/chest 任何门控条件。US-057 引入的 \"chest decoupled from win\" 导致核心循环断裂。\nUS-387 标记 done 但代码中无 chest 检查。已在 US-613 中跟踪。\n\n### 场景生命周期（第68轮审查）\n- GameScene → shutdown() ✅ (US-562 已实现) — 清理 events/tweens/timers/hints/arrays\n- ResultScene → events.on(\"update\") 泄漏 ❌ 每次重建叠加 (US-628)\n- TitleScene → input.keyboard listeners 残留 ⚠️ once + delayedCall once 叠加 (US-637)\n- endGame/endGameInternal → 重复逻辑待合并 ⚠️ 延迟参数化 (US-629, US-641)\n\n### 掉落系统（第68轮审查）\n- spawnDropCoin/Potion/AttackBoost 在 popup 动画期间即注册 overlap ⚠️ 可能空中拾取 (US-630)\n- Coin 飘浮 tween 未在 collect 前停止 ⚠️ destroy 时序风险 (US-638)\n- Slime/Skeleton die() emit(\"enemy-death\") 后立即 destroy — 当前安全但脆弱 (US-633)\n\n### 回调架构问题（第68轮新发现）\n- RoomCameraSystem.setOnRoomChanged() 仅支持单一 callback — HUD 注册被 GameScene respawn 回调覆盖\n  → HUD 房间名 overlay 永远不触发 ⚠️ (US-640)\n\n### 已修复问题\n- US-560: Player.takeDamage() 返回 boolean ✅\n- US-531: enemy respawn overlap 重复注册 N×伤害 ✅ (group 级 overlap)\n- US-061: Space 键宝箱交互优先于攻击 ✅\n- US-063: 宝箱开启动画 ✅\n- US-562: GameScene shutdown() 统一资源清理 ✅\n\n### 仍存在的 Bug\n- Skeleton 追踪时跳过 hpBar.follow() → HP bar 不跟随 (US-631)\n- ResultScene events 泄漏 → 多次触发 restart (US-628)\n- HUD 房间名 overlay 不显示 → callback 被覆盖 (US-640)\n- TitleScene keyboard listeners 残留 → 潜在异常回调 (US-637)\n\n### 第70轮审查状态更新（2026-05-01）\n- checkWinCondition 已增加 key/chest 检查 ✅ (US-564 done)\n- GameScene shutdown() 已实现 ✅ (US-562 done)\n- ResultScene keyboard events + TitleScene restart ✅ (US-563 done)\n- endGame/endGameInternal 重复代码合并 ✅ (US-567 done)\n- Slime/Skeleton onHitWall knockback guard ✅ (US-566 done)\n- Slime HP/速度随 runCount 难度缩放 ✅ (US-642 done)\n- 动态掉落 overlap 回调泄漏修复 ✅ (US-569 done)\n- SpikeTrap gameOver 冻结 ✅ (US-568 done)\n\n### 仍未实现 — GDD已定义但代码从未创建\n- Combo 连击计分 ❌ (GDD comboSystem 已定义 → US-682)\n- Hitstop 命中冻结 ❌ (GDD hitstop.durationMs=30 → US-683)\n- 金币磁吸 ❌ (GDD coinMagnet.attractRange=30 → US-684)\n- Slime 主动追踪 ❌ (GDD slimeProximityChase → US-686)\n- Dash 冲刺残影 ❌ (GDD dashTrail → US-687)\n- 攻击冷却进度条 ❌ (GDD attackCooldownBar → US-688)\n\n\n### 第71轮审查状态更新（2026-05-01 08:16 UTC）\n- checkWinCondition 含 key + chest 检查 ✅ (代码确认 US-564 done)\n- GameScene shutdown() 已实现 ✅ (代码确认 US-562 done)\n- ResultScene keyboard events + TitleScene restart ✅ (代码确认 US-603 done)\n- endGame/endGameInternal 合并 ✅ (代码确认 US-567 done)\n- Slime/Skeleton onHitWall knockback guard ✅ (代码确认 US-566 done)\n- Slime HP/速度 runCount 难度缩放 ✅ (代码确认 US-642 done)\n- 动态掉落 overlap 回调泄漏修复 ✅ (代码确认 US-569 done)\n- SpikeTrap gameOver 冻结 ✅ (代码确认 US-568 done)\n- 场景生命周期完整修复 ✅ (代码确认 US-602 done)\n- Slime takeDamage 闪白反馈 ✅ (代码确认)\n- Slime die() emit enemy-death ✅ (代码确认)\n\n### 第71轮审查确认仍存在的 Bug\n- Minimap 无楼梯出口标记 ❌ (代码确认 — 无 stairs 渲染逻辑 → US-690)\n- Minimap 无 AttackBoost 显示 ❌ (代码确认 — 无 getAttackBoosts → US-691)\n- HUD roomName callback 被覆盖 ❌ (代码确认 — setOnRoomChanged 单 callback → US-692)\n- HUD 每帧无效 setText ❌ (代码确认 — 无 dirty flag → US-693)\n- Slime 8方向走廊抖动 ❌ (代码确认 — DIRECTIONS 含4个斜向 → US-694)\n- GDD coreLoop 文档过时 ❌ (已更新 → US-689)\n",
+  "coreLoop": "进入房间 → 探索 → 遭遇敌人 → 战斗 → 拾取道具 → 到达宝箱 → 通关或死亡\n\n### 胜利条件（第68轮审查确认）\n⚠️ CRITICAL: checkWinCondition 仅检查玩家与楼梯距离 < STAIRS_REACH_DISTANCE。\n不含 key/chest 任何门控条件。US-057 引入的 \"chest decoupled from win\" 导致核心循环断裂。\nUS-387 标记 done 但代码中无 chest 检查。已在 US-613 中跟踪。\n\n### 场景生命周期（第68轮审查）\n- GameScene → shutdown() ✅ (US-562 已实现) — 清理 events/tweens/timers/hints/arrays\n- ResultScene → events.on(\"update\") 泄漏 ❌ 每次重建叠加 (US-628)\n- TitleScene → input.keyboard listeners 残留 ⚠️ once + delayedCall once 叠加 (US-637)\n- endGame/endGameInternal → 重复逻辑待合并 ⚠️ 延迟参数化 (US-629, US-641)\n\n### 掉落系统（第68轮审查）\n- spawnDropCoin/Potion/AttackBoost 在 popup 动画期间即注册 overlap ⚠️ 可能空中拾取 (US-630)\n- Coin 飘浮 tween 未在 collect 前停止 ⚠️ destroy 时序风险 (US-638)\n- Slime/Skeleton die() emit(\"enemy-death\") 后立即 destroy — 当前安全但脆弱 (US-633)\n\n### 回调架构问题（第68轮新发现）\n- RoomCameraSystem.setOnRoomChanged() 仅支持单一 callback — HUD 注册被 GameScene respawn 回调覆盖\n  → HUD 房间名 overlay 永远不触发 ⚠️ (US-640)\n\n### 已修复问题\n- US-560: Player.takeDamage() 返回 boolean ✅\n- US-531: enemy respawn overlap 重复注册 N×伤害 ✅ (group 级 overlap)\n- US-061: Space 键宝箱交互优先于攻击 ✅\n- US-063: 宝箱开启动画 ✅\n- US-562: GameScene shutdown() 统一资源清理 ✅\n\n### 仍存在的 Bug\n- Skeleton 追踪时跳过 hpBar.follow() → HP bar 不跟随 (US-631)\n- ResultScene events 泄漏 → 多次触发 restart (US-628)\n- HUD 房间名 overlay 不显示 → callback 被覆盖 (US-640)\n- TitleScene keyboard listeners 残留 → 潜在异常回调 (US-637)\n\n### 第70轮审查状态更新（2026-05-01）\n- checkWinCondition 已增加 key/chest 检查 ✅ (US-564 done)\n- GameScene shutdown() 已实现 ✅ (US-562 done)\n- ResultScene keyboard events + TitleScene restart ✅ (US-563 done)\n- endGame/endGameInternal 重复代码合并 ✅ (US-567 done)\n- Slime/Skeleton onHitWall knockback guard ✅ (US-566 done)\n- Slime HP/速度随 runCount 难度缩放 ✅ (US-642 done)\n- 动态掉落 overlap 回调泄漏修复 ✅ (US-569 done)\n- SpikeTrap gameOver 冻结 ✅ (US-568 done)\n\n### 仍未实现 — GDD已定义但代码从未创建\n- Combo 连击计分 ❌ (GDD comboSystem 已定义 → US-682)\n- Hitstop 命中冻结 ❌ (GDD hitstop.durationMs=30 → US-683)\n- 金币磁吸 ❌ (GDD coinMagnet.attractRange=30 → US-684)\n- Slime 主动追踪 ❌ (GDD slimeProximityChase → US-686)\n- Dash 冲刺残影 ❌ (GDD dashTrail → US-687)\n- 攻击冷却进度条 ❌ (GDD attackCooldownBar → US-688)\n\n\n### 第71轮审查状态更新（2026-05-01 08:16 UTC）\n- checkWinCondition 含 key + chest 检查 ✅ (代码确认 US-564 done)\n- GameScene shutdown() 已实现 ✅ (代码确认 US-562 done)\n- ResultScene keyboard events + TitleScene restart ✅ (代码确认 US-603 done)\n- endGame/endGameInternal 合并 ✅ (代码确认 US-567 done)\n- Slime/Skeleton onHitWall knockback guard ✅ (代码确认 US-566 done)\n- Slime HP/速度 runCount 难度缩放 ✅ (代码确认 US-642 done)\n- 动态掉落 overlap 回调泄漏修复 ✅ (代码确认 US-569 done)\n- SpikeTrap gameOver 冻结 ✅ (代码确认 US-568 done)\n- 场景生命周期完整修复 ✅ (代码确认 US-602 done)\n- Slime takeDamage 闪白反馈 ✅ (代码确认)\n- Slime die() emit enemy-death ✅ (代码确认)\n\n### 第71轮审查确认仍存在的 Bug\n- Minimap 无楼梯出口标记 ❌ (代码确认 — 无 stairs 渲染逻辑 → US-690)\n- Minimap 无 AttackBoost 显示 ❌ (代码确认 — 无 getAttackBoosts → US-691)\n- HUD roomName callback 被覆盖 ❌ (代码确认 — setOnRoomChanged 单 callback → US-692)\n- HUD 每帧无效 setText ❌ (代码确认 — 无 dirty flag → US-693)\n- Slime 8方向走廊抖动 ❌ (代码确认 — DIRECTIONS 含4个斜向 → US-694)\n- GDD coreLoop 文档过时 ❌ (已更新 → US-689)\n\n\n### 第72轮审查状态更新（2026-05-01 10:16 UTC）\n- Combo连击计分 ❌ (GDD comboSystem 完整定义但 ScoreSystem.ts 零 combo 代码 → US-695)\n- Hitstop命中冻结 ❌ (GDD hitstop.durationMs=30 但无 timeScale/freeze 逻辑 → US-696)\n- 金币磁吸 ❌ (GDD coinMagnet.attractRange=30 但 Coin.ts 无磁吸逻辑 → US-697)\n- 地牢连通性验证 ❌ (DungeonMap 无 BFS/连通性检查，极端种子可能生成不可达房间 → US-698)\n- Slime 8方向含4斜向 ⚠️ (DIRECTIONS 含4斜向，走廊频繁撞墙抖动 → US-694 pending)\n- HUD setOnRoomChanged 被覆盖 ⚠️ (GameScene L477 覆盖 HUD L342 的回调 → US-692 pending)\n- Minimap 楼梯标记 ❌ (仍无 stairs 渲染 → US-690 pending)\n- SoundManager AudioNode 未 disconnect ⚠️ (每次播放创建节点链 stop 后未 disconnect → US-664 pending)\n- BootScene anims 幂等保护 ✅ (代码确认有 textures.exists 检查)\n- GameScene shutdown() ✅ (L1437 已实现)\n- Slime HP/速度 runCount 缩放 ✅ (代码确认)\n",
   "mechanics": {
     "movement": "WASD四方向移动，像素级碰撞",
     "combat": "空格键近战攻击，范围内敌人受伤。敌人接触玩家扣血",
@@ -3266,6 +3266,47 @@
         "场景生命周期: BootScene/TitleScene/ResultScene 均有 shutdown() (US-602)"
       ],
       "priority": "US-690 (Minimap楼梯标记) P0 — 核心目标小地图不可见。US-689 (GDD文档) P1 — 虚假标注误导开发。"
+    },
+    {
+      "round": 72,
+      "date": "2026-05-01",
+      "title": "第72轮设计审查 — GDD已定义未实现功能确认+连通性验证+PRD去重",
+      "summary": "深入审查25个源文件和GDD文档，确认4个GDD已完整定义但代码从未创建的功能（combo连击、hitstop冻结、金币磁吸、走廊击杀奖励），发现地牢连通性验证缺失可能导致卡关。新增5个US(US-695~US-699)。本轮刻意不重复添加已有US覆盖的问题，仅补充代码确认的新发现。PRD重复问题严重，~120条pending中约80条为重复。",
+      "newUserStories": [
+        "US-695",
+        "US-696",
+        "US-697",
+        "US-698",
+        "US-699"
+      ],
+      "changes": [
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-695: Combo连击计分 — 7个重复US合并为权威条目",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-696: Hitstop 30ms命中冻结 — 5个重复US合并为权威条目",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Coin",
+          "change": "US-697: 金币磁吸30px吸引 — 5个重复US合并为权威条目",
+          "priority": "P2"
+        },
+        {
+          "area": "map/DungeonMap",
+          "change": "US-698: 地牢连通性BFS验证 — 防止不可达房间卡关",
+          "priority": "P1"
+        },
+        {
+          "area": "meta",
+          "change": "US-699: PRD去重压缩 — ~120条pending中80条重复需清理",
+          "priority": "meta-P0"
+        }
+      ],
+      "priority": "US-698 (连通性验证) 是 P1 — 直接影响游戏可完成性。US-695 (combo) 和 US-696 (hitstop) 是战斗深度和手感的核心缺失。US-699 (PRD去重) 是项目管理最高优先级。"
     }
   ],
   "improvements": {
