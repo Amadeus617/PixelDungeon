@@ -1402,7 +1402,7 @@
           "description": "SpikeTrap/Coin/HealthPotion/AttackBoost/KeyItem 继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite，overlap 检测依赖 Phaser 内部 fallback 行为不可靠。\\n\\n合并自: US-249, US-273, US-282, US-371, US-373, US-415, US-468, US-473",
           "type": "code",
           "priority": 72,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "所有可交互实体继承 Physics.Arcade.Sprite",

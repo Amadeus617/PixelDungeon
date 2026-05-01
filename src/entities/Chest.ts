@@ -3,7 +3,7 @@ import Phaser from "phaser";
 const INTERACT_RANGE = 60;
 
 /** A chest that can be opened when the player has a key. */
-export class Chest extends Phaser.GameObjects.Sprite {
+export class Chest extends Phaser.Physics.Arcade.Sprite {
   private opened = false;
 
   static readonly INTERACT_RANGE = INTERACT_RANGE;
@@ -11,8 +11,15 @@ export class Chest extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "chest_closed");
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Set physics body
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setOffset(0, 0);
+    body.setEnable(true);
+    this.setImmovable(true);
   }
 
   get isOpen(): boolean {

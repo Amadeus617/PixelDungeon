@@ -1,14 +1,21 @@
 import Phaser from "phaser";
 
 /** A collectible health potion. Restores 1 HP on pickup (up to maxHp). */
-export class HealthPotion extends Phaser.GameObjects.Sprite {
+export class HealthPotion extends Phaser.Physics.Arcade.Sprite {
   private collected = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "health_potion");
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Set physics body for reliable overlap detection
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setOffset(0, 0);
+    body.setEnable(true);
+    this.setImmovable(true);
 
     // Floating hover animation
     this._startFloatTween();

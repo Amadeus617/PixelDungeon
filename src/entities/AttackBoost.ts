@@ -1,14 +1,21 @@
 import Phaser from "phaser";
 
 /** A collectible sword power-up. Doubles attack damage for the next hit. */
-export class AttackBoost extends Phaser.GameObjects.Sprite {
+export class AttackBoost extends Phaser.Physics.Arcade.Sprite {
   private collected = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "attack_boost");
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Set physics body for reliable overlap detection
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setOffset(0, 0);
+    body.setEnable(true);
+    this.setImmovable(true);
 
     // Floating hover animation
     this._startFloatTween();

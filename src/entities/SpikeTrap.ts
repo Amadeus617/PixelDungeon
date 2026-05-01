@@ -11,7 +11,7 @@ const ACTIVATION_COOLDOWN = 2000; // ms before trap can trigger again
  * Triggers on player overlap: deals 1 damage and slows movement for 500ms.
  * Has a cooldown so it doesn't re-trigger immediately.
  */
-export class SpikeTrap extends Phaser.GameObjects.Sprite {
+export class SpikeTrap extends Phaser.Physics.Arcade.Sprite {
   private activated = false;
   private cooldownTimer: number = 0;
   private onDamage: ((amount: number) => void) | null = null;
@@ -20,8 +20,15 @@ export class SpikeTrap extends Phaser.GameObjects.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "spike_trap_inactive");
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setScale(3);
     this.setDepth(1); // Above floor tiles but below entities
+
+    // Set physics body for reliable overlap detection
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setOffset(0, 0);
+    body.setEnable(true);
+    this.setImmovable(true);
   }
 
   /** Set callbacks for damage and slow effects */

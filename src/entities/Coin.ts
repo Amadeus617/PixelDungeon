@@ -1,14 +1,21 @@
 import Phaser from "phaser";
 
 /** A collectible coin pickup. Disappears when the player overlaps it. */
-export class Coin extends Phaser.GameObjects.Sprite {
+export class Coin extends Phaser.Physics.Arcade.Sprite {
   private collected = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, "coin");
     scene.add.existing(this);
+    scene.physics.add.existing(this);
     this.setScale(3);
     this.setDepth(5);
+
+    // Set physics body size for reliable overlap detection
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setOffset(0, 0);
+    body.setEnable(true);
+    this.setImmovable(true);
 
     // Floating hover animation
     this._startFloatTween();
