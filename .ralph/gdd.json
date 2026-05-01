@@ -4718,6 +4718,22 @@
       "unit": "ms",
       "stacking": false,
       "status": "pending"
+    },
+    "enemyDeath": {
+      "particleColors": {
+        "issue": "R73: spawnDeathParticles 硬编码 0xffffff，不区分敌人类型",
+        "gddSpec": {
+          "slime": "绿色",
+          "skeleton": "白色/灰色"
+        },
+        "actualCode": "0xffffff (白色) for all",
+        "fixUS": "US-724"
+      }
+    },
+    "respawnLeak": {
+      "issue": "R73: tryRespawnClearedRooms creates new enemies and pushes to this.slimes/skeletons but old inactive enemies from replaced roomEnemyMap entries remain in the global arrays",
+      "impact": "Memory grows with each respawn cycle; update/attack loops iterate over increasing inactive entries",
+      "fixUS": "US-725"
     }
   },
   "gameProgression": {
@@ -4767,7 +4783,9 @@
         "healing": "绿色，显示+3",
         "attackBoost": "金色文字'ATK UP!'"
       },
-      "animation": "上浮+淡出"
+      "animation": "上浮+淡出",
+      "_codeStatus": "NOT_IMPLEMENTED",
+      "_reviewNote": "R73: GDD 描述为 enabled:true 但代码零实现，标记为幻觉条目"
     },
     "enemyDeathParticles": {
       "slime": {
@@ -4791,7 +4809,13 @@
       "screenShake": "3px，150ms",
       "hpBarFlash": "快速闪红",
       "lowHpWarning": "HP≤3时红色脉动边缘，HP≤1时加速脉动",
-      "healFlash": "绿色闪光"
+      "healFlash": "绿色闪光",
+      "lowHpWarning_codeStatus": "NOT_IMPLEMENTED",
+      "lowHpWarning_reviewNote": "R73: GDD 文档化但代码零实现",
+      "healFlash_codeStatus": "NOT_IMPLEMENTED",
+      "healFlash_reviewNote": "R73: GDD 文档化但代码零实现",
+      "screenShake_codeStatus": "NOT_IMPLEMENTED",
+      "screenShake_reviewNote": "R73: GDD 文档化但代码零实现"
     },
     "roomTransition": {
       "description": "方向感知房间过渡动画(US-645)",
@@ -5177,22 +5201,20 @@
     }
   ],
   "lastReviewInfo": {
-    "round": 72,
-    "date": "2026-05-01T12:22:30Z",
-    "criticalIssues": 1,
-    "balanceIssues": 2,
-    "maintenanceIssues": 3,
+    "round": 73,
+    "date": "2026-05-01T20:21:44Z",
+    "criticalIssues": 0,
+    "balanceIssues": 1,
+    "maintenanceIssues": 2,
+    "experienceIssues": 2,
     "newUS": [
-      "US-700",
-      "US-701",
-      "US-702",
-      "US-703",
-      "US-704",
-      "US-705",
-      "US-706",
-      "US-707"
+      "US-723",
+      "US-724",
+      "US-725",
+      "US-726",
+      "US-727"
     ],
-    "summary": "第72轮审查: 发现4类 collectible (Coin/HealthPotion/AttackBoost/KeyItem) 共享 ~120行重复代码→抽取基类(US-700); config.ts scene 启动顺序错误(US-701); 敌人数量不受 runCount 影响(US-702); 掉落数组内存泄漏(US-703); 攻击锥角 151° 远超设计意图 120°(US-704); SoundManager 无音量控制(US-705); shutdown 遗漏 4 个子系统清理(US-706); Slime die() 时序脆弱(US-707)。"
+    "summary": "第73轮审查: 发现GDD visualFeedback 4个子系统(damageNumbers/lowHpWarning/healFlash/screenShake)以完成式描述文档化但代码零实现，构成文档信任危机(US-723); 死亡粒子颜色不区分敌人类型违反GDD配色定义(US-724); roomEnemyMap respawn 导致 inactive enemy 在全局数组中累积造成内存泄漏(US-725); 走廊过渡仅 setVelocity(0) 不阻断攻击/交互输入(US-726); ResultScene 不显示难度信息缺乏成就感(US-727)。"
   },
   "architectureDebt": {
     "review68": {

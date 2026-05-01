@@ -3912,6 +3912,77 @@
             "comboSystem/hitstop/coinMagnet标记为missing",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-723",
+          "title": "GDD visualFeedback 幻觉条目清理 — damageNumbers/lowHpWarning/healFlash/screenShake 均未实现",
+          "description": "GDD visualFeedback 文档详细定义了 damageNumbers(enabled:true)、lowHpWarning(HP≤3脉动)、healFlash(绿色闪光)、screenShake(3px/150ms) 四个系统，但代码中零实现。GDD 对这些功能使用完成式描述(如\"enabled: true\")具有误导性。需: (1)将这些条目标记为 pending 或移入 plannedEnhancements; (2)为每个系统创建独立实现 US; (3)或直接实现。影响: GDD 可信度下降，新开发者会被误导认为这些功能已存在。",
+          "type": "code",
+          "priority": 235,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GDD visualFeedback 中未实现条目标记为 status: pending",
+            "确认 damageNumbers/lowHpWarning/healFlash/screenShake 代码状态与 GDD 一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-724",
+          "title": "死亡粒子颜色不区分敌人类型 — GDD 要求绿色/白色但代码统一 0xffffff",
+          "description": "GDD enemyDeathParticles 定义 slime=绿色(0x22cc22)/skeleton=白色灰色(0xcccccc)，但 spawnDeathParticles() 硬编码 0xffffff，所有敌人死亡粒子相同。修改: 传入 enemy type 参数，使用 GDD 定义的配色。虽然是个小改动，但视觉辨识度影响大——玩家无法通过死亡效果区分敌人类型。",
+          "type": "code",
+          "priority": 236,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spawnDeathParticles 接受 enemy type 参数",
+            "Slime 死亡粒子绿色，Skeleton 白色/灰色，符合 GDD 定义",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-725",
+          "title": "roomEnemyMap 重生时引用泄漏 — 新旧 inactive enemy 仍在 this.slimes/skeletons 数组",
+          "description": "tryRespawnClearedRooms() 创建新敌人并 push 到 this.slimes/skeletons 数组，同时 roomEnemyMap.set(roomIdx, newEntry) 替换旧条目。但旧条目中的 inactive enemy (已 die() 但未被 filter 清理的) 仍在 this.slimes/skeletons 数组中造成内存增长。handlePlayerAttack 和 update 循环都需遍历含大量 inactive 的数组。修复: respawn 时先从 this.slimes/skeletons 中清理该 roomIdx 的 inactive enemy，或在 die() 时立即从数组移除。",
+          "type": "code",
+          "priority": 237,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "respawn 后 this.slimes/skeletons 数组不含该房间 inactive enemy",
+            "多次 respawn 循环后数组大小不无限增长",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-726",
+          "title": "走廊过渡输入冻结不完整 — setVelocity(0) 后按键仍触发攻击/交互",
+          "description": "US-720 已记录走廊过渡问题，但当前代码 (line ~1555) 仅调用 player.setVelocity(0,0)。实际上 player.update() 仍在处理 WASD/Space/Shift 按键，导致过渡期间可以攻击(虽然不移动)和交互宝箱。这与 US-597 (frozen 属性统一) 和 US-615 (fade过渡输入冻结) 相关但聚焦不同: 这些 US 都未实现。需一个统一的 player.frozen = true 属性，在 RoomCameraSystem.isTransitioning() 期间阻断所有输入处理。",
+          "type": "code",
+          "priority": 238,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊过渡期间 Space 不触发攻击或宝箱交互",
+            "走廊过渡期间 Shift 不触发 Dash",
+            "使用 player.frozen 统一属性而非零散 setVelocity(0)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-727",
+          "title": "ResultScene 结果画面不传递也不显示难度等级和 runCount",
+          "description": "US-710 已记录此问题。endGame() 传递给 ResultScene 的 data 不含 runCount 和难度信息。玩家在高难度 (runCount=10) 通关与首次通关看到完全相同的结果画面，缺乏成就感。需: (1) endGame 传递 runCount; (2) ResultScene 显示难度标签 (如 \"Run #5 - Veteran\"); (3) 可选: 按难度等级分的高分榜。",
+          "type": "code",
+          "priority": 239,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "endGame 传递 runCount 到 ResultScene",
+            "ResultScene 显示当前难度/轮次信息",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"
