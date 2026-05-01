@@ -4481,6 +4481,79 @@
         "ResultScene events.on(\"update\") 泄漏 — N次显示后 Space 触发 N次",
         "Skeleton 追踪模式跳过 hpBar.follow — 追踪时 HP bar 冻结"
       ]
+    },
+    {
+      "round": 73,
+      "date": "2026-05-01",
+      "findings": [
+        {
+          "type": "status_correction",
+          "description": "US-693 HUD dirty flag — code has _cache fields, already done",
+          "action": "marked done"
+        },
+        {
+          "type": "status_correction",
+          "description": "US-575 Slime difficulty scaling — hpMultiplier/speedMultiplier in constructor + GameScene runCount",
+          "action": "marked done"
+        },
+        {
+          "type": "status_correction",
+          "description": "US-582 BootScene anims idempotency — textures.exists() checks before all generateTexture",
+          "action": "marked done"
+        },
+        {
+          "type": "status_correction",
+          "description": "US-631 Skeleton chase HP bar follow — hpBar.follow in chase branch line 168",
+          "action": "marked done"
+        },
+        {
+          "type": "status_correction",
+          "description": "US-701 config.ts scene order — TitleScene manually starts BootScene, order is intentional",
+          "action": "marked done"
+        },
+        {
+          "type": "new_feature",
+          "description": "US-708 Minimap SpikeTrap display — hazard awareness",
+          "action": "added"
+        },
+        {
+          "type": "bug",
+          "description": "US-709 Coin/HealthPotion spawn in exit room — should skip like entrance",
+          "action": "added"
+        },
+        {
+          "type": "enhancement",
+          "description": "US-710 ResultScene runCount/difficulty display",
+          "action": "added"
+        }
+      ],
+      "codeVerified": [
+        "tsc --noEmit passes",
+        "npm run build passes (1279KB bundle)",
+        "HUD _cache fields prevent per-frame setText",
+        "Slime constructor hpMultiplier/speedMultiplier working",
+        "BootScene textures.exists() guards all generateTexture",
+        "Skeleton chase branch has hpBar.follow",
+        "AttackBoost uses (i+1)%length skipping entrance",
+        "Coin uses i%length NOT skipping entrance or exit"
+      ],
+      "pendingStillRelevant": [
+        "US-576 Coin skip entrance (code: i%length → should filter)",
+        "US-574 Player knockback 125→200px/s",
+        "US-577 Minimap stairs exit marker",
+        "US-578 Minimap AttackBoost display",
+        "US-690 Minimap stairs gold marker (duplicate of US-577)",
+        "US-694 Slime 8-direction corridor jitter",
+        "US-695 ScoreSystem combo",
+        "US-696 Hitstop 30ms",
+        "US-697 Coin magnet",
+        "US-702 Enemy count runCount scaling",
+        "US-703 Collected items memory leak",
+        "US-704 Player attack cone too wide",
+        "US-705 SoundManager volume/mute",
+        "US-706 GameScene shutdown cleanup",
+        "US-707 Slime death hpBar timing"
+      ]
     }
   ],
   "gameSystems": {
@@ -4650,6 +4723,18 @@
       "pulseCycle": 1500,
       "preTriggerWarning": 300,
       "status": "pending"
+    },
+    "minimap": {
+      "spikeTrapDisplay": {
+        "description": "US-708: Minimap SpikeTrap标记",
+        "activeColor": "0xff4400",
+        "inactiveColor": "0x666666",
+        "activeAlpha": 0.8,
+        "inactiveAlpha": 0.3,
+        "radius": 2,
+        "pulseOnActive": true,
+        "status": "pending"
+      }
     }
   },
   "tutorialSystem": {

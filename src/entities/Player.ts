@@ -7,7 +7,7 @@ const ATTACK_RANGE = 50;
 const ATTACK_DAMAGE = 1;
 const ATTACK_COOLDOWN = 400;
 const INVINCIBLE_DURATION = 1000;
-const KNOCKBACK_DISTANCE = 25; // pixels
+const KNOCKBACK_DISTANCE = 40; // pixels (200 px/s over 200ms)
 const KNOCKBACK_DURATION = 200; // ms
 const ATTACK_BOOST_DURATION = 10000; // 10 seconds
 

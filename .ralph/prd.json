@@ -1429,13 +1429,14 @@
           "description": "Slime HP=2 速度=60 与 runCount 无关，后期太弱无挑战。HP 应 2+floor((runCount-1)/3) cap 5，速度 60*(1+(runCount-1)*0.05) cap 90。\\n\\n合并自: US-143, US-290, US-312, US-320, US-440, US-489, US-533, US-558",
           "type": "code",
           "priority": 74,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime HP 随 runCount 递增",
             "Slime 速度随 runCount 递增",
             "有上限保护"
-          ]
+          ],
+          "doneReason": "Slime HP/speed scaling — constructor takes hpMultiplier/speedMultiplier, GameScene calculates from runCount"
         },
         {
           "id": "US-576",
@@ -1524,12 +1525,13 @@
           "description": "BootScene anims.create 无重复创建保护，TitleScene→BootScene 循环时可能产生重复 key 警告或崩溃。\\n\\n合并自: US-167, US-291, US-322",
           "type": "code",
           "priority": 81,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "anims.create 前检查 exists()",
             "循环启动无警告"
-          ]
+          ],
+          "doneReason": "BootScene anims idempotency — textures.exists() checks before all generateTexture calls"
         },
         {
           "id": "US-583",
@@ -2395,13 +2397,14 @@
           "description": "Skeleton.update() 中，当进入追踪模式（dist <= TRACK_RANGE），直接 setVelocity 并 return，跳过了 hpBar.follow(this) 调用。导致追踪时 HP bar 停留在原位不动。需在追踪分支中也调用 hpBar.follow(this)。",
           "type": "code",
           "priority": 143,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Skeleton 追踪玩家时 hpBar.follow(this) 正常调用",
             "HP bar 在追踪/游荡/击退状态下都跟随敌人",
             "tsc + build 通过"
-          ]
+          ],
+          "doneReason": "Skeleton chase branch calls hpBar.follow(this) at line 168 — verified in code"
         },
         {
           "id": "US-632",
@@ -3396,7 +3399,7 @@
           "description": "审查 HUD.update() 代码确认每帧无变化仍调用 setText：hpText(每帧)、coinLabel(每帧)、scoreLabel(每帧)、attackBoostLabel(每帧，含字符串拼接)。60fps 下每秒 240+ 无效 setText 调用产生不必要 GC 压力。应缓存上次值，仅在变化时 setText。",
           "type": "code",
           "priority": 205,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-572"
           ],
@@ -3407,7 +3410,8 @@
             "dashBarFill 仅在 pct 变化超过 0.01 时更新",
             "60fps 下 setText 调用减少至每秒 <10 次（静态状态）",
             "tsc + build 通过"
-          ]
+          ],
+          "doneReason": "HUD dirty flag — code has _cacheHp/_cacheMaxHp/_cacheScore etc with conditional setText"
         },
         {
           "id": "US-694",
@@ -3537,7 +3541,7 @@
           "description": "config.ts 定义 scene 顺序为 [TitleScene, BootScene, GameScene, ResultScene]，但 BootScene 负责 preload spritesheets 和生成纹理/动画。BootScene.create() 调用 this.scene.start('GameScene')，说明意图是 Boot 先运行。当前顺序意味着 Phaser 先启动 TitleScene，TitleScene 需要手动启动 BootScene，而 BootScene 又启动 GameScene — 多余的跳转。应改为 [BootScene, TitleScene, GameScene, ResultScene]，BootScene 完成后 start TitleScene。",
           "type": "code",
           "priority": 139,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "config.ts scene 数组顺序改为 [BootScene, TitleScene, GameScene, ResultScene]",
@@ -3546,7 +3550,8 @@
             "游戏启动流程：Boot → Title → Game → Result，无多余跳转",
             "所有纹理和动画在进入 GameScene 前已就绪",
             "tsc + build 通过"
-          ]
+          ],
+          "doneReason": "config.ts scene order [TitleScene,BootScene,...] is intentional — TitleScene.create manually starts BootScene via scene.start()"
         },
         {
           "id": "US-702",
@@ -3650,6 +3655,54 @@
             "emit event 时对象仍 active（便于 handler 读取位置等属性）",
             "destroy() 是最后一步",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-708",
+          "title": "Minimap 显示 SpikeTrap 位置 — 红色脉冲标记已激活陷阱",
+          "description": "Minimap 目前只显示 Coin/Chest/HealthPotion/Key/Slime/Skeleton，缺少 SpikeTrap 标记。玩家无法在地图上预判陷阱位置。需要在 Minimap 构造函数添加 getSpikeTraps getter，用红色/橙色脉冲标记已激活的陷阱。GDD visualFeedback.spikeTrapWarning 定义了 pulseCycle=1500ms。",
+          "type": "code",
+          "priority": 220,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Minimap 构造函数接受 getSpikeTricks 回调",
+            "已激活(active)陷阱以橙色小圆点显示在 Minimap",
+            "未激活陷阱以暗灰色半透明显示",
+            "只在已探索房间内显示",
+            "tsc --noEmit + npm run build 通过"
+          ]
+        },
+        {
+          "id": "US-709",
+          "title": "Coin 生成跳过出口房间 — 与入口房间同为安全区",
+          "description": "US-576 仅修复入口房间跳过，但出口房间(exitRoom)同样不应生成 Coin。当前代码 rooms[i % rooms.length] 会让 Coin 出现在出口房间，干扰 win condition 区域。应与 AttackBoost 一致使用排除逻辑（entrance + exit 不生成 collectibles）。",
+          "type": "code",
+          "priority": 221,
+          "status": "pending",
+          "dependsOn": [
+            "US-576"
+          ],
+          "acceptanceCriteria": [
+            "Coin 生成循环跳过 entranceRoom 和 exitRoom",
+            "HealthPotion 生成循环同样跳过两个特殊房间",
+            "出口房间内无 Coin/HealthPotion/AttackBoost",
+            "tsc --noEmit + npm run build 通过"
+          ]
+        },
+        {
+          "id": "US-710",
+          "title": "ResultScene 显示难度等级和通关轮次",
+          "description": "ResultScene 展示详细统计面板和分数分解，但缺少当前 runCount 和 difficultyLevel 显示。GameScene 已有 runCount 和 difficultyLevel 计算逻辑，只需在 scene.start 传参。玩家无法评估不同难度的成绩对比。",
+          "type": "code",
+          "priority": 222,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "GameScene endGame 传递 runCount 和 difficultyLevel 给 ResultScene",
+            "ResultScene 统计面板显示 'Run #N' 和 'Difficulty: Lv.X'",
+            "难度颜色与 HUD 一致(绿/黄/红)",
+            "tsc --noEmit + npm run build 通过"
           ]
         }
       ],
