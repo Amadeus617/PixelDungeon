@@ -59,6 +59,8 @@ export class SpikeTrap extends Phaser.GameObjects.Sprite {
 
   update(delta: number): void {
     if (!this.activated) return;
+    // Freeze when game is over (US-568)
+    if ((this.scene as any).gameOver) return;
 
     this.cooldownTimer -= delta;
     if (this.cooldownTimer <= 0) {

@@ -117,7 +117,8 @@ export class GameScene extends Phaser.Scene {
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
-  private gameOver = false;
+  /** Public read-only: true once endGame has been triggered. Entities check this to freeze. */
+  gameOver = false;
   private isPaused = false;
   private pauseOverlay!: Phaser.GameObjects.Container;
   private roomCameraSystem!: RoomCameraSystem;

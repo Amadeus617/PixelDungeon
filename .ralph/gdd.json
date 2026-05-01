@@ -3011,6 +3011,64 @@
         "US-642: Slime HP/速度随runCount难度缩放 ✅ 已验证代码"
       ],
       "priority": "US-665 (死亡转场冻结) 和 US-666 (HUD性能) 是最高优先级 — 影响游戏运行质量和性能。US-669 (PRD去重) 是最高元优先级。"
+    },
+    {
+      "round": 70,
+      "date": "2026-05-01",
+      "title": "第70轮设计审查 — GDD已定义但代码从未实现的关键功能",
+      "summary": "通过grep代码确认，GDD中定义的combo连击(hitstop/magnet/poison/boss/room types/tutorial等7项功能)从未在代码中实现。本轮新增5个US(US-670~674)聚焦最高价值的未实现功能。同时确认近期代码修复有效：US-560(takeDamage返回值)、US-561(HP bar跟随)、US-562(shutdown)、US-564(checkWinCondition key检查)、US-566(knockback guard)、US-567(endGame合并)均已正确实现。",
+      "newUserStories": [
+        "US-670",
+        "US-671",
+        "US-672",
+        "US-673",
+        "US-674"
+      ],
+      "changes": [
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-670: combo连击计分 — GDD comboSystem已定义3秒窗口/0.5递增/3.0上限",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-671: Hitstop 30ms命中冻结 — GDD hitstop已定义durationMs=30",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Coin",
+          "change": "US-672: 金币磁吸30px — GDD coinMagnet已定义attractRange=30/attractSpeed=20",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/tutorial",
+          "change": "US-673: 新手操作引导覆盖层 — GDD从未定义但US-624/647标记多年未实现",
+          "priority": "P1"
+        },
+        {
+          "area": "meta",
+          "change": "US-674: PRD去重 — 196条中114条pending需审计精简至~60条",
+          "priority": "meta-P0"
+        }
+      ],
+      "verifiedDone": [
+        "US-560: Player.takeDamage() 返回 boolean ✅",
+        "US-561: Skeleton/Slime HP bar chase/knockback 跟随修复 ✅",
+        "US-562: GameScene shutdown() 统一资源清理 ✅",
+        "US-564: 核心游戏循环闭合 — checkWinCondition 增加 key/chest 检查 ✅",
+        "US-566: Slime/Skeleton onHitWall() knockback guard ✅",
+        "US-567: endGame/endGameInternal 重复代码合并 ✅",
+        "US-642: Slime HP/速度随runCount难度缩放 ✅"
+      ],
+      "gddDefinedButNotInCode": [
+        "combo连击计分 (comboSystem)",
+        "hitstop命中冻结 (hitstop)",
+        "金币磁吸 (coinMagnet)",
+        "毒药陷阱 (poisonPotion)",
+        "Boss敌人 (roomTypes.boss)",
+        "房间类型分化 (roomTypes)",
+        "新手引导 (无GDD定义)"
+      ]
     }
   ],
   "improvements": {

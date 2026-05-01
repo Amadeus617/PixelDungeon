@@ -146,6 +146,11 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
 
   update(delta: number): void {
     if (!this.active) return;
+    // Freeze when game is over (US-568)
+    if ((this.scene as any).gameOver) {
+      this.setVelocity(0, 0);
+      return;
+    }
 
     // During knockback, count down and resume normal movement after
     if (this.isKnockedBack) {

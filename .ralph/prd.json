@@ -3015,6 +3015,84 @@
             "所有保留US的acceptanceCriteria完整无遗漏",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-670",
+          "title": "ScoreSystem combo连击计分系统实现 — GDD已定义但代码从未实现",
+          "description": "ScoreSystem缺少combo连击机制。GDD定义了3秒窗口+0.5倍率递增+3.0上限，但ScoreSystem.ts无任何combo相关代码。连击系统增加战斗策略深度和roguelike重复可玩性。实现方案：添加comboCount/comboTimer/comboMultiplier属性，addEnemyPoints()内递增combo并应用倍率，3秒窗口过期重置，HUD显示当前combo数和倍率。",
+          "type": "code",
+          "priority": 182,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem新增comboCount/comboTimer/comboMultiplier属性",
+            "击杀敌人时comboCount++，分数 = base * multiplier",
+            "3秒内无击杀则combo重置为0",
+            "HUD显示combo数和当前倍率",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-671",
+          "title": "Hitstop命中冻结反馈 — GDD已定义30ms但代码从未实现",
+          "description": "GDD定义了hitstop durationMs=30，但GameScene.ts无任何hitstop/freeze逻辑。命中瞬间暂停全局30ms是动作游戏打击感的核心技术，参考Celeste/Hollow Knight。实现方案：handlePlayerAttack命中时设置scene.physics.world.pause() + setTimeout(30ms)后resume，或使用scene.time.delayedCall。",
+          "type": "code",
+          "priority": 183,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击命中敌人时全局暂停30ms",
+            "不影响玩家输入响应延迟",
+            "多次命中不叠加暂停时间",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-672",
+          "title": "金币磁吸效果实现 — GDD定义30px吸引范围但代码从未实现",
+          "description": "GDD定义了coinMagnet attractRange=30, attractSpeed=20，但Coin.ts无任何magnet/attract相关代码。金币在30px内自动吸引拾取提升收集手感和流畅度。实现方案：Coin update()检测与玩家距离<30px时向玩家移动（speed=20px/frame），到达后触发collect。",
+          "type": "code",
+          "priority": 184,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家接近金币30px内金币自动向玩家移动",
+            "吸引速度20px/frame",
+            "仅对Coin生效，药水/钥匙不吸引",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-673",
+          "title": "新手操作引导覆盖层 — 首次进入房间显示按键提示",
+          "description": "游戏无任何操作提示，新手玩家不知道WASD移动/空格攻击/Shift冲刺/ESC暂停。首次进入第一个战斗房间时显示半透明覆盖层标注各按键功能，3秒后自动淡出或按任意键关闭。使用localStorage记录已显示状态，仅首次游戏触发。",
+          "type": "code",
+          "priority": 185,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "首次进入战斗房间显示操作提示覆盖层",
+            "WASD=移动, Space=攻击, Shift=冲刺, ESC=暂停",
+            "3秒后自动淡出或按任意键关闭",
+            "localStorage存储已显示标记，后续不再触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-674",
+          "title": "PRD去重压缩执行 — 196条US中114条pending含大量重复",
+          "description": "PRD共196条US（82 done + 114 pending），但grep代码发现combo/hitstop/magnet等GDD定义的功能从未实现，说明大量pending US是重复标记而非实际推进。例如：takeDamage返回值在560+567等权威条目已done，HP bar跟随已由US-561修复，checkWinCondition已由US-564修复。应全面审计114条pending，合并重复、删除已由权威条目覆盖的旧条目，目标精简至~60条有效pending。",
+          "type": "code",
+          "priority": 186,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "审计全部114条pending US",
+            "合并重复条目为权威条目",
+            "删除已被权威done条目覆盖的旧pending",
+            "最终pending数<=60",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"
