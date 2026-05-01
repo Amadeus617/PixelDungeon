@@ -1496,6 +1496,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number): void {
+    // HUD should keep updating even during gameOver (death animation)
+    // US-571: moved before gameOver check so death animation shows live score/HP
+    if (this.hud) this.hud.update();
+
     if (this.gameOver) return;
 
     // Toggle pause on ESC
@@ -1536,8 +1540,6 @@ export class GameScene extends Phaser.Scene {
     for (const skeleton of this.skeletons) {
       skeleton.update(delta);
     }
-
-    this.hud.update();
 
     // Check proximity to chest — show interactive hint (US-051)
     this.updateChestProximityHint();

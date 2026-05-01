@@ -1362,7 +1362,7 @@
           "description": "ResultScene 用 events.on('update') 轮询检测按键，监听器从不清理。应改为 keyboard 事件监听 + shutdown 清理。\\n\\n合并自: US-164, US-253, US-265, US-276, US-386",
           "type": "code",
           "priority": 69,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "keyboard.on('keydown') 替代 events.on('update')",
@@ -1375,7 +1375,7 @@
           "description": "gameOver=true 后 return 跳过 hud.update()，导致死亡动画 800ms+600ms 内分数/状态冻结不更新。\\n\\n合并自: US-144, US-155, US-201, US-221, US-248, US-394",
           "type": "code",
           "priority": 70,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "HUD 在死亡动画期间继续更新",
