@@ -28,6 +28,10 @@ const POTION_RADIUS = 2;
 const KEY_COLOR = 0xffff00;
 const KEY_RADIUS = 2;
 
+/** Exit stairs marker */
+const EXIT_COLOR = 0xffd700; // gold
+const EXIT_RADIUS = 4;
+
 /**
  * A minimap HUD element that shows a bird's-eye view of the dungeon.
  * Displays explored rooms, player position, enemies, and items.
@@ -298,6 +302,32 @@ export class Minimap extends Phaser.GameObjects.Container {
     // White outline for visibility
     g.lineStyle(1, 0xffffff, 0.8);
     g.strokeCircle(ox + pPos.x, oy + pPos.y, PLAYER_RADIUS + 1);
+
+    // Draw exit stairs marker (gold pulsing, only when exit room is visited)
+    const exitRoom = this.dungeonData.exitRoom;
+    const exitRoomIndex = this.dungeonData.rooms.indexOf(exitRoom);
+    if (exitRoomIndex >= 0 && visitedRooms.has(exitRoomIndex)) {
+      // Center of the exit room in world coords
+      const exitWorldX = (exitRoom.col + exitRoom.width / 2) * this.tileSize * this.tileScale;
+      const exitWorldY = (exitRoom.row + exitRoom.height / 2) * this.tileSize * this.tileScale;
+      const ePos = this.worldToMinimap(exitWorldX, exitWorldY);
+
+      // Pulsing animation
+      const exitPulse = Math.sin(this.scene.time.now / 300) * 0.3 + 0.7;
+      const exitR = EXIT_RADIUS + Math.sin(this.scene.time.now / 400) * 1;
+
+      // Outer glow
+      g.fillStyle(EXIT_COLOR, exitPulse * 0.3);
+      g.fillCircle(ox + ePos.x, oy + ePos.y, exitR + 3);
+
+      // Core marker
+      g.fillStyle(EXIT_COLOR, exitPulse);
+      g.fillCircle(ox + ePos.x, oy + ePos.y, exitR);
+
+      // White outline
+      g.lineStyle(1, 0xffffff, 0.6);
+      g.strokeCircle(ox + ePos.x, oy + ePos.y, exitR + 1);
+    }
   }
 
   /** Check if a world position is within any visited room */

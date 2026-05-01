@@ -1458,7 +1458,7 @@
           "description": "Minimap 从未标记楼梯出口位置，核心游戏目标在小地图上不可见。应添加金色脉冲标记在 exitRoom 已访问时显示。\\n\\n合并自: US-079, US-186, US-237, US-408, US-413",
           "type": "code",
           "priority": 76,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "exitRoom 已访问时显示金色标记",
