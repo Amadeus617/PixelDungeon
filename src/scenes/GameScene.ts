@@ -299,6 +299,7 @@ export class GameScene extends Phaser.Scene {
         const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, slime.x, slime.y);
         if (wasHurt) {
           this.soundManager.playHurt();
+          this.onPlayerHurt();
         }
       }
     );
@@ -316,6 +317,7 @@ export class GameScene extends Phaser.Scene {
         const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, skeleton.x, skeleton.y);
         if (wasHurt) {
           this.soundManager.playHurt();
+          this.onPlayerHurt();
         }
       }
     );
@@ -369,7 +371,9 @@ export class GameScene extends Phaser.Scene {
           return;
         }
         if (potion.collect()) {
+          this.spawnPickupParticles(potion.x, potion.y, 0x00ff00);
           this.player.heal(HEALTH_POTION_HEAL);
+          this.onPlayerHeal(HEALTH_POTION_HEAL);
           this.potionUsedCount++;
           this.soundManager.playPickup();
         }
@@ -401,6 +405,7 @@ export class GameScene extends Phaser.Scene {
           const wasHurt = this.player.takeDamage(amount, trap.x, trap.y);
           if (wasHurt) {
             this.soundManager.playHurt();
+            this.onPlayerHurt();
           }
         },
         (multiplier: number, duration: number) => {
@@ -423,6 +428,7 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.overlap(this.player, coin, () => {
         if (!coin.active) return; // US-569: guard destroyed sprites
         if (coin.collect()) {
+          this.spawnPickupParticles(coin.x, coin.y, 0xffd700);
           this.coinCount++;
           this.scoreSystem.addCoinPoints();
           this.soundManager.playPickup();
@@ -434,6 +440,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.keyItem, () => {
       if (!this.keyItem.active) return; // US-569: guard destroyed sprites
       if (this.keyItem.collect()) {
+        this.spawnPickupParticles(this.keyItem.x, this.keyItem.y, 0xffff00);
         this.inventory.add("key");
         this.soundManager.playPickup();
         // Show hint: key can be used to open chest (US-057)
@@ -1068,6 +1075,7 @@ export class GameScene extends Phaser.Scene {
       }
       if (potion.collect()) {
         this.player.heal(DROP_POTION_HEAL);
+        this.onPlayerHeal(DROP_POTION_HEAL);
         this.potionUsedCount++;
         this.soundManager.playPickup();
       }
@@ -1078,6 +1086,99 @@ export class GameScene extends Phaser.Scene {
   /** Show "HP Full" floating hint near a health potion (US-060) */
   private hpFullHintText: Phaser.GameObjects.Text | null = null;
   private hpFullHintCooldown = 0;
+  private lowHpOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private lowHpTween: Phaser.Tweens.Tween | null = null;
+
+  /** Called when the player takes damage (US-600: screen shake + low HP warning) */
+  private onPlayerHurt(): void {
+    // Camera shake on hit
+    this.cameras.main.shake(150, 0.005);
+
+    // Low HP warning: pulsing red border when HP < 3
+    this.updateLowHpWarning();
+  }
+
+  /** Called when the player heals (US-600: green heal number popup) */
+  private onPlayerHeal(amount: number): void {
+    // Green floating text
+    const text = this.add.text(this.player.x, this.player.y - 20, `+${amount}`, {
+      fontSize: "16px",
+      color: "#00ff00",
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 3,
+    });
+    text.setOrigin(0.5);
+    text.setDepth(500);
+    text.setScrollFactor(1);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 30,
+      alpha: 0,
+      duration: 800,
+      ease: "Power2",
+      onComplete: () => text.destroy(),
+    });
+
+    // Remove low HP warning if healed above threshold
+    this.updateLowHpWarning();
+  }
+
+  /** Update low-HP pulsing red border overlay (US-600) */
+  private updateLowHpWarning(): void {
+    const hp = this.player.hp;
+    const maxHp = this.player.maxHp;
+    const threshold = Math.max(3, Math.floor(maxHp * 0.3));
+
+    if (hp > 0 && hp <= threshold) {
+      // Show pulsing red overlay
+      if (!this.lowHpOverlay) {
+        const { width, height } = this.scale;
+        this.lowHpOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0xff0000, 0);
+        this.lowHpOverlay.setDepth(400);
+        this.lowHpOverlay.setScrollFactor(0);
+
+        this.lowHpTween = this.tweens.add({
+          targets: this.lowHpOverlay,
+          fillAlpha: 0.15,
+          duration: 400,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      }
+    } else {
+      // Remove overlay
+      if (this.lowHpTween) {
+        this.lowHpTween.stop();
+        this.lowHpTween = null;
+      }
+      if (this.lowHpOverlay) {
+        this.lowHpOverlay.destroy();
+        this.lowHpOverlay = null;
+      }
+    }
+  }
+
+  /** Spawn pickup particles at a position (US-600) */
+  private spawnPickupParticles(x: number, y: number, color: number = 0xffffff): void {
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const dist = 12 + Math.random() * 10;
+      const p = this.add.circle(x, y, 2, color, 0.8);
+      p.setDepth(200);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        duration: 300,
+        ease: "Power2",
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
 
   private showHpFullHint(worldX: number, worldY: number): void {
     const now = this.time.now;
@@ -1521,6 +1622,13 @@ export class GameScene extends Phaser.Scene {
 
     // --- Tweens — stop all scene tweens ---
     this.tweens.killAll();
+
+    // Low HP overlay cleanup (US-600)
+    if (this.lowHpOverlay) {
+      this.lowHpOverlay.destroy();
+      this.lowHpOverlay = null;
+      this.lowHpTween = null;
+    }
 
     // --- Time events — clear all delayed calls / loops ---
     this.time.removeAllEvents();

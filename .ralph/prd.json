@@ -1837,7 +1837,7 @@
           "description": "低血量红色脉动边框 + 回血绿色闪烁数字 + 拾取粒子爆发 + 受伤镜头震动。全面提升游戏手感。\\n\\n合并自: US-235, US-342, US-343, US-353, US-360, US-447, US-448, US-449, US-451, US-452, US-541",
           "type": "code",
           "priority": 99,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "HP<3 红色边框脉动",
