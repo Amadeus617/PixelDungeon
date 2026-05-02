@@ -1782,7 +1782,7 @@
           "description": "Inventory 使用 Set 不支持数量计数，add('key') 两次后 remove('key') 一次仍有 key。应改为 Map<string, number>。\\n\\n合并自: US-095, US-134, US-284, US-319",
           "type": "code",
           "priority": 95,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Map<string,number> 替代 Set",
