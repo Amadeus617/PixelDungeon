@@ -1609,7 +1609,7 @@
           "description": "敌人接触伤害完全依赖玩家无敌帧，多敌人重叠时伤害判定不公平。每个敌人应有独立冷却。\\n\\n合并自: US-326, US-356",
           "type": "code",
           "priority": 87,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "每个敌人有 500ms contact 冷却",

@@ -94,6 +94,7 @@ const HEALTH_POTION_COUNT = 3;
 const HEALTH_POTION_HEAL = 3;
 const ATTACK_BOOST_COUNT = 2;
 const ENEMY_CONTACT_DAMAGE = 1;
+const ENEMY_CONTACT_COOLDOWN = 500; // per-enemy contact damage cooldown (US-588)
 const STAIRS_REACH_DISTANCE = 40;
 
 // --- Chest loot drop rates (US-431) ---
@@ -134,6 +135,7 @@ export class GameScene extends Phaser.Scene {
   private coinCount = 0;
   private killCount = 0;
   private potionUsedCount = 0;
+  private enemyContactCooldowns = new Map<Phaser.GameObjects.GameObject, number>(); // per-enemy contact cooldown (US-588)
   private scoreSystem = new ScoreSystem();
   private spaceKey!: Phaser.Input.Keyboard.Key;
   private escKey!: Phaser.Input.Keyboard.Key;
@@ -286,24 +288,34 @@ export class GameScene extends Phaser.Scene {
     }
     // --- End room-depth enemy spawning (US-044) ---
 
-    // Slime contact with player → player takes damage
+    // Slime contact with player → player takes damage (US-588: per-enemy 500ms cooldown)
     this.physics.add.overlap(
       this.player,
       this.slimeGroup,
       (_playerObj, slimeObj) => {
-        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (slimeObj as Phaser.GameObjects.Sprite).x, (slimeObj as Phaser.GameObjects.Sprite).y);
+        const slime = slimeObj as Phaser.GameObjects.Sprite;
+        const now = this.time.now;
+        const lastHit = this.enemyContactCooldowns.get(slime) ?? 0;
+        if (now - lastHit < ENEMY_CONTACT_COOLDOWN) return;
+        this.enemyContactCooldowns.set(slime, now);
+        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, slime.x, slime.y);
         if (wasHurt) {
           this.soundManager.playHurt();
         }
       }
     );
 
-    // Skeleton contact with player → player takes damage
+    // Skeleton contact with player → player takes damage (US-588: per-enemy 500ms cooldown)
     this.physics.add.overlap(
       this.player,
       this.skeletonGroup,
       (_playerObj, skeletonObj) => {
-        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, (skeletonObj as Phaser.GameObjects.Sprite).x, (skeletonObj as Phaser.GameObjects.Sprite).y);
+        const skeleton = skeletonObj as Phaser.GameObjects.Sprite;
+        const now = this.time.now;
+        const lastHit = this.enemyContactCooldowns.get(skeleton) ?? 0;
+        if (now - lastHit < ENEMY_CONTACT_COOLDOWN) return;
+        this.enemyContactCooldowns.set(skeleton, now);
+        const wasHurt = this.player.takeDamage(ENEMY_CONTACT_DAMAGE, skeleton.x, skeleton.y);
         if (wasHurt) {
           this.soundManager.playHurt();
         }
