@@ -1742,7 +1742,7 @@
           "description": "healthPotionHeal GDD 记录与代码实际值不一致（GDD 曾为 1，代码 3），dropPotionHeal=2 未记录。需要全面同步。\\n\\n合并自: US-184, US-293, US-444, US-445, US-461",
           "type": "code",
           "priority": 92,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "GDD healthPotionHeal=3 与代码一致",

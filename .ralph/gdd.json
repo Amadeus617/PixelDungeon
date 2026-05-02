@@ -14,6 +14,12 @@
     "playerAttackRange": 50,
     "playerAttackCooldown": 400,
     "playerInvincibleDuration": 1000,
+    "playerKnockbackDistance": 40,
+    "playerKnockbackDuration": 200,
+    "playerAttackBoostDuration": 10000,
+    "playerDashDistance": 80,
+    "playerDashDuration": 150,
+    "playerDashCooldown": 1500,
     "enemyHP": {
       "slime": 2,
       "skeleton": 4
@@ -22,308 +28,30 @@
       "slime": 60,
       "skeleton": 55
     },
+    "enemyContactDamage": 1,
+    "enemyContactCooldown": 500,
     "enemyCount": {
       "slime": 4,
       "skeleton": 3
     },
     "skeletonTrackRange": 200,
-    "enemyContactDamage": 1,
     "coinCount": 5,
+    "coinPoints": 1,
     "healthPotionCount": 3,
     "healthPotionHeal": 3,
-    "attackBoostCount": 2,
-    "coinPoints": 10,
-    "enemyKillPoints": 50,
-    "dungeonRooms": "3-5 random",
-    "roomSize": "10-16 tiles",
-    "dashSpeed": 80,
-    "dashDuration": 150,
-    "dashCooldown": 1500,
-    "corridorPatrolCount": "1-2",
-    "difficultyScaling": {
-      "skeletonCountPerRun": {
-        "base": 3,
-        "incrementPerRun": "floor(runCount/3)",
-        "cap": 5,
-        "note": "US-290: 每3次run增加1个Skeleton，上限5"
-      },
-      "slimeSpeedPerRun": {
-        "base": 60,
-        "multiplierPerRun": 0.05,
-        "cap": 1.5,
-        "note": "US-290: Slime速度每run增加5%，上限1.5x"
-      },
-      "healthPotionPerRun": {
-        "base": 3,
-        "incrementPerRun": "floor(runCount/4)",
-        "cap": 6,
-        "note": "US-290: 每4次run增加1个药水，上限6"
-      },
-      "slimeHpScaling": "2 + floor((runCount-1)/3), cap 5",
-      "slimeSpeedScaling": "60 * (1 + (runCount-1)*0.05), cap 90",
-      "slimeHPScale": {
-        "description": "Slime HP随runCount递增(US-642)",
-        "formula": "base_hp + floor(runCount/4)",
-        "maxHP": 4,
-        "status": "pending"
-      },
-      "slimeSpeedScale": {
-        "description": "Slime速度随runCount递增(US-642)",
-        "formula": "base_speed * (1 + (runCount-1)*0.08)",
-        "maxMultiplier": 1.6,
-        "status": "pending"
-      }
-    },
-    "timeBonusThresholds": {
-      "note": "US-286: 通关时间奖励",
-      "tiers": [
-        {
-          "underSeconds": 60,
-          "bonus": 500
-        },
-        {
-          "underSeconds": 120,
-          "bonus": 300
-        },
-        {
-          "underSeconds": 180,
-          "bonus": 200
-        },
-        {
-          "underSeconds": 300,
-          "bonus": 100
-        }
-      ]
-    },
-    "attackBoostDuration": 10000,
-    "enemyStats": {
-      "_plannedMultipliers": {
-        "description": "US-338 将为敌人构造器添加 hpMultiplier 参数。以下为计划公式（尚未实现）：",
-        "hpMultiplierFormula": "baseHp * depthMultiplier * runCountMultiplier",
-        "depthMultiplier": {
-          "early": 1.0,
-          "mid": 1.25,
-          "last": 1.5
-        },
-        "runCountMultiplier": "1.0 + (runCount - 1) * 0.05, capped at 2.0"
-      }
-    },
-    "comboSystem": {
-      "note": "US-357: 连击计分机制",
-      "comboWindowMs": 3000,
-      "multiplierPerCombo": 0.5,
-      "maxMultiplier": 3.0,
-      "baseKillScore": 50
-    },
-    "hitstop": {
-      "durationMs": 30,
-      "note": "US-359: 攻击命中时全局冻结时间"
-    },
-    "cameraShake": {
-      "durationMs": 50,
-      "intensity": 0.003,
-      "note": "US-360: 玩家受伤时camera shake参数"
-    },
-    "inputBuffer": {
-      "windowMs": 100,
-      "note": "US-364: 攻击输入缓冲窗口，冷却结束前有效"
-    },
-    "poisonPotion": {
-      "dropRate": 0.1,
-      "damage": 2,
-      "note": "US-363: 敌人掉落毒药的概率和伤害"
-    },
-    "roomTypes": {
-      "types": [
-        "normal",
-        "treasure",
-        "danger",
-        "safe",
-        "boss"
-      ],
-      "distribution": {
-        "treasure": "max 1 per floor, 0.25 probability",
-        "danger": "max 1 per floor, 0.2 probability",
-        "safe": "max 1 per floor, 0.15 probability",
-        "boss": "always last room",
-        "normal": "remaining rooms"
-      },
-      "spawnModifiers": {
-        "treasure": "coins x3, potions x2, enemies x0.5",
-        "danger": "traps x2, enemies x1.5, no potions",
-        "safe": "no enemies, 1 healing fountain",
-        "boss": "reserved for future boss enemy"
-      },
-      "note": "US-362: 房间类型分配和spawn修改器"
-    },
-    "playerAttackDamageProgression": {
-      "note": "US-409: 玩家攻击力跨局成长",
-      "formula": "min(3, 1 + floor((runCount-1)/3))",
-      "values": {
-        "run1-3": 1,
-        "run4-6": 2,
-        "run7+": 3
-      }
-    },
-    "difficultyCurveAnalysis": {
-      "note": "US-414: 第49轮审查发现的难度曲线问题",
-      "currentProblem": {
-        "3room": "room[0]=entrance(0 enemies), room[1]=(2 slime, 0 skeleton), room[2]=(1 slime, 3 skeleton) — 1个战斗房间后直接跳到4个敌人",
-        "4room": "room[1]=(2,0), room[2]=(2,1), room[3]=(1,3) — slime在最后递减",
-        "5room": "room[1]=(2,0), room[2]=(2,0), room[3]=(2,1), room[4]=(1,3) — 前两个战斗房间完全相同"
-      },
-      "proposedFormula": {
-        "slimeCount": "max(2, 2 + floor(depth * 1.5)), 最后房间不低于2",
-        "skeletonCount": "floor(depth * (totalCombatRooms > 2 ? 2 : 3)), 最小0",
-        "rationale": "确保敌人总数随depth单调递增，slime不递减，skeleton从中期开始出现"
-      }
-    },
-    "crossRunDifficultyIntegration": {
-      "_comment": "US-420: runCount 接入房间深度难度系统",
-      "formula": "difficultyTier = floor(runCount / 3)",
-      "tiers": {
-        "0": "runCount 1-2: 基础难度",
-        "1": "runCount 3-5: 战斗房间 +1 skeleton",
-        "2": "runCount 6-8: 敌人 HP 1.5x",
-        "3": "runCount 9+: +1 skeleton + HP 1.5x"
-      }
-    },
     "dropPotionHeal": 2,
-    "lowHpWarning": {
-      "triggerThreshold": 3,
-      "criticalThreshold": 1,
-      "normalPulsePeriodMs": 800,
-      "criticalPulsePeriodMs": 400,
-      "overlayAlpha": 0.3,
-      "note": "US-447: 屏幕边缘红色脉动遮罩参数"
+    "attackBoostCount": 2,
+    "comboWindow": 3000,
+    "comboMaxMultiplier": 3.0,
+    "comboTierBonus": 0.5,
+    "difficulty": {
+      "runCountScaling": "Slime count +0.5 per extra run, capped at base count. Player attack: min(3, 1+floor((runCount-1)/3))",
+      "roomDepth": "Early rooms: slimes only. Mid: slime+skeleton. Last room: skeleton-heavy (1s+3s)."
     },
-    "healVfx": {
-      "tintColor": "0x00ff00",
-      "tintDurationMs": 200,
-      "floatTextDurationMs": 500,
-      "floatTextYOffset": -20,
-      "note": "US-448: 回血绿色闪烁 + 浮动数字参数"
-    },
-    "collectParticles": {
-      "count": "6-8",
-      "durationMs": 300,
-      "spreadRadius": 15,
-      "colors": {
-        "coin": "0xffd700",
-        "potion": "0x00ff00",
-        "key": "0xffff00",
-        "attackBoost": "0x4488ff"
-      },
-      "note": "US-449: 拾取物品粒子爆发参数"
-    },
-    "playerHurtCameraShake": {
-      "durationMs": 100,
-      "intensity": 0.003,
-      "note": "US-451: 玩家受伤镜头震动"
-    },
-    "enemyDeathParticles": {
-      "count": "8-12",
-      "durationMs": 400,
-      "spreadRadius": 20,
-      "colors": {
-        "slime": "0x44cc44",
-        "skeleton": "0xdddddd"
-      },
-      "note": "US-452: 敌人死亡粒子消散参数"
-    },
-    "volumeControl": {
-      "muteToggleKey": "M",
-      "localStorageKey": "pixeldungeon_muted",
-      "note": "US-453: M 键静音切换"
-    },
-    "coinMagnet": {
-      "attractRange": 30,
-      "attractSpeed": 20,
-      "note": "US-455: 金币磁吸效果，仅对金币生效"
-    },
-    "roomEnterBanner": {
-      "displayDurationMs": 800,
-      "fadeOutMs": 300,
-      "showRoomType": true,
-      "showEnemyCount": true,
-      "note": "US-454: 房间进入信息横幅"
-    },
-    "playerKnockbackDistance": 25,
-    "playerKnockbackDuration": 200,
-    "playerKnockbackSpeed_current": "125px/s",
-    "playerKnockbackSpeed_proposed": "200px/s (40px/200ms)",
-    "playerKnockbackSpeed_rationale": "当前125px/s与敌人击退300px/s严重不对称，几乎不可感知",
-    "_codeAudit": {
-      "date": "2026-04-30",
-      "note": "第65轮审查代码实际值验证",
-      "confirmed": [
-        "checkWinCondition 仅检查楼梯距离 < STAIRS_REACH_DISTANCE，注释 'chest decoupled from win (US-057)'",
-        "Player.takeDamage 返回 void (L190)",
-        "Skeleton chase 分支 (L160-168) return 前不调用 hpBar.follow",
-        "Slime knockback 分支 (L142-150) return 前不调用 hpBar.follow",
-        "Skeleton/Slime onHitWall() 无条件调用 pickWanderDirection/pickDirection，不检查 isKnockedBack",
-        "GameScene 无 shutdown() 方法",
-        "ResultScene events.on('update') 轮询按键，重启到 GameScene",
-        "endGame + endGameInternal 约40行重复代码",
-        "spawnDropCoin/Potion/AttackBoost overlap 回调不随 destroy 移除",
-        "RoomCameraSystem 无 destroy 方法",
-        "Chest loot 掉落已实现 (US-431/US-057) — 3-5金币 + 30%药水 + 20%攻击增强",
-        "Enemy respawn 不重新注册 overlap (US-531已修) — 使用 slimeGroup/skeletonGroup 统一 overlap"
-      ],
-      "round": 65
-    },
-    "playerKnockbackSpeed": {
-      "current": 125,
-      "target": 200,
-      "note": "US-537: 与敌人击退300px/s严重不对称，提升至200px/s",
-      "enemyKnockbackSpeed": 300
-    },
-    "dashTrail": {
-      "description": "US-649: Dash冲刺拖尾残影参数",
-      "trailInterval": 30,
-      "trailAlpha": 0.3,
-      "trailFadeMs": 200,
-      "maxTrails": 5
-    },
-    "slimeProximityChase": {
-      "description": "US-650: Slime接近感知追踪参数",
-      "detectionRange": 100,
-      "chaseSpeed": 40,
-      "chaseDirection": "4-way",
-      "reactionDelayMs": "random 0-500",
-      "note": "Slime在玩家100px内转为简单追踪，速度低于随机移动(60)，提供主动威胁但不精确"
-    },
-    "chestOpenFeedback": {
-      "description": "US-651: 宝箱开启反馈参数",
-      "particleCount": 8,
-      "particleDurationMs": 300,
-      "particleSpreadRadius": 20,
-      "particleColor": "0xffd700",
-      "bounceUpMs": 50,
-      "bounceDownMs": 100,
-      "bounceHeight": 10,
-      "note": "宝箱开启音效+粒子+弹簧弹出动画"
-    },
-    "corridorDirectionArrow": {
-      "description": "US-652: 走廊过渡方向箭头参数",
-      "arrowAlpha": 0.5,
-      "arrowDurationMs": 200,
-      "arrowSize": 12,
-      "note": "过渡期间HUD层方向指示"
-    },
-    "attackCooldownBar": {
-      "description": "US-653: 攻击冷却进度条参数",
-      "barWidth": 16,
-      "barHeight": 2,
-      "barOffsetY": 12,
-      "flashDurationMs": 100,
-      "buffColor": "0x4488ff",
-      "normalColor": "0x00ff00",
-      "note": "玩家脚下微型冷却条"
-    },
-    "playerAttack": {
-      "coneAngleComment": "注释声称120°(±60°, cos=0.5)但实际151°(±75.5°, dot=0.25) — US-728",
-      "coneDotThreshold": 0.25
+    "victoryCelebration": {
+      "particleCount": 30,
+      "cameraZoom": 1.5,
+      "delayBeforeResult": 1500
     }
   },
   "designLog": [
@@ -3508,6 +3236,12 @@
         "Minimap楼梯金色标记+AttackBoost显示 — 代码确认US-577/578已实现"
       ],
       "priority": "US-734(PRD去重)是meta最高优先级 — 730条PRD严重阻碍开发效率。US-731(combo)和US-732(hitstop)是最高feature优先级 — 直接影响战斗深度和手感。"
+    },
+    {
+      "date": "2026-05-02",
+      "author": "agent-sync",
+      "change": "US-593: Full GDD↔code parameter sync. Added dropPotionHeal=2, enemyContactCooldown=500, combo params, dash params, knockback params, difficulty scaling docs, victory celebration params. healthPotionHeal confirmed at 3.",
+      "reason": "PRD US-593 GDD parameter synchronization audit"
     }
   ],
   "improvements": {
@@ -4448,7 +4182,6 @@
       ]
     }
   },
-  "healthPotionHeal": 3,
   "knownIssues": {
     "_consolidated": "2026-04-29 审查后合并去重",
     "P0_blockers": [
