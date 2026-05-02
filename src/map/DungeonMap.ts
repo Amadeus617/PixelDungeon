@@ -125,6 +125,63 @@ export class DungeonMap {
     return this.getRandomFloorPosInRoom(exitRoom);
   }
 
+  /** Check if a world pixel position is on a floor (non-wall) tile */
+  isFloorAt(worldX: number, worldY: number): boolean {
+    const col = Math.floor(worldX / (this.TILE_SIZE * this.scale));
+    const row = Math.floor(worldY / (this.TILE_SIZE * this.scale));
+    if (row < 0 || row >= this.dungeonData.height || col < 0 || col >= this.dungeonData.width) {
+      return false;
+    }
+    return !isWall(this.dungeonData.tiles[row][col]);
+  }
+
+  /** Snap a world position to the nearest floor tile center (US-764) */
+  snapToFloor(worldX: number, worldY: number): { x: number; y: number } {
+    const tileSize = this.TILE_SIZE * this.scale;
+    const col = Math.floor(worldX / tileSize);
+    const row = Math.floor(worldY / tileSize);
+
+    // If already on a floor tile, snap to its center
+    if (
+      row >= 0 && row < this.dungeonData.height &&
+      col >= 0 && col < this.dungeonData.width &&
+      !isWall(this.dungeonData.tiles[row][col])
+    ) {
+      return {
+        x: col * tileSize + tileSize / 2,
+        y: row * tileSize + tileSize / 2,
+      };
+    }
+
+    // Search outward in a spiral for the nearest floor tile
+    const maxRadius = 2; // Don't search more than 2 tiles away
+    for (let radius = 1; radius <= maxRadius; radius++) {
+      for (let dr = -radius; dr <= radius; dr++) {
+        for (let dc = -radius; dc <= radius; dc++) {
+          if (Math.abs(dr) !== radius && Math.abs(dc) !== radius) continue; // Only perimeter
+          const nr = row + dr;
+          const nc = col + dc;
+          if (
+            nr >= 0 && nr < this.dungeonData.height &&
+            nc >= 0 && nc < this.dungeonData.width &&
+            !isWall(this.dungeonData.tiles[nr][nc])
+          ) {
+            return {
+              x: nc * tileSize + tileSize / 2,
+              y: nr * tileSize + tileSize / 2,
+            };
+          }
+        }
+      }
+    }
+
+    // Fallback: return original position snapped to tile center
+    return {
+      x: col * tileSize + tileSize / 2,
+      y: row * tileSize + tileSize / 2,
+    };
+  }
+
   /** Check if a world pixel position is on the stairs tile */
   isOnStairs(worldX: number, worldY: number): boolean {
     const col = Math.floor(worldX / (this.TILE_SIZE * this.scale));

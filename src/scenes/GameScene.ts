@@ -999,20 +999,31 @@ export class GameScene extends Phaser.Scene {
     const dropCoin = Math.random() < coinRate;
     const dropPotion = Math.random() < potionRate;
 
+    // Helper: compute drop target with floor-tile clamping (US-764)
+    const clampToFloor = (rawX: number, rawY: number): { x: number; y: number } => {
+      if (this.dungeonMap.isFloorAt(rawX, rawY)) {
+        return { x: rawX, y: rawY };
+      }
+      // Snap to nearest floor tile center
+      return this.dungeonMap.snapToFloor(rawX, rawY);
+    };
+
     if (dropCoin) {
       const offsetAngle = Math.random() * Math.PI * 2;
       const offsetDist = Phaser.Math.Between(15, 30);
-      const targetX = x + Math.cos(offsetAngle) * offsetDist;
-      const targetY = y + Math.sin(offsetAngle) * offsetDist;
-      this.spawnDropCoin(targetX, targetY, x, y);
+      const rawX = x + Math.cos(offsetAngle) * offsetDist;
+      const rawY = y + Math.sin(offsetAngle) * offsetDist;
+      const target = clampToFloor(rawX, rawY);
+      this.spawnDropCoin(target.x, target.y, x, y);
     }
 
     if (dropPotion) {
       const offsetAngle = Math.random() * Math.PI * 2;
       const offsetDist = Phaser.Math.Between(15, 30);
-      const targetX = x + Math.cos(offsetAngle) * offsetDist;
-      const targetY = y + Math.sin(offsetAngle) * offsetDist;
-      this.spawnDropPotion(targetX, targetY, x, y);
+      const rawX = x + Math.cos(offsetAngle) * offsetDist;
+      const rawY = y + Math.sin(offsetAngle) * offsetDist;
+      const target = clampToFloor(rawX, rawY);
+      this.spawnDropPotion(target.x, target.y, x, y);
     }
 
     // Event-driven room clear check (US-598)

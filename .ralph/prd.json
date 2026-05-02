@@ -3531,7 +3531,7 @@
           "description": "走廊通常只有1-tile宽，enemy-death事件传递的(cx,cy)是敌人死亡时的精确像素位置。如果敌人在走廊中间被击杀，掉落物spawn在(cx,cy)可能偏移到墙tile上，导致物品无法拾取。应校验掉落位置是否在floor tile上，若不是则向最近floor tile偏移。",
           "type": "code",
           "priority": 2,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "掉落物spawn位置始终在floor tile上",
@@ -3867,6 +3867,104 @@
             "Player 构造函数中调用 body.setSize(24, 30).setOffset(12, 18)",
             "碰撞判定更贴合精灵实际轮廓",
             "ATTACK_RANGE 可能需要相应微调",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-786",
+          "title": "SoundManager 缺少 room_clear 音效 — showRoomClearText 只显示文字无声音反馈",
+          "description": "checkRoomClear() → showRoomClearText() 显示 \"Room Clear!\" 浮动文字和 +100 分数动画，但完全没有音效反馈。SoundManager 只有 playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen 五个方法。房间清除是核心游戏里程碑事件，应添加 playRoomClear() 方法：短促上行琶音（如 C5-E5-G5 3音符快速连奏，0.15s），在 showRoomClearText() 开头调用。注意：US-780 提到 SoundManager 缺少音效但侧重 victory/celebration，本 US 专注于 room_clear 这个独立事件。",
+          "type": "improvement",
+          "priority": 235,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager 新增 playRoomClear() 方法，使用 Web Audio API 合成上行琶音",
+            "showRoomClearText() 开头调用 this.soundManager.playRoomClear()",
+            "音效时长 ≤ 0.2s，不阻塞游戏",
+            "AudioNode 在播放后自动 disconnect（遵循 US-583 模式）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-787",
+          "title": "走廊击杀不掉落战利品 — handleEnemyDeathDrop 只对 roomEnemyMap 内敌人触发",
+          "description": "当前 handleEnemyDeathDrop 监听 \"enemy-death\" 事件，理论上对所有敌人生效。但 tryRespawnClearedRooms() 重生的敌人虽然被加入 this.slimes/skeletons 数组和 slimeGroup/skeletonGroup，且 roomEnemyMap 被更新，走廊漫游中的敌人死亡时 emit \"enemy-death\" 事件时 x/y 是走廊位置。问题在于走廊位置掉落物坐标不做可行性校验（同 US-764/767 描述但这是源头问题）。另外，初始生成在走廊附近漫游出去的敌人，死亡后掉落的药水/金币可能落到墙壁 tile 上（isWall 返回 true），玩家无法拾取。handleEnemyDeathDrop 应验证 targetX/targetY 是否在 floor tile 上，否则随机偏移到最近可行走位置。",
+          "type": "bug",
+          "priority": 236,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "handleEnemyDeathDrop 中 dropCoin/dropPotion 的 targetX/targetY 落点校验",
+            "如果目标位置是 wall tile，使用 DungeonMap.getRandomFloorPosInRoom 或沿走廊轴偏移到最近 floor",
+            "走廊击杀掉落物不再出现在墙壁上",
+            "保持现有房间内掉落行为不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-788",
+          "title": "BootScene 缺少 shutdown() — loaderror 回调叠加 + animationsCreated 永不重置",
+          "description": "BootScene 没有 shutdown() 方法。preload() 中 this.load.on(\"loaderror\", callback) 注册的回调在场景重启时不会自动移除。每次从 TitleScene → BootScene → GameScene 循环，loaderror 回调会叠加。虽然 animationsCreated 用实例变量做了 idempotent 保护，但如果 BootScene 实例被复用（Phaser 默认行为），preload() 中的 load.on 不会重新注册，所以风险中等。但仍应添加 shutdown() 清理 loaderror 监听器并重置 animationsCreated=false（因为场景停止后 Phaser 全局 anims 可能被清理）。",
+          "type": "improvement",
+          "priority": 237,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "BootScene 新增 shutdown() 方法",
+            "shutdown() 中移除 loaderror 事件监听器",
+            "shutdown() 中重置 this.animationsCreated = false",
+            "多次场景循环后无回调叠加或重复 anims.create 警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-789",
+          "title": "暂停菜单缺少重新开始/返回标题按钮 — ESC 只能 toggle 但无其他操作",
+          "description": "当前暂停菜单 (togglePause) 只显示 \"⏸ PAUSED\" 和 \"Press ESC to resume\"。玩家无法在暂停时重新开始当前局或返回标题画面。虽然 US-450 已追踪此功能，但当前暂停菜单实现过于简陋——只使用 pauseOverlay 容器 + 2 个文本对象，没有交互按钮。需要扩展：1) 添加 \"Resume\" / \"Restart\" / \"Title Screen\" 三个可选项；2) 用上下箭头或 W/S 选择，SPACE/ENTER 确认；3) Restart 调用 this.scene.restart()；4) Title Screen 调用 this.scene.start(\"TitleScene\") 并清理当前状态。",
+          "type": "feature",
+          "priority": 238,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停菜单显示 Resume / Restart / Title Screen 三个选项",
+            "上下箭头或 W/S 切换选中项，高亮当前选择",
+            "SPACE/ENTER 确认选中操作",
+            "Resume 恢复游戏",
+            "Restart 重新开始当前局（runCount 不变）",
+            "Title Screen 返回标题画面",
+            "ESC 仍可快速恢复（保持原有行为）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-790",
+          "title": "ResultScene 不显示 combo 最高连杀数 — ScoreSystem 追踪 comboCount 但结果页无体现",
+          "description": "ScoreSystem 内部追踪 _comboCount（连杀数）和 _currentMultiplier（当前倍率），但 ResultScene 的 stats 面板只显示 KillCount/CoinCount/PotionUsed/RoomsExplored/ElapsedTime 五项。combo 系统是核心战斗激励（最高 3x 倍率），但玩家在结算页看不到自己的最高连杀记录。需要：1) ScoreSystem 新增 maxCombo 属性记录本局最高连杀；2) endGame() 将 maxCombo 传递给 ResultScene；3) ResultScene 在 stats 面板添加 \"🔥 Best Combo\" 行。",
+          "type": "improvement",
+          "priority": 239,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem 新增 _maxCombo 属性，addEnemyPoints() 中更新 max",
+            "ScoreSystem 新增 maxCombo getter",
+            "GameScene endGame() 将 maxCombo 传递给 ResultScene",
+            "ResultScene ResultSceneData 接口新增 maxCombo 字段",
+            "ResultScene stats 面板显示 \"🔥 Best Combo: Nx\" 行",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-791",
+          "title": "TitleScene 控件说明缺少 SHIFT(冲刺) — 当前只显示 WASD/SPACE/ESC",
+          "description": "TitleScene 控件提示行显示 \"WASD: Move | SPACE: Attack | ESC: Pause\"，但缺少 SHIFT: Dash 的说明。Dash 是核心移动技能（US-056），有 1.5s 冷却和 HUD 冷却条，但新玩家在标题画面看不到这个操作提示。与 US-782 相同问题（US-782 已存在于 pending 列表中），但本条提供更具体的修复方案。需在提示行追加 \" | SHIFT: Dash\"。",
+          "type": "improvement",
+          "priority": 240,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TitleScene 控件提示更新为 \"WASD: Move | SPACE: Attack | SHIFT: Dash | ESC: Pause\"",
+            "如果文本超出画布宽度则缩小字号或换行",
             "tsc + build 通过"
           ]
         }

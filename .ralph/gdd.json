@@ -4119,7 +4119,11 @@
         "us": "US-778",
         "detail": "playVictoryCelebration zoom=1.5未在shutdown重置"
       }
-    ]
+    ],
+    "lastReview": "2026-05-03 00:27",
+    "pendingUS": 72,
+    "totalUS": 255,
+    "completionRate": "71.8%"
   },
   "knownIssues": {
     "performance": {
@@ -4391,6 +4395,52 @@
         "pendingVision": 10
       },
       "priority": "US-751 (Slime追踪) 和 US-753 (Combo暂停) 是最高优先级 — 前者影响核心战斗体验，后者是暂停功能的bug。"
+    },
+    {
+      "round": 6,
+      "date": "2026-05-03 00:27",
+      "type": "automated-review",
+      "findings": [
+        {
+          "id": "US-786",
+          "category": "audio-feedback",
+          "severity": "medium",
+          "description": "Room clear event has visual feedback (floating text) but no audio feedback. SoundManager only has 5 methods, missing room_clear sfx."
+        },
+        {
+          "id": "US-787",
+          "category": "gameplay-bug",
+          "severity": "medium",
+          "description": "Enemy death drops in corridors may land on wall tiles. handleEnemyDeathDrop uses random offset without walkability check."
+        },
+        {
+          "id": "US-788",
+          "category": "memory-leak",
+          "severity": "low",
+          "description": "BootScene missing shutdown() — loaderror callback accumulates across scene restarts. animationsCreated flag never resets."
+        },
+        {
+          "id": "US-789",
+          "category": "ux-feature",
+          "severity": "high",
+          "description": "Pause menu only has ESC toggle. No restart or title screen options. Players must die/finish run to restart."
+        },
+        {
+          "id": "US-790",
+          "category": "score-feedback",
+          "severity": "medium",
+          "description": "ScoreSystem tracks combo multiplier internally but ResultScene doesn't display max combo achieved during the run."
+        },
+        {
+          "id": "US-791",
+          "category": "ux-onboarding",
+          "severity": "low",
+          "description": "TitleScene controls hint missing SHIFT (Dash). New players unaware of core movement ability."
+        }
+      ],
+      "summary": "Round focused on audio/UX gaps. 6 new US added. 66 existing pending US remain. Key areas: room_clear audio (US-786), corridor drop position validation (US-787), BootScene lifecycle (US-788), pause menu expansion (US-789), combo stats display (US-790), controls hint completion (US-791). Build passes, tsc clean, 255 total US, 72 pending.",
+      "buildStatus": "passing",
+      "tscStatus": "clean"
     }
   ],
   "gameSystems": {
