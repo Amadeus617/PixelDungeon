@@ -968,7 +968,7 @@ export class GameScene extends Phaser.Scene {
     const potionRate = isSkeleton ? SKELETON_POTION_DROP_RATE : SLIME_POTION_DROP_RATE;
 
     // Death particle effect: brief expanding/fading particles around death position
-    this.spawnDeathParticles(x, y);
+    this.spawnDeathParticles(x, y, type);
 
     // Determine drops (can drop both coin and potion)
     const dropCoin = Math.random() < coinRate;
@@ -1005,12 +1005,15 @@ export class GameScene extends Phaser.Scene {
     this.checkRoomClear();
   }
 
-  /** Spawn a brief particle burst at enemy death position */
-  private spawnDeathParticles(x: number, y: number): void {
+  /** Spawn a brief particle burst at enemy death position
+   *  GDD: slime → green (0x22cc22), skeleton → grey-white (0xcccccc)
+   */
+  private spawnDeathParticles(x: number, y: number, enemyType: string): void {
+    const color = enemyType === 'skeleton' ? 0xcccccc : 0x22cc22;
     const particleCount = 6;
     for (let i = 0; i < particleCount; i++) {
       const angle = (Math.PI * 2 / particleCount) * i;
-      const px = this.add.rectangle(x, y, 4, 4, 0xffffff, 0.8);
+      const px = this.add.rectangle(x, y, 4, 4, color, 0.8);
       px.setDepth(15);
       this.tweens.add({
         targets: px,

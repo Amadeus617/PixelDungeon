@@ -2974,7 +2974,7 @@
           "description": "GDD enemyDeathParticles 定义 slime=绿色(0x22cc22)/skeleton=白色灰色(0xcccccc)，但 spawnDeathParticles() 硬编码 0xffffff，所有敌人死亡粒子相同。修改: 传入 enemy type 参数，使用 GDD 定义的配色。虽然是个小改动，但视觉辨识度影响大——玩家无法通过死亡效果区分敌人类型。",
           "type": "code",
           "priority": 236,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "spawnDeathParticles 接受 enemy type 参数",
@@ -4175,6 +4175,129 @@
             "已修复的 US 全部标记 done",
             "功能重复的 US 合并标注",
             "PRD pending 数量减少至合理范围"
+          ]
+        },
+        {
+          "id": "US-806",
+          "title": "地牢连通性BFS验证 — 确保所有房间和走廊可达",
+          "description": "DungeonMap生成后无BFS/DFS连通性验证。极端种子可能生成被墙隔离的房间或走廊死角。应在generateDungeon后添加BFS从entrance遍历，确认所有房间和宝箱/钥匙位置可达。如不可达则重新生成或打通路径。",
+          "type": "code",
+          "priority": 255,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "generateDungeon后BFS从entrance遍历确认所有房间可达",
+            "钥匙和宝箱位置必须在可达区域内",
+            "不可达时自动重新生成(最多3次)",
+            "单元测试覆盖不可达地图场景"
+          ]
+        },
+        {
+          "id": "US-807",
+          "title": "Slime 走廊4方向约束 — 消除斜向抖动",
+          "description": "Slime.ts DIRECTIONS数组虽然只有4方向，但走廊碰墙时仍可能因快速切换产生抖动。应参考Skeleton的sameAxisHitCount走廊检测机制，在检测到走廊环境时约束为走廊轴方向移动。",
+          "type": "code",
+          "priority": 256,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime在走廊中不产生方向抖动",
+            "参考Skeleton sameAxisHitCount机制",
+            "开放房间仍可自由移动",
+            "走廊检测与Skeleton实现一致"
+          ]
+        },
+        {
+          "id": "US-808",
+          "title": "暂停菜单功能完善 — 重新开始+返回标题+继续按钮",
+          "description": "当前ESC暂停只显示PAUSED文字和Resume提示，缺少重新开始和返回标题菜单按钮。暂停期间敌人setVelocity仍在执行(physics.pause不阻止代码驱动移动)。应添加：(1)暂停菜单按钮UI (2)暂停时手动冻结所有敌人velocity (3)R键重新开始 (4)Q键返回标题。",
+          "type": "code",
+          "priority": 257,
+          "status": "pending",
+          "dependsOn": [
+            "US-032"
+          ],
+          "acceptanceCriteria": [
+            "ESC暂停显示菜单：继续/重新开始/返回标题",
+            "暂停期间所有敌人velocity归零且不执行AI",
+            "R键重新开始当前局",
+            "Q键或按钮返回TitleScene",
+            "暂停菜单不影响游戏状态"
+          ]
+        },
+        {
+          "id": "US-809",
+          "title": "金币磁吸效果实现 — GDD attractRange=30从未实现",
+          "description": "GDD定义coinMagnet.attractRange=30但Coin.ts完全无磁吸逻辑。玩家经过金币时应自动吸引附近的金币向玩家移动。实现：(1)Coin.update检测与玩家距离<30时开始向玩家移动 (2)移动速度随距离递减 (3)拾取判定范围适当扩大。",
+          "type": "code",
+          "priority": 258,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin检测到玩家距离<30px时向玩家移动",
+            "磁吸速度200px/s平滑追踪",
+            "磁吸期间Coin仍可被正常拾取",
+            "GDD coinMagnet参数与代码一致"
+          ]
+        },
+        {
+          "id": "US-810",
+          "title": "敌人死亡粒子颜色区分 — Slime绿色/Skeleton白色",
+          "description": "GDD规定Slime死亡粒子为绿色(0x44ff44)、Skeleton为白色(0xffffff)，但代码中spawnDeathParticles统一使用0xffffff。应按敌人类型使用不同粒子颜色增强视觉辨识度。",
+          "type": "code",
+          "priority": 259,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime死亡粒子使用绿色(0x44ff44)",
+            "Skeleton死亡粒子使用白色(0xffffff)",
+            "粒子数量和持续时间不变",
+            "与GDD敌人视觉设计一致"
+          ]
+        },
+        {
+          "id": "US-811",
+          "title": "SoundManager room_clear音效 — 房间清除听觉反馈缺失",
+          "description": "showRoomClearText()只显示文字无音效反馈。玩家清除房间是核心正反馈时刻，缺少音效降低成就感。应在SoundManager中添加room_clear专用音效并在showRoomClearText时播放。",
+          "type": "code",
+          "priority": 260,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager新增playRoomClear()方法",
+            "showRoomClearText时自动播放",
+            "音效为短促明亮的和弦/chime",
+            "不影响现有音效系统"
+          ]
+        },
+        {
+          "id": "US-812",
+          "title": "ScoreSystem combo计时改用Phaser TimerEvent — 暂停时冻结",
+          "description": "ScoreSystem combo计时器使用setTimeout，游戏暂停时combo窗口继续倒计时导致不公平。应改为Phaser TimerEvent，暂停时自动冻结combo计时。这是US-799/771/753/758的权威合并条目。",
+          "type": "code",
+          "priority": 261,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "combo计时器改用this.scene.time.delayedCall替代setTimeout",
+            "游戏暂停时combo窗口冻结",
+            "恢复游戏后combo继续倒计时",
+            "现有combo功能不受影响"
+          ]
+        },
+        {
+          "id": "US-813",
+          "title": "走廊击杀掉落和奖励机制 — handleEnemyDeathDrop扩展",
+          "description": "handleEnemyDeathDrop通过enemy-death事件触发，不区分房间内/走廊击杀。但checkRoomClear只对roomEnemyMap内敌人检测清除状态，走廊击杀的敌人既不触发房间清除奖励也不影响房间进度。应：(1)走廊击杀正常掉落战利品(当前已支持) (2)走廊击杀计入最近的房间清除进度 (3)走廊击杀给予小额分数奖励。",
+          "type": "code",
+          "priority": 262,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊击杀正常触发掉落(已实现，确认)",
+            "走廊击杀计入最近房间清除进度",
+            "走廊击杀给予50%房间清除分数奖励",
+            "GDD走廊击杀参数同步"
           ]
         }
       ],
