@@ -1943,7 +1943,7 @@
           "description": "合并自: US-114, US-176, US-181, US-202, US-203, US-247, US-292, US-321, US-361, US-410, US-453",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -1956,7 +1956,7 @@
           "description": "合并自: US-081, US-086, US-087, US-089, US-093, US-094, US-122, US-138, US-146, US-148, US-159, US-260, US-261, US-287, US-295, US-302, US-304, US-417, US-418, US-362",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -1969,7 +1969,7 @@
           "description": "合并自: US-096, US-128, US-162, US-165, US-193, US-194, US-237, US-262, US-266, US-285, US-340, US-351, US-366, US-447, US-454",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -1982,7 +1982,7 @@
           "description": "合并自: US-065, US-133, US-139, US-192, US-198, US-256, US-264, US-456, US-549",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -1995,7 +1995,7 @@
           "description": "合并自: US-080, US-095, US-104, US-230, US-304, US-417",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2008,7 +2008,7 @@
           "description": "合并自: US-297, US-404, US-446, US-481, US-516, US-524",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2021,7 +2021,7 @@
           "description": "合并自: US-084, US-115, US-121, US-152, US-268, US-419",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2047,7 +2047,7 @@
           "description": "合并自: US-068, US-184, US-339, US-461",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2060,7 +2060,7 @@
           "description": "合并自: US-060, US-190, US-220, US-236, US-323, US-355, US-421, US-444, US-445, US-476",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2073,7 +2073,7 @@
           "description": "合并自: US-105, US-150, US-155, US-173, US-206, US-365",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2086,7 +2086,7 @@
           "description": "合并自: US-177, US-178, US-197, US-204, US-216, US-222, US-249, US-273, US-277, US-341, US-371, US-468, US-540, US-545, US-547",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2099,7 +2099,7 @@
           "description": "合并自: US-179, US-219, US-231, US-420, US-423, US-440",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2112,7 +2112,7 @@
           "description": "合并自: US-072, US-085, US-143, US-287, US-304, US-340, US-443, US-547",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2125,7 +2125,7 @@
           "description": "合并自: US-153, US-194, US-260, US-261, US-263, US-287, US-454",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2138,7 +2138,7 @@
           "description": "合并自: US-067, US-051, US-352",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2151,7 +2151,7 @@
           "description": "合并自: US-110, US-230, US-317, US-318, US-319, US-389, US-405, US-431, US-536",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
@@ -2164,7 +2164,7 @@
           "description": "合并自: US-080, US-134, US-180, US-284, US-319, US-334",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
