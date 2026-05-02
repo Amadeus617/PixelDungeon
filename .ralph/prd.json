@@ -2259,7 +2259,7 @@
           "description": "BootScene.preload() 加载 knight.png、slime.png、dungeon_tiles.png 三个外部文件。如果文件缺失，加载失败后 create() 中的动画注册（generateFrameNumbers(\"knight\"...)）会因为纹理不存在而报错，导致整个游戏崩溃。US-103 已标记但未实现。",
           "type": "code",
           "priority": 214,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-103"
           ],

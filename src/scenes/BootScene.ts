@@ -7,6 +7,17 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
+    // US-229: Handle missing assets with fallback textures
+    this.load.on("loaderror", (file: Phaser.Loader.File) => {
+      console.warn(`Asset load failed: ${file.key}, generating fallback`);
+      // Generate fallback solid-color texture
+      const g = this.add.graphics();
+      g.fillStyle(0xff00ff, 1); // Magenta = missing
+      g.fillRect(0, 0, 16, 16);
+      g.generateTexture(file.key, 16, 16);
+      g.destroy();
+    });
+
     this.load.spritesheet("knight", "assets/sprites/knight.png", {
       frameWidth: 16,
       frameHeight: 16,
