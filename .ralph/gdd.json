@@ -4331,6 +4331,20 @@
         "impact": "玩家几乎不需要面对敌人方向，攻击方向选择无战术意义",
         "existingUS": "US-704",
         "codeRef": "src/entities/Player.ts isEnemyInAttackRange dot threshold 0.25"
+      },
+      {
+        "id": "COM-004",
+        "title": "收集物品数组只增不减 — coins/healthPotions/attackBoosts 无 filter",
+        "impact": "长时间游戏后数组膨胀数百无效引用，minimap 遍历显示不存在物品",
+        "existingUS": "US-747",
+        "discovered": "R74"
+      },
+      {
+        "id": "BAL-002",
+        "title": "攻击无命中上限 — AOE失衡",
+        "impact": "搭配 ATK x2 一次攻击可秒杀整群 Slime，难度系统形同虚设",
+        "existingUS": "US-745",
+        "discovered": "R74"
       }
     ]
   },
@@ -4596,6 +4610,26 @@
       "issue": "R73: tryRespawnClearedRooms creates new enemies and pushes to this.slimes/skeletons but old inactive enemies from replaced roomEnemyMap entries remain in the global arrays",
       "impact": "Memory grows with each respawn cycle; update/attack loops iterate over increasing inactive entries",
       "fixUS": "US-725"
+    },
+    "comboTimerIssue": {
+      "issue": "R74: ScoreSystem 使用 setTimeout 管理 combo 窗口，不随游戏暂停冻结",
+      "location": "src/systems/ScoreSystem.ts",
+      "impact": "暂停3秒后combo过期，玩家体验不一致",
+      "fix": "改用 Phaser time.delayedCall 或基于 delta 的帧计时器",
+      "relatedUS": "US-744"
+    },
+    "attackHitCap": {
+      "issue": "R74: 单次攻击无命中上限，可同时击中扇形范围内所有敌人",
+      "location": "src/scenes/GameScene.ts handlePlayerAttack()",
+      "impact": "在敌人密集区域（如respawn后）可一次清场，严重破坏难度平衡",
+      "suggestion": "单次攻击最多命中3个敌人，优先按距离排序",
+      "relatedUS": "US-745"
+    },
+    "slimeAI": {
+      "currentBehavior": "纯随机游走，无任何玩家感知",
+      "gap": "即使玩家紧贴 Slime 也不会追踪，与 Skeleton 的 200px 追踪形成体验断层",
+      "suggestion": "添加 80px 范围的简单感知，以较低速度朝玩家移动",
+      "relatedUS": "US-746"
     }
   },
   "gameProgression": {
@@ -4632,6 +4666,21 @@
         "US-646: SpikeTrap视觉预警(公平性)",
         "US-647: 首次操作提示浮层(新手友好)",
         "US-648: Hitstop冻结帧打击感(核心手感)"
+      ]
+    },
+    {
+      "date": "2026-05-02",
+      "round": 74,
+      "action": "design_review",
+      "summary": "第74轮审查：7个新US（3 bug + 1 balance + 1 feature + 1 chore + 1 improvement）",
+      "newUS": [
+        "US-744",
+        "US-745",
+        "US-746",
+        "US-747",
+        "US-748",
+        "US-749",
+        "US-750"
       ]
     }
   ],
@@ -5060,23 +5109,71 @@
         "src/scenes/ResultScene.ts",
         "src/scenes/TitleScene.ts"
       ]
+    },
+    {
+      "round": 74,
+      "date": "2026-05-02T04:22:03Z",
+      "newUsIds": [
+        "US-744",
+        "US-745",
+        "US-746",
+        "US-747",
+        "US-748",
+        "US-749",
+        "US-750"
+      ],
+      "categories": {
+        "bug": [
+          "US-744",
+          "US-747",
+          "US-748"
+        ],
+        "balance": [
+          "US-745"
+        ],
+        "feature": [
+          "US-746"
+        ],
+        "chore": [
+          "US-749"
+        ],
+        "improvement": [
+          "US-750"
+        ]
+      },
+      "filesReviewed": [
+        "src/scenes/GameScene.ts",
+        "src/entities/Player.ts",
+        "src/entities/Slime.ts",
+        "src/entities/Skeleton.ts",
+        "src/entities/Coin.ts",
+        "src/entities/HealthPotion.ts",
+        "src/entities/Chest.ts",
+        "src/systems/ScoreSystem.ts",
+        "src/systems/Inventory.ts",
+        "src/ui/HUD.ts",
+        "src/scenes/ResultScene.ts",
+        "src/scenes/TitleScene.ts"
+      ]
     }
   ],
   "lastReviewInfo": {
-    "round": 73,
-    "date": "2026-05-01T20:21:44Z",
-    "criticalIssues": 0,
+    "round": 74,
+    "date": "2026-05-02T04:22:03Z",
+    "criticalIssues": 1,
     "balanceIssues": 1,
-    "maintenanceIssues": 2,
+    "maintenanceIssues": 3,
     "experienceIssues": 2,
     "newUS": [
-      "US-723",
-      "US-724",
-      "US-725",
-      "US-726",
-      "US-727"
+      "US-744",
+      "US-745",
+      "US-746",
+      "US-747",
+      "US-748",
+      "US-749",
+      "US-750"
     ],
-    "summary": "第73轮审查: 发现GDD visualFeedback 4个子系统(damageNumbers/lowHpWarning/healFlash/screenShake)以完成式描述文档化但代码零实现，构成文档信任危机(US-723); 死亡粒子颜色不区分敌人类型违反GDD配色定义(US-724); roomEnemyMap respawn 导致 inactive enemy 在全局数组中累积造成内存泄漏(US-725); 走廊过渡仅 setVelocity(0) 不阻断攻击/交互输入(US-726); ResultScene 不显示难度信息缺乏成就感(US-727)。"
+    "summary": "第74轮审查: ScoreSystem combo 使用 setTimeout 导致暂停时继续计时(US-744); 攻击无命中上限可一次击中无限敌人(US-745); Slime 完全无感知AI(US-746); 收集物品数组只增不减(US-747); 走廊装饰sprite未追踪(US-748); TitleScene版本号硬编码(US-749); 攻击视觉策略不可扩展(US-750)"
   },
   "architectureDebt": {
     "review68": {

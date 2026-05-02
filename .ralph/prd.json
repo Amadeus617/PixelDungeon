@@ -2805,7 +2805,7 @@
           "description": "Coin.ts, HealthPotion.ts, AttackBoost.ts, KeyItem.ts 共享完全相同的模式：constructor (scale=3, depth=5, _startFloatTween), _startFloatTween() (y浮动+angle摆动 tween), collect() (idempotent guard + setActive(false) + setVisible(false) + destroy)。应提取为 CollectibleBase 基类或 mixin，子类只需指定 texture key 和浮动参数。减少 ~120 行重复代码，未来新增 collectible 类型只需 ~15 行。",
           "type": "code",
           "priority": 138,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "创建 CollectibleBase 抽象基类 (extends Phaser.GameObjects.Sprite)",
@@ -3210,6 +3210,117 @@
             "pending US 总数 ≤ 20",
             "无重复 US（同一问题只有一个权威条目）",
             "PRD 状态与代码实际状态一致"
+          ]
+        },
+        {
+          "id": "US-744",
+          "title": "ScoreSystem combo 使用 setTimeout 而非 Phaser Timer — 暂停时 combo 计时不冻结",
+          "description": "ScoreSystem.addEnemyPoints() 使用 setTimeout(_resetCombo, 3000) 管理连击窗口。这导致：(1) 游戏暂停时 combo timer 仍倒计时，暂停3秒回来后 combo 已过期；(2) Scene shutdown 时 setTimeout 未清理。应改用 Phaser time.delayedCall 或基于 delta 的帧计时器，与游戏时间同步。代码位置：src/systems/ScoreSystem.ts L91-93",
+          "type": "bug",
+          "priority": 193,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停时 combo 倒计时冻结，恢复后继续",
+            "Scene shutdown 清理 combo timer",
+            "comboRemainingMs 与实际游戏时间一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-745",
+          "title": "攻击扇形检测无单次命中上限 — 一次攻击可同时命中无限敌人",
+          "description": "handlePlayerAttack() 遍历所有 this.slimes 和 this.skeletons，对攻击锥形内的每个敌人都造成伤害。这导致：(1) 一次攻击可同时击中5+敌人，在敌人密集时造成不合理的 AOE 伤害；(2) 搭配 attack boost (ATK x2) 可一次秒杀整群 Slime。建议添加最大命中数限制（如最多3个），或按距离排序优先命中最近的敌人。代码位置：src/scenes/GameScene.ts L655-730",
+          "type": "balance",
+          "priority": 194,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "单次攻击最多命中 N 个敌人（N 建议3）",
+            "优先命中距离最近的敌人",
+            "HUD/视觉反馈与命中数一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-746",
+          "title": "Slime 完全无感知 AI — 即使玩家紧贴也不追踪",
+          "description": "Slime.update() 完全基于随机方向 + 计时器切换，没有任何玩家感知。对比 Skeleton 有 200px 追踪范围，Slime 即使玩家站在旁边也继续随机游荡。GDD 中 Slime 已有接近感知追踪的规划(US-668)，但当前 Slime 在走廊中与玩家擦肩而过毫无反应，体验不自然。应实现基础感知：当玩家进入 ~80px 范围时朝玩家方向移动。代码位置：src/entities/Slime.ts L123-144",
+          "type": "feature",
+          "priority": 195,
+          "status": "pending",
+          "dependsOn": [
+            "US-668"
+          ],
+          "acceptanceCriteria": [
+            "玩家进入 80px 范围时 Slime 朝玩家移动",
+            "移速低于追踪速度（~70% chase speed）",
+            "离开范围后恢复随机游走",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-747",
+          "title": "收集物品数组无限增长 — coins/healthPotions/attackBoosts 只 push 不清理",
+          "description": "this.coins、this.healthPotions、this.attackBoosts 三个数组在物品收集后从不移除已 destroy 的元素。每次掉落物产生(push)、收集(destroy)后，数组保留对已销毁对象的引用。经过长时间游戏（多次 respawn），数组会膨胀到数百个无效引用。minimap 的 entity getter 也遍历这些数组显示不存在的物品。应在收集回调中用 filter 或 splice 移除，或在 shutdown 时清空。代码位置：src/scenes/GameScene.ts spawnDropCoin/spawnDropPotion 等",
+          "type": "bug",
+          "priority": 196,
+          "status": "pending",
+          "dependsOn": [
+            "US-703"
+          ],
+          "acceptanceCriteria": [
+            "物品收集后从追踪数组移除",
+            "minimap entity getter 只遍历 active 元素",
+            "数组长度与实际可见物品数一致",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-748",
+          "title": "走廊装饰贴花（torch/crack/rubble sprite）未追踪 — shutdown 不清理",
+          "description": "spawnCorridorDecorations() 创建的装饰 sprite 直接 add 到 scene 但不保存引用。这些对象在 scene shutdown 时不会被显式清理，依赖 Phaser scene 自动销毁。但如果有 tween 动画引用这些对象（如 torch 的 flicker tween），shutdown 顺序可能导致 tween 回调在对象已销毁后触发。应将装饰 sprite 存入追踪数组，shutdown 时显式清理 tween。代码位置：src/scenes/GameScene.ts L580-640 spawnCorridorDecorations()",
+          "type": "bug",
+          "priority": 197,
+          "status": "pending",
+          "dependsOn": [
+            "US-729"
+          ],
+          "acceptanceCriteria": [
+            "所有走廊装饰 sprite 存入追踪数组",
+            "shutdown() 显式停止装饰相关 tween",
+            "glow circle 对象生命周期可追踪",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-749",
+          "title": "TitleScene 版本号硬编码 v0.1.0 — 应从 package.json 读取",
+          "description": "TitleScene 中版本号直接硬编码为 'v0.1.0'（L114），不会随实际版本更新。应从 package.json 的 version 字段读取，或在构建时注入。代码位置：src/scenes/TitleScene.ts L114",
+          "type": "chore",
+          "priority": 198,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "版本号从 package.json 读取",
+            "或通过 vite define 注入构建时版本",
+            "TitleScene 显示实际版本",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-750",
+          "title": "Player 攻击视觉只有斜线特效无动画帧 — 攻击状态仅切回 idle",
+          "description": "Player 攻击时只播放 idle-{direction} 动画 + 代码绘制的斜线 Graphics 特效。没有专门的攻击动画帧（如挥剑弧度），导致攻击视觉反馈主要靠 slash GFX 填补。如果未来加入攻击动画 sprite sheet，当前架构需要重构动画播放逻辑。建议将 slash effect 改为可替换的攻击视觉策略，方便切换为帧动画。代码位置：src/entities/Player.ts L490-510",
+          "type": "improvement",
+          "priority": 199,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "攻击视觉策略可配置（GFX/帧动画）",
+            "slash effect 代码抽取为独立方法",
+            "保留当前 GFX 效果为默认策略",
+            "tsc + build 通过"
           ]
         }
       ],
