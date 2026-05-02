@@ -2193,7 +2193,7 @@
           "description": "US-029提出玩家knockback但尚未实现。当前player被敌人接触只扣血无位移，站在敌人身上会持续扣血(由无敌帧限制频率)。实现方案：Player.takeDamage()中添加击退逻辑，根据敌人位置计算击退方向，击退速度150px/s，持续时间200ms，击退期间玩家输入被覆盖。这显著提升战斗手感。",
           "type": "code",
           "priority": 109,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Player.takeDamage接受可选攻击者位置参数(sourceX/sourceY)",
