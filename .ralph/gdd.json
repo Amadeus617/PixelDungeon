@@ -52,6 +52,27 @@
       "particleCount": 30,
       "cameraZoom": 1.5,
       "delayBeforeResult": 1500
+    },
+    "comboSystem": {
+      "window": "3s",
+      "multiplier": "+0.5x per tier",
+      "note": "US-758: combo timer 应使用 Phaser Timer 而非 setTimeout，暂停时需冻结"
+    },
+    "corridorKillReward": {
+      "points": 50,
+      "note": "US-759: 走廊击杀独立奖励，当前走廊击杀不触发任何奖励"
+    },
+    "dashMechanics": {
+      "distance": "80px",
+      "duration": "150ms",
+      "cooldown": "1500ms",
+      "invincible": true,
+      "collectionBlocking": true,
+      "note": "US-755: 冲刺期间不触发道具拾取"
+    },
+    "attackHitCap": {
+      "maxHitPerAttack": 3,
+      "note": "US-756: 单次攻击最多命中3个敌人，防止一刀秒杀全屏"
     }
   },
   "designLog": [
@@ -5320,6 +5341,33 @@
       ],
       "completionRate": "162/200 = 81.0%",
       "priority": "US-739(config scene顺序) 和 US-741(动态overlap累积) 是最高优先级 — 影响启动稳定性和运行时性能。US-742(走廊过渡输入冻结) 次之 — 影响游戏体验一致性。"
+    },
+    {
+      "date": "2026-05-02",
+      "round": 60,
+      "title": "第60轮设计审查 — 冲刺拾取守卫/攻击命中上限/跨局成长/combo暂停/走廊奖励",
+      "summary": "在 218 条 US（48 pending）基础上进行第60轮代码审查。确认历史顽固 bug 大部分已修复（takeDamage 返回 boolean ✓、HP bar 跟随 ✓、GameScene shutdown ✓、checkWinCondition key+chest 检查 ✓、Chest 战利品掉落 ✓、ResultScene keyboard 事件 ✓）。发现 5 个新的独立改进机会：(1) Dash 冲刺无敌帧期间拾取道具与闪避设计意图矛盾；(2) 单次攻击无命中上限可一刀秒杀全屏；(3) 玩家攻击力永远为 1 不随 runCount 成长导致后期被碾压；(4) combo setTimeout 暂停不冻结；(5) 走廊击杀不触发奖励。",
+      "newUserStories": [
+        "US-755",
+        "US-756",
+        "US-757",
+        "US-758",
+        "US-759"
+      ],
+      "confirmedFixed": [
+        "takeDamage 返回 boolean — 代码确认",
+        "HP bar chase/knockback 跟随 — 代码确认",
+        "GameScene shutdown() 事件清理 — 代码确认",
+        "checkWinCondition key+chest 检查 — 代码确认",
+        "Chest.open() 战利品掉落 — 代码确认",
+        "ResultScene keyboard 事件 + TitleScene 重启 — 代码确认",
+        "SpikeTrap Physics.Arcade.Sprite — 代码确认",
+        "Slime 近身追踪 AI — 代码确认 US-746",
+        "CollectibleBase 基类重构 — 代码确认 US-700",
+        "中期难度曲线修复 — 代码确认 US-643",
+        "BootScene loaderror 处理 — 代码确认 US-229",
+        "Hitstop 30ms — 代码确认 US-359"
+      ]
     }
   ]
 }

@@ -84,14 +84,10 @@ function getEnemyConfigForRoom(roomIndex: number, totalRooms: number, runCount: 
   const combatIndex = roomIndex - 1;
   const base = baseEnemyCounts(combatIndex, combatRoomCount);
 
-  // runCount scaling: each additional run adds +1 enemy (alternating slime/skeleton)
-  // capped so total enemies don't exceed 2 * base count
-  const extraRuns = Math.max(0, runCount - 1);
-  const maxExtra = Math.max(base.slimes + base.skeletons, 2); // at least 2 extra slots
-  const extraEnemies = Math.min(Math.floor(extraRuns * 0.5), maxExtra);
-
-  const extraSlimes = Math.ceil(extraEnemies / 2);
-  const extraSkeletons = Math.floor(extraEnemies / 2);
+  // US-702: runCount scaling — +1 slime every 3 runs (cap +2), +1 skeleton every 4 runs (cap +2)
+  // Difficulty curve: run 1=base, run 7≈+2 slimes/+1 skeleton, run 13≈capped
+  const extraSlimes = Math.min(Math.floor((runCount - 1) / 3), 2);
+  const extraSkeletons = Math.min(Math.floor((runCount - 1) / 4), 2);
 
   return {
     slimeCount: base.slimes + extraSlimes,

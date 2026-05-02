@@ -2822,7 +2822,7 @@
           "description": "当前 runCount 难度缩放仅影响 Slime HP/速度和 Skeleton 速度，但 getEnemyConfigForRoom() 返回的 slimeCount/skeletonCount 是静态值，完全不受 runCount 影响。这意味着第 20 次和第 1 次游戏面对相同数量的敌人，只有 HP/速度差异。应让 getEnemyConfigForRoom 接受 runCount 参数，在 base count 上叠加 min(floor((runCount-1)/3), 2) 的额外敌人，使后期局数显著增加战斗密度。",
           "type": "code",
           "priority": 140,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "getEnemyConfigForRoom 签名增加 runCount 参数",
@@ -3385,6 +3385,83 @@
           "acceptanceCriteria": [
             "确认 TitleScene→BootScene 流程正常",
             "无需修改 scene 数组顺序"
+          ]
+        },
+        {
+          "id": "US-755",
+          "title": "Dash 冲刺无敌帧期间不应拾取道具 — 无敌+穿透应跳过 overlap",
+          "description": "Player.isDashing 期间有独立无敌帧（DASH_DURATION 150ms），但代码中 Coin/HealthPotion/AttackBoost 的 overlap 回调不检查 player.dashing。冲刺穿过道具区域时可能意外拾取，破坏\"冲刺是闪避\"的设计意图。应在各 collect overlap 中添加 !this.player.dashing 守卫，或在 Player 中添加 skipCollection 标志。",
+          "type": "code",
+          "priority": 204,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "冲刺期间不触发任何道具拾取 overlap",
+            "冲刺结束后正常拾取",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-756",
+          "title": "handlePlayerAttack 单次攻击命中数无上限 — 可一击秒杀全屏敌人",
+          "description": "handlePlayerAttack() 中对 slimes 和 skeletons 数组遍历无命中上限。当多个敌人聚集在攻击范围内时，一次挥剑可同时命中无限数量敌人。US-745/752 标记了此问题但未实现修复。建议添加 MAX_HIT_PER_ATTACK=3 限制，促进战术分散打法而非堆怪一刀流。",
+          "type": "code",
+          "priority": 205,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "单次攻击最多命中 MAX_HIT_PER_ATTACK 个敌人",
+            "优先命中距离最近的敌人",
+            "超过上限的敌人不受伤害",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-757",
+          "title": "玩家跨局成长系统缺失 — 攻击力永远为1导致后期被碾压",
+          "description": "Player._baseAttackPower 硬编码为 ATTACK_DAMAGE=1，不随 runCount 增长。敌人 HP 和数量随 runCount 递增（getEnemyConfigForRoom），但玩家攻击力不变，导致高 runCount 时战斗体验恶化。US-409/586 标记了此问题但代码从未实现。建议：baseAttackPower = min(3, 1 + floor((runCount-1)/3))，配合 GDD 参数。",
+          "type": "code",
+          "priority": 206,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player 构造函数接受 runCount 参数",
+            "baseAttackPower = min(3, 1 + floor((runCount-1)/3))",
+            "runCount=1 时攻击力=1（无变化）",
+            "runCount=4/7/10 时攻击力分别=2/3/3",
+            "GDD 更新 playerAttackDamage 参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-758",
+          "title": "ScoreSystem combo 使用 setTimeout 而非 Phaser Timer — 暂停不冻结",
+          "description": "ScoreSystem._comboTimer 使用 setTimeout 实现3秒combo窗口。游戏暂停时（ESC）setTimeout 继续倒计时，导致暂停期间combo自然消失，对玩家不公平。US-744/753 标记了此问题但代码未修复。应改为 this.scene.time.delayedCall 或在 togglePause 时暂停/恢复 combo 计时。",
+          "type": "code",
+          "priority": 207,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "combo 计时改用 Phaser Timer（scene.time.delayedCall）",
+            "暂停时 combo 计时冻结",
+            "恢复时 combo 计时继续",
+            "combo 过期逻辑不变",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-759",
+          "title": "走廊击杀不触发房间清除奖励 — 探索激励缺失",
+          "description": "checkRoomClear() 仅检查当前房间的敌人列表，走廊中巡逻的 Skeleton（US-055）被击杀后不计入任何房间清除判定。US-681 标记了此问题但代码未实现。走廊击杀应触发独立的走廊击杀奖励（如 +50分/击杀），或计入相邻房间的清除计数。",
+          "type": "code",
+          "priority": 208,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊击杀触发 scoreSystem.addCorridorKillPoints()",
+            "击杀奖励与房间清除奖励区分",
+            "HUD 可选显示走廊击杀计数",
+            "tsc + build 通过"
           ]
         }
       ],
