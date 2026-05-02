@@ -2839,7 +2839,7 @@
           "description": "GameScene.spawnDropCoin/Potion/AttackBoost 在敌人死亡掉落时创建新实例并 push 到 this.coins/this.healthPotions/this.attackBoosts。物品被收集后调用 destroy()，但从未从数组中移除引用。长时间游戏后这些数组会积累大量已销毁对象的引用，导致：1) 数组遍历变慢 2) GC 无法回收 3) checkRoomClear 的 allEnemies 检查遍历相关数组时遇到 destroyed sprites。应在 collect() 成功后从追踪数组中 splice 移除，或在 shutdown 时统一清理。",
           "type": "code",
           "priority": 141,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "spawnDropCoin 掉落物被收集后从 this.coins 数组移除",
@@ -3707,6 +3707,166 @@
             "显示房间清除率（已清除/总房间数）",
             "难度等级基于 runCount 计算",
             "数据通过 scene.start data 传递",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-775",
+          "title": "Player 死亡动画期间 HUD 闪烁 — invincible blink 与 death alpha tween 冲突",
+          "description": "Player 死亡时 playDeathAnimation 设置 alpha 闪烁，但 invincible 闪烁也在操作 alpha/tint。两者叠加导致死亡动画视觉混乱。应在 playDeathAnimation 开始时取消 invincible 闪烁定时器，确保死亡动画独占视觉控制。",
+          "type": "bug",
+          "priority": 224,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "playDeathAnimation 启动时清除 invincible 状态和闪烁定时器",
+            "死亡动画播放期间不再出现无敌帧闪烁",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-776",
+          "title": "BootScene loaderror 回调未移除 — 多次 reload 后回调叠加",
+          "description": "BootScene.preload() 中 this.load.on(\"loaderror\", ...) 注册的回调在 preload 后未移除。如果 BootScene 被多次创建（快速重启路径），回调会叠加，每次 load error 会触发多次 fallback 纹理生成。应在 create() 末尾 this.load.off(\"loaderror\") 或使用 once。",
+          "type": "bug",
+          "priority": 226,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "loaderror 监听器在 preload 完成后被移除或使用 once",
+            "多次快速重启不产生重复 loaderror 回调",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-777",
+          "title": "GameScene shutdown 未清理 enemyContactCooldowns Map",
+          "description": "GameScene.shutdown() 清理了 slimes/skeletons/spikeTraps 等数组，但未清理 enemyContactCooldowns Map。虽然数组被重置，Map 中残留的 GameObject key 会在 GC 前持续引用已销毁对象。应在 shutdown 中添加 this.enemyContactCooldowns.clear()。",
+          "type": "bug",
+          "priority": 227,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "shutdown() 中添加 enemyContactCooldowns.clear()",
+            "无已销毁对象引用残留",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-778",
+          "title": "胜利庆祝 camera zoom 1.5 未在 shutdown 重置 — 残留状态泄漏到下一局",
+          "description": "playVictoryCelebration() 设置 cameras.main zoom=1.5 和 scrollX/scrollY tween，但 shutdown() 未重置 camera zoom。如果 scene.start(\"ResultScene\") 在 tween 完成前触发，camera 残留 zoom 状态可能影响下一局。应在 shutdown 中添加 this.cameras.main.setZoom(1).setScroll(0,0)。",
+          "type": "bug",
+          "priority": 228,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "shutdown() 中添加 cameras.main.setZoom(1).setScroll(0,0)",
+            "快速胜利→重启不残留 zoom 状态",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-779",
+          "title": "GameScene 低血量警告 — HP <= 2 时屏幕边缘红色脉冲",
+          "description": "当玩家 HP 降至 2 或以下时，在屏幕边缘显示红色脉冲警告（已有 lowHpOverlay 但仅 alpha 0.15，几乎不可见）。增强视觉效果：提高 alpha 至 0.25，添加边缘渐变而非全屏覆盖，让玩家意识到危险状态。",
+          "type": "feature",
+          "priority": 230,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HP <= 2 时屏幕边缘显示明显的红色脉冲",
+            "alpha 提升、添加 vignette 效果",
+            "HP 回复后警告消失",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-780",
+          "title": "SoundManager 缺少 Boss 击杀/宝箱开启外的 chest_open 已有但缺少 room_clear 音效",
+          "description": "SoundManager 有 playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen 五种音效，但缺少房间清除时的胜利音效。当前 showRoomClearText 仅显示文字，无音频反馈。添加 playRoomClear(): 短促的上升和弦，提升房间清除的满足感。",
+          "type": "feature",
+          "priority": 231,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager 添加 playRoomClear() 方法",
+            "checkRoomClear 成功时调用 playRoomClear()",
+            "音效为短促上升和弦（C5-E5-G5-C6 arpeggio）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-781",
+          "title": "HUD 左侧面板过高 — 7 个 section 超出 600px 画布高度",
+          "description": "HUD 左侧堆叠了 HP bar(18px) + Key(44px) + Coin(44px) + Score(44px) + AttackBoost(44px) + Combo(48px) + Dash(36px) + Difficulty(36~52px) + RoomProgress(36px) = ~350-370px。加上 minimap 在右上角占据 ~200px，信息密度过高。建议：1) 收缩 padding 减少 section 高度；2) Difficulty+RoomProgress 合并为 1 行；3) 或采用左右对称布局。",
+          "type": "improvement",
+          "priority": 233,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "HUD 总高度不超过 500px",
+            "Difficulty 和 RoomProgress 合并为一行",
+            "section 间距从 44px 缩减至 32px",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-782",
+          "title": "TitleScene 缺少 Dash 操作提示 — 控件说明不完整",
+          "description": "TitleScene 底部控件提示为 \"WASD: Move | SPACE: Attack | ESC: Pause\"，未包含 Shift: Dash。新手玩家无法发现冲刺机制。应更新为 \"WASD: Move | SPACE: Attack | SHIFT: Dash | ESC: Pause\"。",
+          "type": "improvement",
+          "priority": 233,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TitleScene 控件提示包含 Shift: Dash",
+            "提示文本不超出画布宽度",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-783",
+          "title": "敌人死亡粒子颜色不区分类型 — 全部 0xffffff 但 GDD 规定 Slime 绿色",
+          "description": "spawnDeathParticles() 中死亡粒子统一使用 0xffffff。GDD balanceAnalysis 要求 Slime 死亡粒子为绿色 (0x44ff44)、Skeleton 为白色。区分颜色可帮助玩家快速识别击杀目标类型。",
+          "type": "improvement",
+          "priority": 232,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "spawnDeathParticles 接受 type 参数",
+            "Slime 死亡粒子为绿色 0x44ff44",
+            "Skeleton 死亡粒子为白色 0xffffff",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-784",
+          "title": "Victory 庆祝音效缺失 — playVictoryCelebration 只有粒子无音效",
+          "description": "playVictoryCelebration() 播放粒子特效和 camera zoom，但无音效。SoundManager 有 attack/enemyDeath/pickup/hurt/chestOpen 但没有胜利音效。胜利是游戏最重要的正反馈事件，应有专属音效（如上升和弦 + 锣声）。",
+          "type": "feature",
+          "priority": 233,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "SoundManager 添加 playVictory() 方法",
+            "playVictoryCelebration 中调用 playVictory()",
+            "音效为欢快的上升和弦（C5-E5-G5-C6 arpeggio）",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-785",
+          "title": "Player 碰撞体 hitbox 未调优 — 16x16 原始尺寸 × scale 3 碰撞框过大",
+          "description": "Player sprite 为 16×16 缩放至 3x (48×48)，但未调用 body.setSize/setOffset 调整碰撞框。默认碰撞框覆盖整个 48×48 区域，而实际像素骑士只占中间约 12×14 像素。过大的碰撞框导致：1) 玩家在视觉上没接触尖刺时受伤；2) 攻击判定提前。应缩小碰撞框至 ~24×30 并居中偏移。",
+          "type": "improvement",
+          "priority": 234,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Player 构造函数中调用 body.setSize(24, 30).setOffset(12, 18)",
+            "碰撞判定更贴合精灵实际轮廓",
+            "ATTACK_RANGE 可能需要相应微调",
             "tsc + build 通过"
           ]
         }

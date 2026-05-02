@@ -386,6 +386,9 @@ export class GameScene extends Phaser.Scene {
           this.onPlayerHeal(HEALTH_POTION_HEAL);
           this.potionUsedCount++;
           this.soundManager.playPickup();
+          // US-703: remove collected item from tracking array to prevent memory leak
+          const idx = this.healthPotions.indexOf(potion);
+          if (idx !== -1) this.healthPotions.splice(idx, 1);
         }
       });
     }
@@ -397,6 +400,9 @@ export class GameScene extends Phaser.Scene {
         if (boost.collect()) {
           this.player.activateAttackBoost();
           this.soundManager.playPickup();
+          // US-703: remove collected item from tracking array to prevent memory leak
+          const idx = this.attackBoosts.indexOf(boost);
+          if (idx !== -1) this.attackBoosts.splice(idx, 1);
         }
       });
     }
@@ -442,6 +448,9 @@ export class GameScene extends Phaser.Scene {
           this.coinCount++;
           this.scoreSystem.addCoinPoints();
           this.soundManager.playPickup();
+          // US-703: remove collected item from tracking array to prevent memory leak
+          const idx = this.coins.indexOf(coin);
+          if (idx !== -1) this.coins.splice(idx, 1);
         }
       });
     }
@@ -1062,6 +1071,9 @@ export class GameScene extends Phaser.Scene {
         this.coinCount++;
         this.scoreSystem.addCoinPoints();
         this.soundManager.playPickup();
+        // US-703: remove collected drop from tracking array
+        const idx = this.coins.indexOf(coin);
+        if (idx !== -1) this.coins.splice(idx, 1);
       }
     });
     this.dynamicOverlaps.push(collider);
@@ -1104,6 +1116,9 @@ export class GameScene extends Phaser.Scene {
         this.onPlayerHeal(DROP_POTION_HEAL);
         this.potionUsedCount++;
         this.soundManager.playPickup();
+        // US-703: remove collected drop from tracking array
+        const idx = this.healthPotions.indexOf(potion);
+        if (idx !== -1) this.healthPotions.splice(idx, 1);
       }
     });
     this.dynamicOverlaps.push(collider);
@@ -1295,6 +1310,9 @@ export class GameScene extends Phaser.Scene {
       if (boost.collect()) {
         this.player.activateAttackBoost();
         this.soundManager.playPickup();
+        // US-703: remove collected drop from tracking array
+        const idx = this.attackBoosts.indexOf(boost);
+        if (idx !== -1) this.attackBoosts.splice(idx, 1);
       }
     });
     this.dynamicOverlaps.push(collider);
