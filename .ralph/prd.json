@@ -2704,7 +2704,7 @@
           "description": "SpikeTrap 当前继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite。Phaser 的 overlap 检测要求双方均有 physics body，GameObjects.Sprite 无 body 依赖内部 fallback 行为，可能在 Phaser 版本升级或特定场景下失效。US-573/US-249/US-371 均标记但未实现。需改为继承 Physics.Arcade.Sprite 并显式设置 body。",
           "type": "code",
           "priority": 197,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "SpikeTrap 继承 Physics.Arcade.Sprite",
@@ -2906,7 +2906,7 @@
           "description": "Minimap 从未标记楼梯出口位置。exitRoom 的 stairs tile 在小地图上无任何标识，玩家无法在小地图定位通关目标。应在 exitRoom 已访问时绘制金色脉冲圆点标记楼梯位置，未访问时隐藏。需在 Minimap 构造函数接收 getStairsPos 回调，update 中绘制带脉冲动画的金色标记。",
           "type": "code",
           "priority": 223,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Minimap 构造函数新增 getStairsPos: () => {x:number,y:number} | null 参数",
@@ -2923,7 +2923,7 @@
           "description": "Minimap 不显示 AttackBoost 道具位置（构造函数无 getAttackBoosts getter）和 SpikeTrap 位置。AttackBoost 是限时战斗 buff，玩家需要知道是否值得去拿；SpikeTrap 是伤害源，玩家需要在小地图上规避。应添加 getAttackBoosts 和 getSpikeTraps entity getter，分别用蓝色和红色标记显示。",
           "type": "code",
           "priority": 228,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Minimap 构造函数新增 getAttackBoosts 和 getSpikeTraps getter",
@@ -2956,7 +2956,7 @@
           "description": "GameScene create()中Coin分配使用rooms[i % length]，当i=0时分配到room[0]=entrance。Potion和AttackBoost已用(i+1)%length跳过entrance，但Coin未同步修复。US-576/US-243/US-709均标记但代码仍未修复。",
           "type": "code",
           "priority": 230,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-576",
             "US-243"
@@ -3068,7 +3068,7 @@
           "description": "当前PRD有730条US，其中大量问题被重复报告4-15次：(1) takeDamage返回值 9+条(US-252/330/367/384/388等)→已修复，代码确认返回boolean；(2) HP bar跟随 11+条(US-136/234/244/279/308/328/375/391/397等)→已修复，Skeleton/Slime chase分支已有hpBar.follow()；(3) checkWinCondition key检查 8+条→已修复，代码确认检查key+chest；(4) GameScene shutdown 8+条→已修复，代码确认有完整shutdown()；(5) ResultScene流程 7+条→已修复，代码确认走TitleScene+keyboard事件；(6) ScoreSystem combo 7+条(US-644/670/678/682/695/712/731)→仍未实现；(7) Hitstop 7+条→仍未实现；(8) 金币磁吸 6+条→仍未实现。建议：(a) 标记已修复的重复条目为done；(b) 合并同类pending为单一权威条目；(c) 目标730→≤100条。",
           "type": "code",
           "priority": 246,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-663",
             "US-669",
@@ -3103,6 +3103,113 @@
             "代码注释与实际值一致",
             "玩家身后不可攻击",
             "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-737",
+          "title": "走廊火把 glow circle 对象生命周期管理",
+          "description": "spawnCorridorDecorations 中每个 torch_decal 创建一个 glow circle (this.add.circle) 并添加无限循环 tween，但这些对象从未被追踪。shutdown() 中 tweens.killAll() 会停止 tween 但 circle 对象本身仍留在 display list。应在 shutdown 中显式清理或改为追踪数组管理。",
+          "type": "code",
+          "priority": 186,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊 glow circle 对象被追踪到数组中",
+            "shutdown() 中显式销毁所有 glow circle",
+            "tween 停止后 circle 不残留在 display list",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-738",
+          "title": "Coin 浮动 tween 在 collect/destroy 前未显式停止",
+          "description": "Coin._startFloatTween() 创建两个无限循环 tween (y 浮动 + angle 旋转)，collect() 中直接 destroy()。虽然 destroy 会清理 tween targets，但 Phaser 不保证立即停止 tween。应在 collect() 中先 this.scene.tweens.killTweensOf(this) 再 destroy，避免一帧延迟中的 tween 回调访问已销毁对象。",
+          "type": "code",
+          "priority": 187,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Coin.collect() 在 destroy 前调用 tweens.killTweensOf(this)",
+            "HealthPotion/AttackBoost/KeyItem 如有类似 tween 同步修复",
+            "无 tween 回调访问已销毁对象的 console error",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-739",
+          "title": "config.ts scene 数组顺序修正 — BootScene 应在 TitleScene 之前",
+          "description": "当前 config.ts scene 数组为 [TitleScene, BootScene, GameScene, ResultScene]。虽然 TitleScene.scene.start(\"BootScene\") 的工作流在功能上可行，但不符合 Phaser 惯例（BootScene 应为首场景负责资源预加载）。TitleScene 使用了 \"coin\"、\"slime\" 等纹理，如果 BootScene 未先执行则纹理可能缺失。当前依赖 TitleScene.startGame → BootScene 的链式启动，应改为 BootScene 首场景 → TitleScene → GameScene。",
+          "type": "code",
+          "priority": 188,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "config.ts scene 数组改为 [BootScene, TitleScene, GameScene, ResultScene]",
+            "BootScene.create() 中 this.scene.start(\"TitleScene\")",
+            "TitleScene 不再手动启动 BootScene",
+            "所有纹理在 TitleScene 显示前已预加载",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-740",
+          "title": "GameScene 动态 overlap 注册累积防护",
+          "description": "spawnDropCoin/Potion/AttackBoost 每次调用创建新的 physics.add.overlap()，收集后通过 dynamicOverlaps 数组在 shutdown 中清理。但如果单局游戏中大量敌人掉落道具（如 20+ 掉落），overlap 数组持续增长。每次 update 物理引擎遍历所有 overlap collider，O(n) 增长影响性能。应添加对象池或回收已收集 item 的 overlap collider。",
+          "type": "code",
+          "priority": 189,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "已收集掉落物的 overlap collider 在收集时立即销毁",
+            "dynamicOverlaps 数组不会无限制增长",
+            "单局 30+ 掉落时无性能降级",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-741",
+          "title": "走廊过渡期间攻击/交互输入冻结不完整",
+          "description": "房间切换时 player.setVelocity(0) 冻结移动，但 player.update() 仍处理攻击和交互输入。玩家在 fade 过渡期间可以攻击或尝试开宝箱，导致视觉与状态不一致。应在过渡期间设置 player.frozen = true 或检查过渡状态来阻止所有输入。",
+          "type": "code",
+          "priority": 190,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊过渡期间玩家不能攻击",
+            "走廊过渡期间玩家不能与宝箱/道具交互",
+            "过渡完成后输入恢复正常",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-742",
+          "title": "ResultScene 通关数据面板扩展 — 难度等级 + runCount + 清除率",
+          "description": "当前 ResultScene 显示 score、时间、击杀数、金币数，但缺少难度等级（runCount）、房间清除率、攻击力等级等跨局进度信息。对于 roguelike 游戏，玩家需要看到每局难度和成长变化来感受 meta progression。",
+          "type": "code",
+          "priority": 191,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 显示当前 runCount / 难度等级",
+            "显示房间清除率 (clearedRooms/totalRooms)",
+            "显示玩家攻击力等级",
+            "数据通过 GameResultData 传递",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-743",
+          "title": "PRD 去重压缩执行 — 43 条 pending 中约 5 条已修复需标记 done",
+          "description": "第 58+ 轮审查确认：US-685/US-711/US-716/US-734/US-718 代码已实现但 PRD 仍标记 pending。本轮已标记为 done。当前 43 条 pending 中仍有大量历史重复（如 US-629/US-641 关于 endGame 重复逻辑、US-666 HUD dirty flag 等待验证）。建议下一阶段集中验证并关闭已实现 US，将有效 pending 控制在 20 条以内。",
+          "type": "meta",
+          "priority": 192,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "所有代码已实现的 US 标记为 done",
+            "pending US 总数 ≤ 20",
+            "无重复 US（同一问题只有一个权威条目）",
+            "PRD 状态与代码实际状态一致"
           ]
         }
       ],
