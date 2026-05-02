@@ -74,6 +74,18 @@ export class RoomCameraSystem {
     this.onRoomChangedCallback = cb;
   }
 
+  /** Clean up references and listeners (US-594). Call in GameScene shutdown(). */
+  destroy(): void {
+    this.onRoomChangedCallback = undefined;
+    this.visitedRooms.clear();
+    // Remove any pending camera fade listeners
+    const cam = this.scene.cameras?.main;
+    if (cam) {
+      cam.off(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE);
+      cam.off(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE);
+    }
+  }
+
   /** Check if a room has been visited */
   isRoomVisited(roomIndex: number): boolean {
     return this.visitedRooms.has(roomIndex);

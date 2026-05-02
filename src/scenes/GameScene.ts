@@ -1562,6 +1562,9 @@ export class GameScene extends Phaser.Scene {
     this.dynamicOverlaps = [];
 
     // --- Reset mutable state ---
+    if (this.roomCameraSystem) {
+      this.roomCameraSystem.destroy();
+    }
     this.slimes = [];
     this.skeletons = [];
     this.chests = [];

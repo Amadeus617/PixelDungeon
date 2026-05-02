@@ -1756,7 +1756,7 @@
           "description": "RoomCameraSystem 无 destroy 方法，setOnRoomChanged 回调持有旧引用。\\n\\n合并自: US-227, US-283, US-554",
           "type": "code",
           "priority": 93,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "destroy() 方法取消事件监听",
