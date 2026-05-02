@@ -1852,7 +1852,7 @@
           "description": "ResultScene 用 events.on('update') 轮询检测按键，监听器从不清理。\\n\\n合并自: US-164, US-253, US-276, US-386",
           "type": "code",
           "priority": 100,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "keyboard.on 替代 events.on('update')",
