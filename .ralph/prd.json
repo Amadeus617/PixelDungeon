@@ -3463,6 +3463,113 @@
             "HUD 可选显示走廊击杀计数",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-760",
+          "title": "Skeleton 8方向漫游在窄走廊频繁碰撞抖动",
+          "description": "Skeleton.pickDirection() 随机选择8方向（含斜向），在1-tile宽走廊中斜向移动几乎立即碰壁触发onHitWall→重新pickDirection，导致高频方向切换和视觉抖动。应限制走廊中Skeleton以4正交方向为主，或在窄通道中沿走廊轴向移动。Slime有US-694覆盖但Skeleton没有。",
+          "type": "code",
+          "priority": 2,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton在1-tile宽走廊中不产生斜向移动抖动",
+            "onHitWall后的新方向优先选择走廊轴向方向",
+            "开阔房间仍保持8方向漫游",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-761",
+          "title": "Player 死亡动画 alpha tween 与无敌帧闪烁冲突",
+          "description": "playDeathAnimation() 在delay:200ms后启动alpha→0的tween（duration 800ms），但同时updateInvincibility()每帧以100ms间隔切换alpha(1/0.4)。如果死亡时玩家处于无敌状态（例如被击杀的同一帧），invincibleTimer尚未归零，闪烁逻辑会覆盖死亡tween的alpha值。应在playDeathAnimation开头立即设置isInvincible=false并恢复alpha=1（代码中已做了这一步，但takeDamage→playDeathAnimation的调用链在GameScene中是分两步的：先设gameOver=true，然后在death animation callback中调用endGame，此期间Player.update()不再被调用但invincibleTimer可能在死亡前一刻被重置），需确认时序安全。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "死亡动画期间alpha平滑从1→0不被闪烁打断",
+            "playDeathAnimation中isInvincible=false在tween启动前完成",
+            "极端情况（无敌帧中死亡）视觉正常",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-762",
+          "title": "Minimap 每帧 O(visited_rooms × entities) 可见性检测性能瓶颈",
+          "description": "Minimap.update()对每个active enemy/item调用isInVisibleArea()，内部isInVisitedRoom()遍历所有visited rooms做矩形碰撞检测。假设10个visited rooms × 20个entities = 200次/帧矩形检测。应缓存visited rooms的合并bounding box或使用空间索引（如将rooms按grid索引），将检测降至O(1)。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "isInVisibleArea查询复杂度从O(visited_rooms)降至O(1)或O(log n)",
+            "30+ entities + 10+ rooms时minimap帧率不低于55fps",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-763",
+          "title": "handlePlayerAttack 死亡计分在多敌人同时命中时score不一致",
+          "description": "当一次攻击同时命中多个敌人（US-756待修），handlePlayerAttack中每个敌人kill都独立调用scoreSystem.addEnemyPoints()，combo计数在同一个handlePlayerAttack调用内递增多次。设计意图是一次攻击只应触发一次combo增量还是每次kill都算一次？需明确：如果US-756限制了命中上限为3，那么一次攻击最多3个kill = 3次combo递增，combo倍率会快速飙升到2.0x。建议：同一攻击的kills合并为一次combo事件。",
+          "type": "design",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [
+            "US-756"
+          ],
+          "acceptanceCriteria": [
+            "GDD明确单次攻击多杀的combo计算规则",
+            "combo倍率增长与设计意图一致",
+            "代码实现与GDD规则匹配",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-764",
+          "title": "GameScene handleEnemyDeathDrop 走廊击杀掉落物位置可能落在墙外",
+          "description": "走廊通常只有1-tile宽，enemy-death事件传递的(cx,cy)是敌人死亡时的精确像素位置。如果敌人在走廊中间被击杀，掉落物spawn在(cx,cy)可能偏移到墙tile上，导致物品无法拾取。应校验掉落位置是否在floor tile上，若不是则向最近floor tile偏移。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "掉落物spawn位置始终在floor tile上",
+            "走廊1-tile宽的极端情况掉落物可正常拾取",
+            "偏移不超过1个tile距离",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-765",
+          "title": "TitleScene 版本号应从 package.json 动态读取",
+          "description": "TitleScene 中 versionText 硬编码为 'v0.1.0'。应在构建时通过 vite define 注入或运行时读取 package.json。US-749已记录但当前仍pending，且无 acceptanceCriteria 要求构建集成。提升优先级并补充vite配置要求。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [
+            "US-749"
+          ],
+          "acceptanceCriteria": [
+            "版本号从package.json version字段读取",
+            "vite.config.ts中通过define注入__APP_VERSION__",
+            "TitleScene使用注入的常量",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-766",
+          "title": "Player attack cooldown 400ms 无视觉反馈 — 攻击空挥无冷却指示",
+          "description": "Player攻击冷却ATTACK_COOLDOWN=400ms，US-688提出了脚下微型冷却指示器但仍pending。当前400ms冷却期间玩家再次按space不会有任何视觉/听觉反馈，可能误以为按键无效。最低成本方案：冷却期内按space播放一个轻微的'ping'音效或flash一下slash效果。",
+          "type": "ux",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "400ms冷却期内按space有某种视觉/听觉反馈",
+            "反馈不干扰正常战斗节奏",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"

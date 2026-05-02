@@ -5275,22 +5275,12 @@
     }
   ],
   "lastReviewInfo": {
-    "round": 74,
-    "date": "2026-05-02T04:22:03Z",
-    "criticalIssues": 1,
-    "balanceIssues": 1,
-    "maintenanceIssues": 3,
-    "experienceIssues": 2,
-    "newUS": [
-      "US-744",
-      "US-745",
-      "US-746",
-      "US-747",
-      "US-748",
-      "US-749",
-      "US-750"
-    ],
-    "summary": "第74轮审查: ScoreSystem combo 使用 setTimeout 导致暂停时继续计时(US-744); 攻击无命中上限可一次击中无限敌人(US-745); Slime 完全无感知AI(US-746); 收集物品数组只增不减(US-747); 走廊装饰sprite未追踪(US-748); TitleScene版本号硬编码(US-749); 攻击视觉策略不可扩展(US-750)"
+    "date": "2026-05-02",
+    "round": 61,
+    "totalUS": 766,
+    "pendingUS": 59,
+    "doneUS": 707,
+    "newThisRound": 7
   },
   "architectureDebt": {
     "review68": {
@@ -5368,6 +5358,41 @@
         "BootScene loaderror 处理 — 代码确认 US-229",
         "Hitstop 30ms — 代码确认 US-359"
       ]
+    },
+    {
+      "date": "2026-05-02",
+      "round": 61,
+      "title": "第61轮设计审查 — 走廊AI抖动/死亡动画时序/Minimap性能/Combo多杀规则/掉落位置校验",
+      "summary": "在 59 pending US 基础上进行第61轮全面代码审查。完整审读全部25个TS源文件（Player, Slime, Skeleton, GameScene, ResultScene, TitleScene, HUD, Minimap, ScoreSystem, RoomCameraSystem, DungeonMap, SoundManager, CollectibleBase, Chest, SpikeTrap等）。确认近期实现功能状态：US-746 Slime proximity tracking ✓、US-700 CollectibleBase重构✓、US-702 enemy runCount scaling✓、US-643中期难度曲线✓。发现7个新的独立改进机会：(1)Skeleton走廊8方向漫游抖动（Slime已修但Skeleton遗漏）；(2)死亡alpha tween与无敌帧闪烁时序冲突风险；(3)Minimap每帧O(visited×entities)性能瓶颈；(4)单次攻击多杀combo递增规则未定义；(5)走廊击杀掉落物可能落在墙外不可拾取；(6)版本号硬编码需vite构建集成；(7)攻击冷却期无反馈。",
+      "newUserStories": [
+        "US-760",
+        "US-761",
+        "US-762",
+        "US-763",
+        "US-764",
+        "US-765",
+        "US-766"
+      ],
+      "confirmedFixed": [
+        "US-746 Slime proximity tracking — code confirmed, NEARBY_TRACK_RANGE=100, TRACK_SPEED_RATIO=0.7",
+        "US-700 CollectibleBase abstract base — Coin/HealthPotion/AttackBoost/KeyItem all extend CollectibleBase",
+        "US-702 getEnemyConfigForRoom runCount scaling — hpMult/speedMult/count all scale",
+        "US-643 mid-game difficulty curve — corridor patrols + mid-room skeleton guarantee",
+        "US-359 hitstop 30ms — handlePlayerAttack sets hitstopTimer=30 on hit",
+        "US-632 player death skip win check — checkLoseCondition before checkWinCondition with early return",
+        "US-633 enemy die() cached position — cx/cy cached before destroy",
+        "endGame scoreBreakdown passed for both win and lose paths — confirmed",
+        "ResultScene keyboard once + shutdown cleanup — confirmed",
+        "TitleScene startTriggered double-fire guard — confirmed"
+      ],
+      "architectureNotes": "代码整体质量高，TypeScript编译零错误。CollectibleBase重构后的继承体系清晰。ScoreSystem combo机制完整但setTimeout(US-744/758)仍pending。主要技术债集中在：(a) Minimap性能、(b) 数组只push不清理(US-747)、(c) 动态overlap累积(US-740)、(d) shutdown清理不完整(US-706)。建议优先级：US-745/752(攻击命中上限) > US-744/758(combo setTimeout) > US-747(数组清理) > US-760(Skeleton走廊AI)。",
+      "balanceAnalysis": {
+        "playerPower": "攻击力固定1（无buff），ATK x2 buff持续10s。US-757提出跨局成长但pending。",
+        "enemyScaling": "runCount影响hpMult/speedMult/count，但后期runCount>5时玩家攻击力不成长可能导致数值碾压。",
+        "comboSystem": "3秒窗口+0.5x/层+3x上限。多杀场景下combo增速可能过快(US-763)。",
+        "dashMechanics": "150ms持续+1.5s冷却+无敌帧。设计合理但无敌帧拾取问题待修(US-755)。",
+        "difficultyCurve": "前期适中，中期有Skeleton保底(US-643)，后期缺乏玩家成长导致难度断崖(US-757)。"
+      }
     }
   ]
 }

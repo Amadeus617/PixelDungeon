@@ -21,6 +21,10 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   private hpBar!: EnemyHpBar;
   private speedMultiplier: number = 1.0;
   private _clearTintTimer: Phaser.Time.TimerEvent | null = null;
+  /** Last wall-hit axis: 'x' = blocked horizontally, 'y' = blocked vertically, null = none */
+  private lastHitAxis: 'x' | 'y' | null = null;
+  /** Consecutive wall hits along same axis (indicates corridor) */
+  private sameAxisHitCount: number = 0;
 
   get hp(): number {
     return this._hp;
@@ -62,9 +66,24 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   }
 
   private pickWanderDirection(): void {
-    const angle = Math.random() * Math.PI * 2;
-    this.wanderVx = Math.cos(angle);
-    this.wanderVy = Math.sin(angle);
+    // If we've been hitting walls on the same axis repeatedly, we're likely in a corridor.
+    // Constrain to movement along the corridor axis only.
+    if (this.sameAxisHitCount >= 2 && this.lastHitAxis) {
+      // In a horizontal corridor (blocked on Y axis) → move left/right only
+      // In a vertical corridor (blocked on X axis) → move up/down only
+      const isHorizontalCorridor = this.lastHitAxis === 'y';
+      const choices = isHorizontalCorridor
+        ? [{ vx: 1, vy: 0 }, { vx: -1, vy: 0 }]
+        : [{ vx: 0, vy: 1 }, { vx: 0, vy: -1 }];
+      const d = choices[Math.floor(Math.random() * choices.length)];
+      this.wanderVx = d.vx;
+      this.wanderVy = d.vy;
+    } else {
+      // Open room: use full 360° random direction
+      const angle = Math.random() * Math.PI * 2;
+      this.wanderVx = Math.cos(angle);
+      this.wanderVy = Math.sin(angle);
+    }
     this.dirInterval = Phaser.Math.Between(1500, 3500);
     this.dirTimer = 0;
   }
@@ -72,6 +91,21 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
   /** Called when skeleton collides with a wall – pick new direction */
   onHitWall(): void {
     if (this.isKnockedBack) return;
+
+    // Determine which axis the wall collision blocked us on.
+    // If we were moving primarily in X but got stopped → blocked on X axis.
+    // If moving primarily in Y → blocked on Y axis.
+    const absVx = Math.abs(this.wanderVx);
+    const absVy = Math.abs(this.wanderVy);
+    const hitAxis: 'x' | 'y' = absVx >= absVy ? 'x' : 'y';
+
+    if (this.lastHitAxis === hitAxis) {
+      this.sameAxisHitCount++;
+    } else {
+      this.lastHitAxis = hitAxis;
+      this.sameAxisHitCount = 1;
+    }
+
     this.pickWanderDirection();
   }
 
@@ -182,6 +216,10 @@ export class Skeleton extends Phaser.Physics.Arcade.Sprite {
 
     this.dirTimer += delta;
     if (this.dirTimer >= this.dirInterval) {
+      // Normal direction change (not wall-triggered) — reset corridor detection
+      // since we've been moving freely
+      this.sameAxisHitCount = 0;
+      this.lastHitAxis = null;
       this.pickWanderDirection();
     }
 
