@@ -42,19 +42,31 @@ function baseEnemyCounts(combatIndex: number, combatRoomCount: number): { slimes
   const depth = combatIndex / (combatRoomCount - 1);
 
   if (lastCombatRoom) {
-    // Boss room: skeleton-heavy
-    return { slimes: 1, skeletons: 3 };
-  } else if (depth < 0.3) {
-    // Early: slimes only, gradually increasing
-    const slimes = combatIndex === 0 ? 1 : 2;
-    return { slimes, skeletons: 0 };
-  } else if (depth < 0.6) {
-    // Mid: introduce skeletons, slimes stable
-    return { slimes: 2, skeletons: 1 };
-  } else {
-    // Late-mid: more skeletons
-    return { slimes: 2, skeletons: 2 };
+    // Boss room: skeleton-heavy, scales with room count
+    const skelBase = combatRoomCount >= 4 ? 4 : 3;
+    return { slimes: 1, skeletons: skelBase };
   }
+
+  // First combat room: gentle intro
+  if (combatIndex === 0) {
+    return { slimes: 1, skeletons: 0 };
+  }
+
+  // For >= 3 combat rooms, enforce monotonic difficulty:
+  // each subsequent room should have >= enemies than the previous.
+  // Middle rooms always get at least 1 skeleton.
+  if (combatRoomCount >= 3) {
+    // Scale skeleton count with depth: 1 for early-mid, 2 for late-mid
+    const skeletons = depth < 0.6 ? 1 : 2;
+    // Slimes: 2 for most rooms, 1 only if deep enough that skeletons dominate
+    const slimes = depth >= 0.7 ? 1 : 2;
+    return { slimes, skeletons };
+  }
+
+  // 2 combat rooms (totalRooms=3): simple early/boss split
+  // combatIndex 0 handled above (1 slime, 0 skel)
+  // combatIndex 1 = boss room handled above
+  return { slimes: 2, skeletons: 1 };
 }
 
 /**
@@ -522,18 +534,21 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Spawn Skeleton patrol enemies in corridors (US-055) */
+  /** Spawn Skeleton patrol enemies in corridors (US-055, US-643) */
   private spawnCorridorPatrols(
     dungeonData: ReturnType<DungeonMap["getDungeonData"]>,
     wallLayer: Phaser.Tilemaps.TilemapLayer
   ): void {
     const CORRIDOR_SKELETON_SPEED = 0.636; // 35/55 multiplier → ~35px/s base speed
-    const MAX_CORRIDOR_PATROLS = 2;
 
     if (dungeonData.corridors.length === 0) return;
 
-    // Pick 1-2 random corridors to place patrol skeletons
-    const patrolCount = Phaser.Math.Between(1, MAX_CORRIDOR_PATROLS);
+    // Patrol count scales with total rooms (US-643):
+    // 3 rooms → 1 patrol, 4 rooms → 1-2, 5 rooms → 2-3
+    const totalRooms = dungeonData.rooms.length;
+    const minPatrols = totalRooms >= 5 ? 2 : 1;
+    const maxPatrols = Math.min(totalRooms - 1, 3); // cap at 3
+    const patrolCount = Phaser.Math.Between(minPatrols, maxPatrols);
     const shuffled = [...dungeonData.corridors].sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < Math.min(patrolCount, shuffled.length); i++) {

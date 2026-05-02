@@ -2578,7 +2578,7 @@
           "description": "当前getEnemyConfigForRoom在depth<0.4时只出slime(2个)、depth>=0.4时混合(2slime+1skeleton)，但3-5房间的中间房间(combatIndex 1, depth~0.3-0.5)仍然偏弱。当totalRooms=3时只有1个combat room(2slime+1skeleton)，4-5房间时中间房间的skeleton=0或1。建议：combat rooms总数>=3时，中间房间至少1个skeleton+走廊patrol skeleton，消除\"轻松区\"。",
           "type": "code",
           "priority": 2,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "totalRooms>=4时，中间combat rooms至少1 skeleton",
