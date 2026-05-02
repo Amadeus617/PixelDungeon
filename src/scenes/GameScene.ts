@@ -226,6 +226,10 @@ export class GameScene extends Phaser.Scene {
     const spawnPos = this.dungeonMap.getPlayerSpawnPos();
     this.player = new Player(this, spawnPos.x, spawnPos.y);
 
+    // Scale base attack power with runCount (US-586): 1→1, 4→2, 7→3
+    const baseAttack = Math.min(3, 1 + Math.floor((this.runCount - 1) / 3));
+    this.player.setBaseAttackPower(baseAttack);
+
     // Collide player with wall tiles
     this.physics.add.collider(this.player, this.dungeonMap.getWallLayer());
 
@@ -619,7 +623,7 @@ export class GameScene extends Phaser.Scene {
     // Play attack swoosh sound
     this.soundManager.playAttack();
 
-    const damage = this.player.attackBoosted ? Player.ATTACK_DAMAGE * 2 : Player.ATTACK_DAMAGE;
+    const damage = this.player.attackPower;
     // Buff stays active for the full duration (timed, not one-shot)
 
     // Filter out dead slimes

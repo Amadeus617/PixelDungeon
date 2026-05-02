@@ -48,6 +48,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   // Attack boost (timed buff)
   private _attackBoosted: boolean = false;
   private _attackBoostTimer: number = 0;
+  private _baseAttackPower: number = ATTACK_DAMAGE;
   private _attackBoostDuration: number = ATTACK_BOOST_DURATION;
 
   // Dash / dodge state (US-056)
@@ -93,6 +94,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** Combat config – exposed for testing and external use */
   static readonly ATTACK_RANGE = ATTACK_RANGE;
   static readonly ATTACK_DAMAGE = ATTACK_DAMAGE;
+
+  /** Get effective attack damage (base + boost) */
+  get attackPower(): number {
+    return this._attackBoosted ? this._baseAttackPower * 2 : this._baseAttackPower;
+  }
+
+  /** Set base attack power (for runCount scaling, US-586) */
+  setBaseAttackPower(power: number): void {
+    this._baseAttackPower = power;
+  }
 
   get direction(): Direction {
     return this._direction;

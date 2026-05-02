@@ -1581,7 +1581,7 @@
           "description": "攻击力永远为1无成长感。应为 min(3, 1+floor((runCount-1)/3)) 配合难度递增。\\n\\n合并自: US-168, US-409",
           "type": "code",
           "priority": 85,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "runCount 1-3: 攻击力 1",
