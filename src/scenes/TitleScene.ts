@@ -91,8 +91,9 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Version
+    const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
     this.versionText = this.add
-      .text(width - 10, height - 10, "v0.1.0", {
+      .text(width - 10, height - 10, `v${version}`, {
         fontFamily: '"Courier New", monospace',
         fontSize: "10px",
         color: "#333355",

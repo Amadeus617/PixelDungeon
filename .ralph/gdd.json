@@ -4220,170 +4220,24 @@
     }
   },
   "knownIssues": {
-    "_consolidated": "2026-04-29 审查后合并去重",
-    "P0_blockers": [
-      {
-        "id": "CORE-001",
-        "title": "Chest.open() 无战利品产出 + checkWinCondition无门控",
-        "impact": "US-057解耦宝箱后核心循环第二次断裂：玩家可直接走到楼梯通关，key/chest系统无意义",
-        "existingUS": "US-536 (权威)",
-        "supersedes": [
-          "US-119",
-          "US-317",
-          "US-373",
-          "US-382",
-          "US-389",
-          "US-431",
-          "US-462",
-          "US-469",
-          "US-477",
-          "US-496",
-          "US-508",
-          "US-518"
-        ],
-        "codeRef": "src/entities/Chest.ts open() + src/scenes/GameScene.ts checkWinCondition"
-      },
-      {
-        "id": "CORE-002",
-        "title": "Player.takeDamage() 返回 void",
-        "impact": "阻塞受伤音效/统计/UI更新等6+功能",
-        "existingUS": "US-497 (权威)",
-        "supersedes": [
-          "US-117",
-          "US-171",
-          "US-200",
-          "US-252",
-          "US-330",
-          "US-367",
-          "US-384",
-          "US-388",
-          "US-465",
-          "US-472",
-          "US-494",
-          "US-509",
-          "US-519"
-        ],
-        "codeRef": "src/entities/Player.ts takeDamage()"
-      },
-      {
-        "id": "CORE-003",
-        "title": "GameScene 无 shutdown() 方法",
-        "impact": "场景重启后事件监听器/overlap回调/timer累积泄漏",
-        "existingUS": "US-538 (权威)",
-        "supersedes": [
-          "US-195",
-          "US-233",
-          "US-270",
-          "US-280",
-          "US-327",
-          "US-390",
-          "US-400",
-          "US-424",
-          "US-435",
-          "US-466",
-          "US-471",
-          "US-479",
-          "US-498",
-          "US-510"
-        ],
-        "codeRef": "src/scenes/GameScene.ts"
-      },
-      {
-        "id": "CORE-005",
-        "title": "Enemy respawn overlap 重复注册 — 伤害倍增",
-        "impact": "P0：多次进出房间后敌人伤害叠加，破坏游戏平衡",
-        "existingUS": "US-540 (权威)",
-        "supersedes": [
-          "US-531"
-        ],
-        "codeRef": "src/scenes/GameScene.ts createEnemyOverlap/room reset"
-      },
-      {
-        "id": "CORE-006",
-        "title": "PRD 重复膨胀 — 534条US中~80%重复",
-        "impact": "无法有效指导开发，token浪费严重",
-        "existingUS": "US-535 (权威)",
-        "supersedes": [
-          "US-404",
-          "US-411",
-          "US-412",
-          "US-416",
-          "US-430",
-          "US-433",
-          "US-436",
-          "US-446",
-          "US-480",
-          "US-502",
-          "US-506",
-          "US-507",
-          "US-523",
-          "US-530",
-          "US-534"
-        ],
-        "codeRef": ".ralph/prd.json"
-      }
-    ],
-    "P1_core": [
-      {
-        "id": "VIS-001",
-        "title": "Skeleton chase 分支 HP bar 不跟随",
-        "impact": "追踪敌人时血条原地不动，直接可见的视觉 bug",
-        "existingUS": "US-136, US-196, US-209, US-244, US-279, US-308, US-334, US-375, US-391, US-397, US-434, US-463"
-      },
-      {
-        "id": "BAL-001",
-        "title": "难度缩放体系断裂 — runCount 未接入房间敌人配置",
-        "impact": "getEnemyConfigForRoom 不受 runCount 影响，跨局难度不变",
-        "existingUS": "US-143, US-290, US-336, US-339, US-379, US-420, US-441"
-      },
-      {
-        "id": "BUG-001",
-        "title": "Slime/Skeleton onHitWall() knockback 保护缺失",
-        "impact": "击退未结束时碰墙覆盖速度方向，击退效果被打断",
-        "existingUS": "US-099, US-100, US-172, US-207, US-395, US-442, US-464"
-      },
-      {
-        "id": "BUG-002",
-        "title": "dash 冲刺无碰撞保护 — 可能穿墙",
-        "impact": "高速度 + 无碰撞检测 = 玩家可进入墙壁/无效区域",
-        "existingUS": "US-303, US-316"
-      },
-      {
-        "id": "DRY-001",
-        "title": "4个 Collectible 类共享 ~120 行重复代码",
-        "impact": "维护成本高，新 collectible 类型需要复制粘贴；bug 修复需同步多处",
-        "existingUS": "US-700",
-        "codeRef": "src/entities/Coin.ts, HealthPotion.ts, AttackBoost.ts, KeyItem.ts"
-      },
-      {
-        "id": "MEM-001",
-        "title": "掉落物数组不清理已收集物品引用",
-        "impact": "长局游戏中 coins/potions/attackBoosts 数组持续增长，已 destroy 对象不被 GC",
-        "existingUS": "US-703",
-        "codeRef": "src/scenes/GameScene.ts spawnDropCoin/Potion/AttackBoost"
-      },
-      {
-        "id": "BAL-002",
-        "title": "攻击锥角 151° 远超设计意图 120°",
-        "impact": "玩家几乎不需要面对敌人方向，攻击方向选择无战术意义",
-        "existingUS": "US-704",
-        "codeRef": "src/entities/Player.ts isEnemyInAttackRange dot threshold 0.25"
-      },
-      {
-        "id": "COM-004",
-        "title": "收集物品数组只增不减 — coins/healthPotions/attackBoosts 无 filter",
-        "impact": "长时间游戏后数组膨胀数百无效引用，minimap 遍历显示不存在物品",
-        "existingUS": "US-747",
-        "discovered": "R74"
-      },
-      {
-        "id": "BAL-002",
-        "title": "攻击无命中上限 — AOE失衡",
-        "impact": "搭配 ATK x2 一次攻击可秒杀整群 Slime，难度系统形同虚设",
-        "existingUS": "US-745",
-        "discovered": "R74"
-      }
-    ]
+    "performance": {
+      "minimapPerFrame": "US-768: 每帧 O(visited×entities) 重绘，需脏标记优化",
+      "hudSetText": "US-666: 每帧无效 setText 调用需 dirty flag"
+    },
+    "combatBalance": {
+      "noHitCap": "US-770: 单次攻击无命中上限，可一刀清屏",
+      "comboPause": "US-771: combo 用 setTimeout 暂停不冻结",
+      "dashPickup": "US-769: Dash 无敌帧仍可拾取道具"
+    },
+    "visualFeedback": {
+      "attackCooldown": "US-773: 400ms 冷却无视觉反馈",
+      "dashTrail": "US-687: 冲刺无残影效果",
+      "attackAnim": "US-750: 攻击无动画帧仅特效线"
+    },
+    "dataCompleteness": {
+      "resultScene": "US-774: 缺少难度等级/runCount/清除率",
+      "version": "US-772: 版本号硬编码 v0.1.0"
+    }
   },
   "levelDesign": {
     "rules": [
@@ -5393,6 +5247,78 @@
         "dashMechanics": "150ms持续+1.5s冷却+无敌帧。设计合理但无敌帧拾取问题待修(US-755)。",
         "difficultyCurve": "前期适中，中期有Skeleton保底(US-643)，后期缺乏玩家成长导致难度断崖(US-757)。"
       }
+    },
+    {
+      "round": 62,
+      "date": "2026-05-02",
+      "title": "第62轮设计审查 — 已修复验证+剩余技术债梳理+8条新US",
+      "summary": "全面审查25个源文件、230条US后发现：代码质量显著提升，核心循环完全闭合(checkWinCondition key+chest ✓、Chest.open战利品掉落 ✓、ResultScene keyboard+TitleScene重启 ✓)。标记9条pending US为done（endGame合并US-629/641、攻击dot=0.5 US-736、跨局攻击力成长US-757、3对重复US合并处理）。剩余57条pending中约30条为真实有效改进。新增8条US(US-767~US-774)覆盖：走廊掉落位置校验、Minimap性能优化、Dash拾取守卫、攻击命中上限、combo暂停冻结、版本号动态读取、攻击冷却视觉反馈、ResultScene数据扩展。",
+      "newUserStories": [
+        "US-767",
+        "US-768",
+        "US-769",
+        "US-770",
+        "US-771",
+        "US-772",
+        "US-773",
+        "US-774"
+      ],
+      "fixedInReview": [
+        "US-629/641: endGame/endGameInternal 已合并为单一 endGame() ✓",
+        "US-736: 攻击锥形 dot threshold = 0.5 (120°) ✓",
+        "US-757: 玩家攻击力随 runCount 成长 min(3, 1+floor((rc-1)/3)) ✓",
+        "US-745/752/753/758/759: 重复US标记为done，合并到权威条目"
+      ],
+      "confirmedFixed": [
+        "takeDamage 返回 boolean — Player.ts L206 ✓",
+        "checkWinCondition key+chest 检查 — US-564/387 ✓",
+        "Chest.open() 战利品掉落 — emit chest-opened ✓",
+        "HP bar chase/knockback 跟随 — Skeleton/Slime L174/189/206/213 ✓",
+        "onHitWall knockback 守卫 — isKnockedBack return ✓",
+        "GameScene shutdown() 事件清理 — L1665 ✓",
+        "ResultScene keyboard once + TitleScene restart — ✓",
+        "SpikeTrap Physics.Arcade.Sprite — ✓",
+        "Slime proximity tracking AI — ✓",
+        "CollectibleBase 基类重构 — ✓",
+        "Hitstop 30ms — hitstopTimer=30 ✓",
+        "Minimap 楼梯金色标记+AttackBoost显示 — ✓",
+        "BootScene loaderror + anims幂等 — ✓",
+        "Player dash 冲刺 — ✓",
+        "ScoreSystem combo + breakdown — ✓ (但setTimeout需修)",
+        "endGame合并为单一方法+delayMs参数化 — ✓",
+        "TitleScene startTriggered 防双触发 — ✓"
+      ],
+      "remainingTechDebt": {
+        "performance": [
+          "US-768: Minimap 每帧 O(visited×entities) 全量重绘",
+          "US-666: HUD 每帧无效 setText (dirty flag pending)"
+        ],
+        "combat": [
+          "US-770: 单次攻击无命中上限",
+          "US-771: combo setTimeout 暂停不冻结",
+          "US-769: Dash 冲刺拾取守卫"
+        ],
+        "visual": [
+          "US-773: 攻击冷却无视觉反馈",
+          "US-687: Dash 冲刺残影效果",
+          "US-750: 攻击无动画帧"
+        ],
+        "data": [
+          "US-774: ResultScene 缺少难度等级/runCount/清除率",
+          "US-772: 版本号硬编码"
+        ],
+        "cleanup": [
+          "US-703/747: 收集物品数组只push不清理",
+          "US-740: 动态overlap累积",
+          "US-729/737/748: 走廊装饰对象生命周期"
+        ],
+        "balance": [
+          "US-733: 金币磁吸(attractRange=30 GDD已定义但未实现)",
+          "US-681/759: 走廊击杀无奖励"
+        ]
+      },
+      "completionRate": "181/238 = 76.1%",
+      "priority": "US-770(攻击命中上限) > US-771(combo暂停) > US-768(Minimap性能) > US-769(Dash拾取守卫) > US-774(ResultScene数据扩展)"
     }
   ]
 }

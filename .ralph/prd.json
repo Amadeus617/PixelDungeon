@@ -2387,7 +2387,7 @@
           "description": "GameScene 有 endGame() 和 endGameInternal() 两个方法，代码几乎相同（计算elapsedTime/roomsExplored/scoreBreakdown），仅 gameOver guard 和 delay 时长不同。death animation callback 需绕过 guard 走 internal，但应统一为一个方法，用参数控制 guard 和 delay。当前两份代码容易改漏。",
           "type": "code",
           "priority": 141,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "endGameInternal 删除，合并为 endGame(result, options?) 一个方法",
@@ -2561,7 +2561,7 @@
           "description": "US-629 已追踪重复逻辑问题，但补充一个被忽视的细节：endGameInternal (死亡路径) 用 200ms 延迟，endGame (胜利路径) 用 800ms 延迟。两个方法内部逻辑完全相同（physics.pause、计算 elapsedTime、addTimeBonus、scene.start），仅延迟时间不同。\n\n这不是 bug 而是设计 debt：(1) 延迟时间应该是参数而非两个方法；(2) 胜利场景应该有额外的胜利仪式动画占满 800ms，而非空白等待。\n\n修复方案：合并为 endGame(result, delayMs)，胜利时增加场景过渡动画填充延迟。",
           "type": "code",
           "priority": 153,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-629"
           ],
@@ -3092,7 +3092,7 @@
           "description": "Player.isEnemyInAttackRange()中coneDotThreshold=0.25，对应总攻击角度151°(acos(0.25)=75.5°,x2=151°)。代码注释声称120°(±60°, cos=0.5)。151°意味着玩家几乎可以向身后75°的敌人发动攻击，严重削弱了攻击方向选择的意义。应将threshold从0.25改为0.5，收窄至120°总角度，使攻击方向选择更有策略意义。这是纯数值改动，无结构性变更。",
           "type": "code",
           "priority": 248,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-584",
             "US-704",
@@ -3234,7 +3234,7 @@
           "description": "handlePlayerAttack() 遍历所有 this.slimes 和 this.skeletons，对攻击锥形内的每个敌人都造成伤害。这导致：(1) 一次攻击可同时击中5+敌人，在敌人密集时造成不合理的 AOE 伤害；(2) 搭配 attack boost (ATK x2) 可一次秒杀整群 Slime。建议添加最大命中数限制（如最多3个），或按距离排序优先命中最近的敌人。代码位置：src/scenes/GameScene.ts L655-730",
           "type": "balance",
           "priority": 194,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "单次攻击最多命中 N 个敌人（N 建议3）",
@@ -3348,7 +3348,7 @@
           "description": "Player.isEnemyInAttackRange 检测所有在攻击锥形内的敌人，handlePlayerAttack 遍历 enemies 数组对每个命中敌人造成伤害。当多个敌人重叠时，一次攻击可同时命中全部。建议添加 maxHitPerAttack=2 上限，增强战术选择（需选择攻击角度优先处理关键敌人）。",
           "type": "code",
           "priority": 201,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "单次攻击最多命中 2 个敌人",
@@ -3364,7 +3364,7 @@
           "description": "ScoreSystem 使用 setTimeout 管理 combo 窗口（3秒）。当游戏暂停时（ESC 暂停），setTimeout 继续倒计时导致 combo 在暂停期间过期。应改用 Phaser time.addEvent 或在 update 中手动计时，暂停时自动冻结。",
           "type": "code",
           "priority": 202,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "combo 计时器改用 Phaser TimerEvent",
@@ -3422,7 +3422,7 @@
           "description": "Player._baseAttackPower 硬编码为 ATTACK_DAMAGE=1，不随 runCount 增长。敌人 HP 和数量随 runCount 递增（getEnemyConfigForRoom），但玩家攻击力不变，导致高 runCount 时战斗体验恶化。US-409/586 标记了此问题但代码从未实现。建议：baseAttackPower = min(3, 1 + floor((runCount-1)/3))，配合 GDD 参数。",
           "type": "code",
           "priority": 206,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Player 构造函数接受 runCount 参数",
@@ -3439,7 +3439,7 @@
           "description": "ScoreSystem._comboTimer 使用 setTimeout 实现3秒combo窗口。游戏暂停时（ESC）setTimeout 继续倒计时，导致暂停期间combo自然消失，对玩家不公平。US-744/753 标记了此问题但代码未修复。应改为 this.scene.time.delayedCall 或在 togglePause 时暂停/恢复 combo 计时。",
           "type": "code",
           "priority": 207,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "combo 计时改用 Phaser Timer（scene.time.delayedCall）",
@@ -3455,7 +3455,7 @@
           "description": "checkRoomClear() 仅检查当前房间的敌人列表，走廊中巡逻的 Skeleton（US-055）被击杀后不计入任何房间清除判定。US-681 标记了此问题但代码未实现。走廊击杀应触发独立的走廊击杀奖励（如 +50分/击杀），或计入相邻房间的清除计数。",
           "type": "code",
           "priority": 208,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "走廊击杀触发 scoreSystem.addCorridorKillPoints()",
@@ -3546,7 +3546,7 @@
           "description": "TitleScene 中 versionText 硬编码为 'v0.1.0'。应在构建时通过 vite define 注入或运行时读取 package.json。US-749已记录但当前仍pending，且无 acceptanceCriteria 要求构建集成。提升优先级并补充vite配置要求。",
           "type": "code",
           "priority": 3,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-749"
           ],
@@ -3568,6 +3568,145 @@
           "acceptanceCriteria": [
             "400ms冷却期内按space有某种视觉/听觉反馈",
             "反馈不干扰正常战斗节奏",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-767",
+          "title": "走廊击杀掉落位置校验 — 确保掉落物在可行走区域内",
+          "description": "handleEnemyDeathDrop 在走廊击杀时，掉落物位置可能落在墙壁或不可行走区域导致无法拾取。应在 spawnDropCoin/spawnDropPotion 时校验目标位置是否在 tilemap 的可通行区域，若不在则寻找最近的可行走位置。",
+          "type": "code",
+          "priority": 216,
+          "status": "pending",
+          "dependsOn": [
+            "US-033"
+          ],
+          "acceptanceCriteria": [
+            "掉落物生成位置始终在可行走 tile 上",
+            "走廊击杀掉落物不落在墙壁内",
+            "最近可行走位置查找使用 BFS 搜索 3x3 范围",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-768",
+          "title": "Minimap 渲染优化 — 脏标记+按需重绘替代每帧全量绘制",
+          "description": "Minimap update() 每帧遍历 visited_rooms × all_entities 做可见性检测和全量重绘，60fps 下性能浪费严重。应引入 dirty flag：仅在房间切换/敌人死亡/道具拾取时标记脏，仅脏帧重绘。静态元素（墙壁/走廊/楼梯）使用 RenderTexture 缓存。",
+          "type": "code",
+          "priority": 217,
+          "status": "pending",
+          "dependsOn": [
+            "US-020"
+          ],
+          "acceptanceCriteria": [
+            "Minimap 仅在状态变化时重绘，非脏帧跳过",
+            "静态地形使用 RenderTexture 缓存",
+            "动态实体（敌人/道具）增量更新",
+            "60fps 下 Minimap 渲染耗时 < 0.5ms",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-769",
+          "title": "Dash 冲刺期间拾取守卫 — 无敌帧跳过道具 overlap",
+          "description": "玩家 Dash 冲刺期间有无敌帧和墙壁穿透，但当前仍可拾取道具。这与闪避设计矛盾——冲刺是规避行为，不应同时获得资源。应在 Coin/HealthPotion/AttackBoost 的 overlap 回调中检查 player.dashing 属性，跳过拾取。",
+          "type": "code",
+          "priority": 218,
+          "status": "pending",
+          "dependsOn": [
+            "US-056"
+          ],
+          "acceptanceCriteria": [
+            "Dash 冲刺期间不拾取任何道具",
+            "冲刺结束后立即恢复拾取能力",
+            "已有 overlap 回调中添加 !player.dashing 守卫",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-770",
+          "title": "单次攻击命中上限 — 最多命中3个敌人防止一刀清屏",
+          "description": "handlePlayerAttack 遍历所有敌人无命中上限，玩家可一击同时命中全屏敌人。应添加 MAX_HIT_PER_ATTACK=3 常量，命中达到上限后跳过后续敌人。鼓励玩家在多敌人场景中策略性走位而非站桩输出。",
+          "type": "code",
+          "priority": 219,
+          "status": "pending",
+          "dependsOn": [
+            "US-008"
+          ],
+          "acceptanceCriteria": [
+            "单次攻击最多命中 MAX_HIT_PER_ATTACK=3 个敌人",
+            "命中达到上限后 break 循环",
+            "hitstop/shake 仍然触发（基于是否 didHit）",
+            "combo 计分正确：多杀在限制内正常递增",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-771",
+          "title": "ScoreSystem combo 改用 Phaser TimerEvent — 暂停时冻结计时",
+          "description": "ScoreSystem combo 窗口使用 setTimeout 实现，游戏暂停（ESC）时 combo 计时不冻结，导致暂停后 combo 窗口已过期。应改为 Phaser TimerEvent 或手动追踪 elapsed delta，暂停时自动冻结。",
+          "type": "code",
+          "priority": 220,
+          "status": "pending",
+          "dependsOn": [
+            "US-581"
+          ],
+          "acceptanceCriteria": [
+            "combo 计时改用 scene.time.delayedCall 或手动 delta 追踪",
+            "暂停期间 combo 计时冻结",
+            "恢复后 combo 窗口从暂停点继续",
+            "HUD combo 显示在暂停时冻结",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-772",
+          "title": "TitleScene 版本号从 package.json 动态读取",
+          "description": "TitleScene 硬编码 v0.1.0 字符串（与 package.json 的 1.0.0 不一致）。应通过 Vite 的 define 注入 __APP_VERSION__ 常量，或在 BootScene preload 中读取 package.json。",
+          "type": "code",
+          "priority": 221,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TitleScene 版本号从 package.json 读取",
+            "Vite 构建时注入版本号常量",
+            "不再有硬编码版本字符串",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-773",
+          "title": "攻击冷却视觉反馈 — 玩家脚下微型冷却指示器",
+          "description": "玩家攻击冷却 400ms 期间无任何视觉反馈，玩家不清楚何时可以再次攻击。应在玩家脚下绘制小型圆形进度条，显示冷却剩余比例。冷却完成时闪烁提示。",
+          "type": "code",
+          "priority": 222,
+          "status": "pending",
+          "dependsOn": [
+            "US-008"
+          ],
+          "acceptanceCriteria": [
+            "攻击后脚下显示冷却进度环",
+            "进度环随时间填充，冷却完成时消失",
+            "颜色从红→绿渐变",
+            "性能：使用 Graphics 对象复用，不每帧 new",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-774",
+          "title": "ResultScene 通关数据面板扩展 — 难度等级+runCount+清除率",
+          "description": "ResultScene 当前显示击杀数/金币/药水/探索房间/时间/分数，但缺少难度等级、通关轮次和房间清除率等关键数据。endGame 传递数据时已包含 runCount 但 ResultScene 未接收和显示。应扩展统计面板和 scoreBreakdown。",
+          "type": "code",
+          "priority": 223,
+          "status": "pending",
+          "dependsOn": [
+            "US-048"
+          ],
+          "acceptanceCriteria": [
+            "ResultScene 显示 runCount（通关轮次）",
+            "显示房间清除率（已清除/总房间数）",
+            "难度等级基于 runCount 计算",
+            "数据通过 scene.start data 传递",
             "tsc + build 通过"
           ]
         }
