@@ -408,25 +408,39 @@ export class HUD extends Phaser.GameObjects.Container {
     // Listen for room changes from the camera system
     if (this.roomCameraSystem) {
       this.roomCameraSystem.setOnRoomChanged((_idx, _room, _prevIdx) => {
-        this.showRoomName(this.getRoomLabel(_idx));
+        this.showRoomName(this.getRoomLabel(_idx), this.roomCameraSystem?.isGoldenTransition() ?? false);
       });
     }
   }
 
-  /** Show a room name overlay that fades out after a brief delay */
-  private showRoomName(name: string): void {
+  /** Show a room name overlay that fades out after a brief delay
+   *  @param isGolden If true, use golden color for exit room (US-344)
+   */
+  private showRoomName(name: string, isGolden = false): void {
     this.roomNameText.setText(name);
     this.roomNameBg.setVisible(true);
     this.roomNameText.setVisible(true);
     this.roomNameText.setAlpha(1);
+
+    // Golden style for exit room (US-344)
+    if (isGolden) {
+      this.roomNameText.setColor('#ffd700');
+      this.roomNameText.setStroke('#8B6914', 4);
+      this.roomNameBg.setFillStyle(0x332200, 0.8);
+    } else {
+      this.roomNameText.setColor('#ffffff');
+      this.roomNameText.setStroke('#000000', 3);
+      this.roomNameBg.setFillStyle(0x000000, 0.7);
+    }
 
     // Clear any existing timer
     if (this.roomNameTimer) {
       this.roomNameTimer.remove();
     }
 
-    // Fade out after delay
-    this.roomNameTimer = this.scene.time.delayedCall(ROOM_NAME_DISPLAY_MS, () => {
+    // Fade out after delay (1.5s for golden, 2s for normal)
+    const displayMs = isGolden ? ROOM_NAME_DISPLAY_MS + 1000 : ROOM_NAME_DISPLAY_MS;
+    this.roomNameTimer = this.scene.time.delayedCall(displayMs, () => {
       this.scene.tweens.add({
         targets: [this.roomNameText, this.roomNameBg],
         alpha: 0,
@@ -440,9 +454,19 @@ export class HUD extends Phaser.GameObjects.Container {
     });
   }
 
-  /** Generate a room label from its index */
+  /** Generate a room label from its index (US-344: special exit room name) */
   private getRoomLabel(roomIndex: number): string {
-    const labels = ["Entrance Hall", "Guard Room", "Dark Chamber", "Treasure Vault", "Exit Passage"];
+    const totalRooms = this.roomCameraSystem
+      ? this.roomCameraSystem.getDungeonData().rooms.length
+      : 5;
+    const isExit = this.roomCameraSystem
+      ? roomIndex === this.roomCameraSystem.getDungeonData().rooms.indexOf(
+          this.roomCameraSystem.getDungeonData().exitRoom
+        )
+      : roomIndex === totalRooms - 1;
+    if (isExit) return '✦ Exit Chamber ✦';
+    if (roomIndex === 0) return 'Entrance Hall';
+    const labels = ['Entrance Hall', 'Guard Room', 'Dark Chamber', 'Treasure Vault', 'Exit Passage'];
     if (roomIndex < labels.length) return labels[roomIndex];
     return `Room ${roomIndex + 1}`;
   }

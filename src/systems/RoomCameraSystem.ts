@@ -4,8 +4,9 @@ import type { DungeonData, RoomDef } from "@/map";
 /** Configuration for the room camera system */
 const CAMERA_LERP_X = 0.1;
 const CAMERA_LERP_Y = 0.1;
-const TRANSITION_DURATION = 200; // ms for fade effect
+const TRANSITION_DURATION = 300; // ms for fade effect (US-344)
 const TRANSITION_HOLD = 50; // ms to hold the fade before fading back in
+const ARROW_DISTANCE_THRESHOLD = 30; // px proximity for direction arrow (US-344)
 
 /** Callback type for room change events */
 export type RoomChangedCallback = (roomIndex: number, room: RoomDef, previousRoomIndex: number) => void;
@@ -36,6 +37,12 @@ export class RoomCameraSystem {
   private visitedRooms: Set<number> = new Set();
   /** Room change event callbacks (observer pattern — supports multiple listeners) */
   private onRoomChangedCallbacks: RoomChangedCallback[] = [];
+  /** Direction arrow sprite shown when player nears corridor entrances (US-344) */
+  private directionArrow: Phaser.GameObjects.Text | null = null;
+  /** Whether the last transition was to the exit (boss) room — for golden effect (US-344) */
+  private _isGoldenTransition = false;
+  /** Index of the exit room */
+  private exitRoomIndex: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -47,6 +54,8 @@ export class RoomCameraSystem {
     this.dungeonData = dungeonData;
     this.tileSize = tileSize;
     this.tileScale = tileScale;
+    this.exitRoomIndex = dungeonData.rooms.indexOf(dungeonData.exitRoom);
+    if (this.exitRoomIndex < 0) this.exitRoomIndex = dungeonData.rooms.length - 1;
   }
 
   /** Get the dungeon data */
@@ -90,6 +99,17 @@ export class RoomCameraSystem {
       cam.off(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE);
       cam.off(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE);
     }
+    // Clean up direction arrow (US-344)
+    if (this.directionArrow) {
+      this.directionArrow.destroy();
+      this.directionArrow = null;
+    }
+    this.dungeonData = null as any; // release
+  }
+
+  /** Whether the last transition was a golden (exit room) transition (US-344) */
+  isGoldenTransition(): boolean {
+    return this._isGoldenTransition;
   }
 
   /** Check if a room has been visited */
@@ -201,8 +221,13 @@ export class RoomCameraSystem {
         const cam = this.scene.cameras.main;
         this.setCameraToWorld(cam);
       }
+      // Show direction arrow when in corridor (US-344)
+      this.updateDirectionArrow(playerX, playerY);
       return false;
     }
+
+    // Hide direction arrow when inside a room
+    this.hideDirectionArrow();
 
     // Mark that we're no longer in a corridor
     if (this.inCorridor) {
@@ -215,6 +240,8 @@ export class RoomCameraSystem {
     // Player entered a new room!
     this.previousRoomIndex = this.currentRoomIndex;
     this.visitedRooms.add(detectedRoom);
+    // Golden transition if entering the exit room (US-344)
+    this._isGoldenTransition = detectedRoom === this.exitRoomIndex;
     this.triggerTransition(detectedRoom);
     return true;
   }
@@ -234,15 +261,21 @@ export class RoomCameraSystem {
 
   /**
    * Trigger a room transition with a fade effect.
+   * Exit room gets a special golden transition (US-344).
    */
   private triggerTransition(
     newRoomIndex: number
   ): void {
     this.transitioning = true;
     const cam = this.scene.cameras.main;
+    const isGolden = this._isGoldenTransition;
 
-    // Fade out
-    cam.fadeOut(TRANSITION_DURATION, 0, 0, 0);
+    // Fade out — gold tint for exit room, black for normal
+    if (isGolden) {
+      cam.fadeOut(TRANSITION_DURATION, 255, 215, 0); // gold color
+    } else {
+      cam.fadeOut(TRANSITION_DURATION, 0, 0, 0);
+    }
 
     cam.once(
       Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
@@ -262,7 +295,11 @@ export class RoomCameraSystem {
 
         // Brief hold then fade back in
         this.scene.time.delayedCall(TRANSITION_HOLD, () => {
-          cam.fadeIn(TRANSITION_DURATION, 0, 0, 0);
+          if (isGolden) {
+            cam.fadeIn(TRANSITION_DURATION, 255, 215, 0); // gold fade in
+          } else {
+            cam.fadeIn(TRANSITION_DURATION, 0, 0, 0);
+          }
 
           cam.once(
             Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
@@ -273,5 +310,87 @@ export class RoomCameraSystem {
         });
       }
     );
+  }
+
+  /**
+   * Update direction arrow when player is in a corridor (US-344).
+   * Shows an arrow pointing toward the nearest corridor exit / adjacent room.
+   */
+  private updateDirectionArrow(playerX: number, playerY: number): void {
+    // Find corridors connected to current room
+    const adjacentCorridors = this.dungeonData.corridors.filter(
+      c => c.fromRoom === this.currentRoomIndex || c.toRoom === this.currentRoomIndex
+    );
+
+    if (adjacentCorridors.length === 0) {
+      this.hideDirectionArrow();
+      return;
+    }
+
+    // Find nearest corridor endpoint (which is an exit to an adjacent room)
+    let nearestDist = Infinity;
+    let nearestDir = { x: 0, y: 0 };
+
+    for (const corridor of adjacentCorridors) {
+      // Determine which end of the corridor leads away from current room
+      const targetRoom = corridor.fromRoom === this.currentRoomIndex
+        ? corridor.toRoom
+        : corridor.fromRoom;
+      const targetRoomDef = this.dungeonData.rooms[targetRoom];
+      if (!targetRoomDef) continue;
+
+      const px = this.tileSize * this.tileScale;
+      // Center of the target room
+      const roomCX = (targetRoomDef.col + targetRoomDef.width / 2) * px;
+      const roomCY = (targetRoomDef.row + targetRoomDef.height / 2) * px;
+
+      const dx = roomCX - playerX;
+      const dy = roomCY - playerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestDir = { x: dx, y: dy };
+      }
+    }
+
+    // Show arrow only if within threshold distance of corridor exit
+    if (nearestDist > ARROW_DISTANCE_THRESHOLD * 5) {
+      this.hideDirectionArrow();
+      return;
+    }
+
+    // Determine arrow direction character
+    const angle = Math.atan2(nearestDir.y, nearestDir.x) * 180 / Math.PI;
+    let arrowChar: string;
+    if (angle >= -45 && angle < 45) arrowChar = '▶';
+    else if (angle >= 45 && angle < 135) arrowChar = '▼';
+    else if (angle >= -135 && angle < -45) arrowChar = '▲';
+    else arrowChar = '◀';
+
+    // Create or update arrow
+    if (!this.directionArrow) {
+      this.directionArrow = this.scene.add.text(playerX, playerY - 24, arrowChar, {
+        fontSize: '20px',
+        color: '#ffd700',
+        fontFamily: 'monospace',
+        stroke: '#000000',
+        strokeThickness: 3,
+      });
+      this.directionArrow.setOrigin(0.5);
+      this.directionArrow.setDepth(300);
+    }
+
+    this.directionArrow.setText(arrowChar);
+    this.directionArrow.setPosition(playerX, playerY - 24);
+    this.directionArrow.setAlpha(0.8 + Math.sin(this.scene.time.now / 200) * 0.2); // pulsing
+    this.directionArrow.setVisible(true);
+  }
+
+  /** Hide and clean up the direction arrow (US-344) */
+  private hideDirectionArrow(): void {
+    if (this.directionArrow) {
+      this.directionArrow.setVisible(false);
+    }
   }
 }

@@ -3263,6 +3263,10 @@
       "author": "agent-sync",
       "change": "US-593: Full GDD↔code parameter sync. Added dropPotionHeal=2, enemyContactCooldown=500, combo params, dash params, knockback params, difficulty scaling docs, victory celebration params. healthPotionHeal confirmed at 3.",
       "reason": "PRD US-593 GDD parameter synchronization audit"
+    },
+    {
+      "date": "2026-05-02",
+      "entry": "Round 60: Marked 7 fixed US as done. Added 10 new US focusing on shutdown cleanup (enemyContactCooldowns, camera zoom), pause system freeze (enemy setVelocity), attack balance (hit cap 3), combo TimerEvent refactor, ResultScene data expansion, corridor kill rewards, pause menu, death particle colors, Dash pick-up guard, and PRD dedup."
     }
   ],
   "improvements": {
@@ -4158,26 +4162,37 @@
     "totalUS": 259,
     "completionRate": 71.0
   },
-  "knownIssues": {
-    "performance": {
-      "minimapPerFrame": "US-768: 每帧 O(visited×entities) 重绘，需脏标记优化",
-      "hudSetText": "US-666: 每帧无效 setText 调用需 dirty flag"
+  "knownIssues": [
+    "performance",
+    "combatBalance",
+    "visualFeedback",
+    "dataCompleteness",
+    {
+      "id": "US-796",
+      "severity": "medium",
+      "desc": "shutdown 未清理 enemyContactCooldowns Map + camera zoom 未重置"
     },
-    "combatBalance": {
-      "noHitCap": "US-770: 单次攻击无命中上限，可一刀清屏",
-      "comboPause": "US-771: combo 用 setTimeout 暂停不冻结",
-      "dashPickup": "US-769: Dash 无敌帧仍可拾取道具"
+    {
+      "id": "US-797",
+      "severity": "high",
+      "desc": "暂停时敌人手动 setVelocity 不受 physics.pause 影响"
     },
-    "visualFeedback": {
-      "attackCooldown": "US-773: 400ms 冷却无视觉反馈",
-      "dashTrail": "US-687: 冲刺无残影效果",
-      "attackAnim": "US-750: 攻击无动画帧仅特效线"
+    {
+      "id": "US-798",
+      "severity": "medium",
+      "desc": "单次攻击无命中上限，可一击清屏"
     },
-    "dataCompleteness": {
-      "resultScene": "US-774: 缺少难度等级/runCount/清除率",
-      "version": "US-772: 版本号硬编码 v0.1.0"
+    {
+      "id": "US-799",
+      "severity": "low",
+      "desc": "combo 用 setTimeout 暂停时不冻结"
+    },
+    {
+      "id": "US-801",
+      "severity": "medium",
+      "desc": "走廊击杀无掉落无积分"
     }
-  },
+  ],
   "levelDesign": {
     "rules": [
       {
@@ -4474,6 +4489,49 @@
       "summary": "Round focused on audio/UX gaps. 6 new US added. 66 existing pending US remain. Key areas: room_clear audio (US-786), corridor drop position validation (US-787), BootScene lifecycle (US-788), pause menu expansion (US-789), combo stats display (US-790), controls hint completion (US-791). Build passes, tsc clean, 255 total US, 72 pending.",
       "buildStatus": "passing",
       "tscStatus": "clean"
+    },
+    {
+      "round": 60,
+      "date": "2026-05-02",
+      "type": "code-review",
+      "title": "第60轮设计审查 — shutdown泄漏修复+暂停冻结+攻击上限+走廊奖励",
+      "findings": [
+        "US-630/635/637/666/706/747/749 已在代码中修复但 PRD 未标记 done — 已批量更新",
+        "shutdown() 未清理 enemyContactCooldowns Map → 重启后残留旧引用",
+        "shutdown() 未重置 camera zoom (1.5) → 胜利缩放泄漏到下一局",
+        "physics.pause() 不阻止 setVelocity → 暂停时敌人仍在移动",
+        "processAttack 无命中上限 → 理论一击清屏",
+        "ScoreSystem combo 使用 setTimeout → 暂停时 combo 窗口仍倒计时",
+        "ResultScene 不显示 runCount/combo 最高连杀",
+        "走廊击杀不触发 handleEnemyDeathDrop → 无掉落无积分",
+        "敌人死亡粒子颜色统一 0xffffff → GDD 规定 Slime 绿/Skeleton 白",
+        "Dash 无敌帧期间仍拾取道具",
+        "PRD 存在大量功能重复的 pending US 需去重"
+      ],
+      "summary": "本轮重点审查了 GameScene 生命周期管理（shutdown 清理完整性）、暂停系统缺陷（physics.pause 局限性）、战斗平衡（攻击命中上限）、和走廊体验缺失。标记 7 条已修复 US 为 done，新增 10 条 US（US-796~US-805）。",
+      "newUS": [
+        "US-796",
+        "US-797",
+        "US-798",
+        "US-799",
+        "US-800",
+        "US-801",
+        "US-802",
+        "US-803",
+        "US-804",
+        "US-805"
+      ],
+      "fixedUS": [
+        "US-630",
+        "US-635",
+        "US-637",
+        "US-666",
+        "US-706",
+        "US-747",
+        "US-749"
+      ],
+      "buildStatus": "pass",
+      "tscStatus": "pass"
     }
   ],
   "gameSystems": {

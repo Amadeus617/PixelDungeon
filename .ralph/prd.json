@@ -2276,7 +2276,7 @@
           "description": "当前房间切换是瞬间的，缺乏方向感。改进为：玩家接近出口时显示方向箭头提示；切换房间时添加300ms黑屏淡入淡出过渡；新房间出现时短暂显示房间名称覆盖层（已有HUD房间名称，但需与过渡动画配合）。",
           "type": "enhancement",
           "priority": 329,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "玩家接近房间出口（距离<30px）时显示方向箭头图标",
@@ -2402,7 +2402,7 @@
           "description": "spawnDropCoin() 中 this.physics.add.overlap(player, coin, callback) 每次掉落新增一个 overlap detector。如果同一屏有多个掉落物，每个都独立注册。问题: player 是同一个引用，overlap 回调在 coin destroy 前一直存在。虽然 coin destroy 后 Phaser 会清理，但如果掉落动画期间 overlap 已注册但 coin 还未落地，可能触发空中拾取。需确认 coin 在 popup 动画期间 active=false 或 overlap 延迟到动画结束后注册。",
           "type": "code",
           "priority": 142,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "掉落物 popup 动画期间不可拾取（active=false 或 body.disable）",
@@ -2464,7 +2464,7 @@
           "description": "TitleScene.create() 注册了 3 个独立键盘监听器: keydown-SPACE (once), keydown-ENTER (once), 以及 500ms 后的 keydown (once)。当第一个触发 startGame() 后，其他 2 个监听器仍留在 keyboard 上不清理。虽然 isActive guard 防止了双重执行，但孤立监听器在场景 lifecycle 中不清理是资源浪费和潜在 bug 源。应在 startGame() 中显式移除所有 keyboard listeners。",
           "type": "code",
           "priority": 147,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-158"
           ],
@@ -2499,7 +2499,7 @@
           "description": "TitleScene.create() 中注册了 keydown-SPACE once、keydown-ENTER once、以及一个 500ms delayedCall 后的 keydown once。三个监听器都可触发 startGame()。虽然 startGame() 有 isActive 检查，但场景切换是异步的 — 在 scene.start(\"BootScene\") 执行前，其余监听器仍存在于输入系统中。\n\n场景切换后这些监听器不会被自动清理（Phaser 不保证清理前场景的 input listeners）。残留监听器在新场景中被 Phaser GC 时可能触发异常回调。\n\n修复方案：(1) startGame() 中立即 this.input.keyboard.removeAllListeners()；(2) 或使用单一 guard flag 并在 startGame 首行清除所有 once 监听。",
           "type": "code",
           "priority": 149,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-635"
           ],
@@ -2624,7 +2624,7 @@
           "description": "HUD.update()每帧(60fps)对所有文本元素执行setText()，即使值未变化。包括scoreLabel/coinLabel/keyLabel/hpText/attackBoostLabel等。每次setText()在Phaser内部触发脏标记导致不必要的渲染重绘和字符串GC压力。应添加dirty flag模式：仅在值变化时setText，未变化时跳过。",
           "type": "code",
           "priority": 438,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "HUD文本仅在值变化时调用setText",
@@ -2856,7 +2856,7 @@
           "description": "GameScene.shutdown() 已清理事件监听器、tweens、timers、动态 overlap 和浮动提示，但遗漏了以下对象的清理：1) RoomCameraSystem — 持有 scene 引用和 tween 2) DungeonMap — 持有 tilemap 和 tile layer 引用 3) HUD — 持有多个 Phaser.GameObjects 4) SoundManager — 持有 AudioContext 引用 5) pauseOverlay — 未销毁。多次场景重启后这些对象的旧引用不会被 GC 回收。",
           "type": "code",
           "priority": 144,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-538"
           ],
@@ -3267,7 +3267,7 @@
           "description": "this.coins、this.healthPotions、this.attackBoosts 三个数组在物品收集后从不移除已 destroy 的元素。每次掉落物产生(push)、收集(destroy)后，数组保留对已销毁对象的引用。经过长时间游戏（多次 respawn），数组会膨胀到数百个无效引用。minimap 的 entity getter 也遍历这些数组显示不存在的物品。应在收集回调中用 filter 或 splice 移除，或在 shutdown 时清空。代码位置：src/scenes/GameScene.ts spawnDropCoin/spawnDropPotion 等",
           "type": "bug",
           "priority": 196,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-703"
           ],
@@ -3301,7 +3301,7 @@
           "description": "TitleScene 中版本号直接硬编码为 'v0.1.0'（L114），不会随实际版本更新。应从 package.json 的 version 字段读取，或在构建时注入。代码位置：src/scenes/TitleScene.ts L114",
           "type": "chore",
           "priority": 198,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "版本号从 package.json 读取",
@@ -4031,6 +4031,150 @@
             "有死亡敌人时仍正确清理",
             "攻击命中逻辑行为不变",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-796",
+          "title": "GameScene shutdown 清理 enemyContactCooldowns Map + camera zoom 重置",
+          "description": "shutdown() 未清理 enemyContactCooldowns Map（重启后残留旧引用）且未重置 camera zoom（US-587 胜利 zoom 1.5 泄漏到下一局）。在 shutdown 中添加 enemyContactCooldowns.clear() 和 cameras.main.setZoom(1)。",
+          "type": "code",
+          "priority": 245,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "shutdown() 调用 enemyContactCooldowns.clear()",
+            "shutdown() 调用 this.cameras.main.setZoom(1)",
+            "多次重启后无 enemyContactCooldowns 残留",
+            "新游戏开始时 camera zoom 为 1.0"
+          ]
+        },
+        {
+          "id": "US-797",
+          "title": "暂停期间敌人手动 setVelocity 冻结 — physics.pause 不阻止代码驱动移动",
+          "description": "physics.pause() 只冻结物理引擎驱动的移动，但 Skeleton/Slime 的 update() 中通过 setVelocity 手动驱动移动不受影响。暂停时敌人仍在移动。解决方案：敌人 update 开头检查 scene.gameOver || scene.isPaused，或统一使用 frozen 属性。",
+          "type": "code",
+          "priority": 246,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停时所有敌人完全停止移动",
+            "恢复时敌人立即恢复当前行为",
+            "不影响敌人 AI 状态（追踪/漫游状态保持）"
+          ]
+        },
+        {
+          "id": "US-798",
+          "title": "handlePlayerAttack 添加单次攻击命中上限 — 防止一击清屏",
+          "description": "当前 processAttack 遍历所有敌人无上限，理论上一次挥剑可命中所有敌人。建议添加 MAX_TARGETS_PER_ATTACK=3 常量，命中 3 个敌人后停止遍历。提升战斗策略深度（需选择攻击时机和位置）。",
+          "type": "code",
+          "priority": 247,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "单次攻击最多命中 3 个敌人",
+            "优先命中最近的敌人",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-799",
+          "title": "ScoreSystem combo 计时改用 Phaser TimerEvent — 暂停时冻结",
+          "description": "当前 combo 使用 setTimeout，暂停游戏时 combo 窗口仍在倒计时导致暂停后 combo 失效。改用 Phaser TimerEvent 使 combo 计时在暂停时自动冻结。",
+          "type": "code",
+          "priority": 248,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "combo 使用 Phaser TimerEvent 替代 setTimeout",
+            "暂停期间 combo 计时冻结",
+            "恢复后 combo 窗口剩余时间正确",
+            "combo 重置回调正常触发"
+          ]
+        },
+        {
+          "id": "US-800",
+          "title": "ResultScene 扩展通关数据 — 显示 runCount/难度等级/combo 最高连杀",
+          "description": "ResultScene 当前不显示 runCount（第几轮）、难度等级、combo 最高连杀数。GameScene endGame 已传递 scoreBreakdown 但缺少 runCount 和 maxCombo。需要：(1) GameScene endGame 传递 runCount 和 maxCombo；(2) ResultScene 接收并显示这些数据。",
+          "type": "code",
+          "priority": 249,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene 显示当前 runCount",
+            "ResultScene 显示本局最高 combo 连杀数",
+            "数据从 GameScene 正确传递",
+            "布局不超出画布高度"
+          ]
+        },
+        {
+          "id": "US-801",
+          "title": "走廊击杀奖励机制 — handleEnemyDeathDrop 扩展走廊击杀判定",
+          "description": "当前 handleEnemyDeathDrop 只对 roomEnemyMap 内的敌人触发掉落，走廊中的巡逻敌人击杀后无掉落也无分数。扩展 handleEnemyDeathDrop 或 enemy-death 事件处理，使走廊击杀也能触发掉落和房间清除检查。",
+          "type": "code",
+          "priority": 250,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊敌人击杀后正常掉落物品",
+            "走廊击杀计入 killCount 和 scoreSystem",
+            "掉落位置校验在可行走区域内"
+          ]
+        },
+        {
+          "id": "US-802",
+          "title": "暂停菜单功能完善 — 重新开始 + 返回标题按钮",
+          "description": "当前 ESC 只 toggle 暂停遮罩，无其他操作选项。暂停菜单应提供：(1) 继续游戏；(2) 重新开始（重置 runCount）；(3) 返回标题画面。使用键盘上下选择+Enter确认。",
+          "type": "code",
+          "priority": 251,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停菜单显示 3 个选项",
+            "键盘上下键选择，Enter 确认",
+            "重新开始走 TitleScene 完整流程",
+            "ESC 可关闭菜单继续游戏"
+          ]
+        },
+        {
+          "id": "US-803",
+          "title": "敌人死亡粒子颜色区分 — Slime 绿色/Skeleton 白色",
+          "description": "GDD 规定 Slime 死亡粒子为绿色、Skeleton 为白色，但代码中统一使用 0xffffff。根据敌人类型使用不同粒子颜色增强视觉辨识度。",
+          "type": "code",
+          "priority": 252,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 死亡粒子为绿色 (0x44ff44)",
+            "Skeleton 死亡粒子为白色 (0xffffff)",
+            "粒子效果数量和持续时间不变"
+          ]
+        },
+        {
+          "id": "US-804",
+          "title": "Dash 冲刺期间拾取守卫 — 无敌帧跳过道具 overlap",
+          "description": "Dash 冲刺有无敌帧效果但未阻止道具拾取。冲刺穿过一片道具时自动全部拾取不合理。应在 Dash 状态下禁用道具 overlap 回调或设置 pickable=false。",
+          "type": "code",
+          "priority": 253,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Dash 期间不拾取任何道具",
+            "Dash 结束后道具可正常拾取",
+            "视觉上道具仍正常显示"
+          ]
+        },
+        {
+          "id": "US-805",
+          "title": "PRD 去重清理 — 标记已修复重复 US 为 done",
+          "description": "73 条 pending US 中存在已修复但未标记 done 的条目（US-706/747/749/635/637/630/666 等），以及功能重复的条目（US-744 和 US-771 都描述 combo setTimeout，US-710 和 US-727/742/774 都描述 ResultScene runCount，US-755 和 US-769 都描述 Dash 拾取守卫）。清理后减少 PRD 噪音。",
+          "type": "meta",
+          "priority": 254,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "已修复的 US 全部标记 done",
+            "功能重复的 US 合并标注",
+            "PRD pending 数量减少至合理范围"
           ]
         }
       ],
