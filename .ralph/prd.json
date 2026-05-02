@@ -1703,7 +1703,7 @@
           "description": "US-061 修复在 player.update 之前检查 Space JustDown，但 handleChestInteraction 和 handlePlayerAttack 仍可能竞态。\\n\\n合并自: US-061, US-074, US-102, US-374, US-383, US-458",
           "type": "code",
           "priority": 89,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "chest 交互优先于攻击",

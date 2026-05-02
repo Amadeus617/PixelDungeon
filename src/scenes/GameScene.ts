@@ -1594,12 +1594,11 @@ export class GameScene extends Phaser.Scene {
     // Skip all game logic when paused
     if (this.isPaused) return;
 
-    // US-061: Check chest interaction BEFORE player.update() so attack can be suppressed
+    // US-061/US-590: Check chest interaction BEFORE player.update() so attack can be suppressed
+    // We manually track space press to avoid JustDown flag consumption issue
     this.spaceConsumedByChest = false;
-    if (
-      this.spaceKey &&
-      Phaser.Input.Keyboard.JustDown(this.spaceKey)
-    ) {
+    const spaceJustPressed = this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey);
+    if (spaceJustPressed) {
       // Check if player is near any closed chest
       let nearChest = false;
       for (const chest of this.chests) {
@@ -1611,6 +1610,11 @@ export class GameScene extends Phaser.Scene {
       if (nearChest) {
         this.handleChestInteraction();
         this.spaceConsumedByChest = true;
+      } else {
+        // Re-enable JustDown so Player.update can detect it for attack
+        if (this.spaceKey) {
+          (this.spaceKey as any)._justDown = true;
+        }
       }
     }
 
