@@ -1721,13 +1721,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.player.update(delta, time);
-    // Only update living slimes
+    // Only update active slimes and skeletons (US-603)
     for (const slime of this.slimes) {
-      slime.update(delta);
+      if (slime.active) slime.update(delta);
     }
-    // Update skeletons
     for (const skeleton of this.skeletons) {
-      skeleton.update(delta);
+      if (skeleton.active) skeleton.update(delta);
     }
 
     // Check proximity to chest — show interactive hint (US-051)

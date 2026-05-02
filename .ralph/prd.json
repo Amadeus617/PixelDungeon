@@ -1865,7 +1865,7 @@
           "description": "合并自: US-066, US-077, US-082, US-107, US-118, US-130, US-156, US-214, US-289, US-303, US-316",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
