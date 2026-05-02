@@ -1904,7 +1904,7 @@
           "description": "合并自: US-074, US-091, US-112, US-137, US-169, US-216, US-217, US-403",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
