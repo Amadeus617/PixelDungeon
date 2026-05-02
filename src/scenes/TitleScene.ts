@@ -10,7 +10,6 @@ export class TitleScene extends Phaser.Scene {
   private particles: Phaser.GameObjects.Arc[] = [];
   private elapsed = 0;
   private startTriggered = false;
-  private anyKeyTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() {
     super({ key: "TitleScene" });
@@ -116,13 +115,7 @@ export class TitleScene extends Phaser.Scene {
     this.input.keyboard!.once("keydown-SPACE", () => this.startGame());
     this.input.keyboard!.once("keydown-ENTER", () => this.startGame());
 
-    // Also allow any key after a short delay (so accidental taps during transition don't skip)
-    this.anyKeyTimer = this.time.delayedCall(500, () => {
-      this.anyKeyTimer = null;
-      if (!this.startTriggered) {
-        this.input.keyboard!.once("keydown", () => this.startGame());
-      }
-    });
+    // US-158: Only SPACE/ENTER starts the game — no any-key fallback
   }
 
   update(_time: number, delta: number): void {
@@ -168,17 +161,14 @@ export class TitleScene extends Phaser.Scene {
    * Cleans up particles, tweens, timers, and keyboard listeners to prevent memory leaks.
    */
   shutdown(): void {
-    // Cancel pending any-key timer
-    if (this.anyKeyTimer) {
-      this.anyKeyTimer.remove();
-      this.anyKeyTimer = null;
-    }
+    // Cancel pending timers
+    this.tweens.killAll();
+    this.time.removeAllEvents();
 
     // Remove all keyboard listeners to prevent stale callbacks
     if (this.input.keyboard) {
       this.input.keyboard.off("keydown-SPACE");
       this.input.keyboard.off("keydown-ENTER");
-      this.input.keyboard.off("keydown");
     }
 
     // Stop all tweens (title floating animation, etc.)

@@ -2210,7 +2210,7 @@
           "description": "TitleScene.create()中先注册SPACE和ENTER的once监听，然后500ms后又注册了keydown的once监听。如果用户按W/A/S/D等移动键也会触发startGame()。虽然游戏是WASD移动，但玩家可能在标题画面习惯性按WASD测试，导致意外开始游戏。应只保留SPACE和ENTER触发。",
           "type": "code",
           "priority": 143,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "移除any key监听器",
