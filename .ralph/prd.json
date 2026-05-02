@@ -1595,7 +1595,7 @@
           "description": "Win 场景直接跳转 ResultScene 无过渡，800ms 静止后硬跳转缺少胜利仪式感。\\n\\n合并自: US-313, US-335, US-553",
           "type": "code",
           "priority": 86,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "金色粒子爆发效果",

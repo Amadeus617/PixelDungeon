@@ -1395,6 +1395,51 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlay.setVisible(false);
   }
 
+  /** Play victory celebration: gold particle burst + camera zoom (US-587) */
+  private playVictoryCelebration(): void {
+    const cam = this.cameras.main;
+    const px = this.player.x;
+    const py = this.player.y;
+
+    // Camera zoom-in effect toward the player
+    cam.stopFollow();
+    this.tweens.add({
+      targets: cam,
+      zoom: 1.5,
+      scrollX: px - cam.width / 2 / 1.5,
+      scrollY: py - cam.height / 2 / 1.5,
+      duration: 800,
+      ease: "Power2",
+    });
+
+    // Gold particle burst
+    const particleCount = 30;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const speed = 60 + Math.random() * 100;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      const size = 3 + Math.random() * 4;
+      const colors = [0xffd700, 0xffaa00, 0xffff00, 0xffffff];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      const particle = this.add.circle(px, py, size, color, 0.9);
+      particle.setDepth(200);
+
+      this.tweens.add({
+        targets: particle,
+        x: px + vx * 1.5,
+        y: py + vy * 1.5,
+        alpha: 0,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        duration: 800 + Math.random() * 600,
+        ease: "Power2",
+        onComplete: () => particle.destroy(),
+      });
+    }
+  }
+
   private togglePause(): void {
     if (this.gameOver) return;
 
@@ -1430,11 +1475,12 @@ export class GameScene extends Phaser.Scene {
     // Add time bonus for wins (US-053)
     if (result === "win") {
       this.scoreSystem.addTimeBonus(elapsedTime);
+      this.playVictoryCelebration();
     }
 
     const bd = this.scoreSystem.breakdown;
-    // Shorter delay when called from death animation (skipGuard), longer for normal end
-    const delay = skipGuard ? 200 : 800;
+    // Shorter delay when called from death animation (skipGuard), longer for victory celebration
+    const delay = result === "win" ? 1500 : (skipGuard ? 200 : 800);
     this.time.delayedCall(delay, () => {
       this.scene.start("ResultScene", {
         result,
