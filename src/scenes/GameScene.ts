@@ -176,6 +176,7 @@ export class GameScene extends Phaser.Scene {
 
   // Space key consumed by chest interaction this frame (US-061)
   private spaceConsumedByChest = false;
+  private hitstopTimer = 0; // US-359: hitstop freeze on attack hit
 
   // Dynamic overlap colliders for dropped items (US-569)
   private dynamicOverlaps: Phaser.Physics.Arcade.Collider[] = [];
@@ -699,6 +700,7 @@ export class GameScene extends Phaser.Scene {
     // US-120: single shake on any hit (no stacking)
     if (didHit) {
       this.cameras.main.shake(50, 0.003);
+      this.hitstopTimer = 30; // US-359: 30ms hitstop on hit
     }
 
     const deadSkeletons = this.skeletons.filter((s) => !s.active);
@@ -1733,6 +1735,12 @@ export class GameScene extends Phaser.Scene {
 
     // Skip all game logic when paused
     if (this.isPaused) return;
+
+    // US-359: Hitstop — freeze all game logic for 30ms on attack hit
+    if (this.hitstopTimer > 0) {
+      this.hitstopTimer -= delta;
+      return;
+    }
 
     // US-061/US-590: Check chest interaction BEFORE player.update() so attack can be suppressed
     // We manually track space press to avoid JustDown flag consumption issue
