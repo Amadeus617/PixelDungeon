@@ -2244,7 +2244,7 @@
           "description": "TitleScene.create()创建30个Circle粒子存入this.particles数组。startGame()调用scene.start('BootScene')。Phaser scene.start会shutdown当前scene，shutdown应清理所有children。但particles是类属性引用，如果shutdown不清理则粒子残留。应在startGame()中显式清理或确认Phaser自动处理。",
           "type": "code",
           "priority": 155,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "TitleScene.startGame()中清理particles数组",
