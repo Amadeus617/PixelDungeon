@@ -1511,7 +1511,7 @@
           "description": "3秒窗口内连续击杀倍率递增，最大 3x。缺少战斗效率奖励维度。\\n\\n合并自: US-188, US-269, US-357",
           "type": "code",
           "priority": 80,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "combo 窗口 3s",

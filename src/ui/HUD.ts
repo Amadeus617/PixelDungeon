@@ -32,6 +32,13 @@ export class HUD extends Phaser.GameObjects.Container {
   private attackBoostIcon!: Phaser.GameObjects.Image;
   private attackBoostLabel!: Phaser.GameObjects.Text;
 
+  // Combo indicator (US-581)
+  private comboLabel!: Phaser.GameObjects.Text;
+  private comboBarBg!: Phaser.GameObjects.Rectangle;
+  private comboBarFill!: Phaser.GameObjects.Rectangle;
+  private _cacheComboCount: number = -1;
+  private _cacheComboMultiplier: number = -1;
+
   // Dash cooldown indicator (US-056)
   private dashBarBg!: Phaser.GameObjects.Rectangle;
   private dashBarFill!: Phaser.GameObjects.Rectangle;
@@ -232,10 +239,53 @@ export class HUD extends Phaser.GameObjects.Container {
     this.attackBoostLabel.setVisible(false);
     this.add(this.attackBoostLabel);
 
+    // --- Combo section (US-581) ---
+    const COMBO_BAR_W = 100;
+    const COMBO_BAR_H = 10;
+    const comboY = boostY + 44;
+    const comboSectionBg = scene.add.rectangle(0, comboY, 160, 48, 0x000000, 0.6);
+    comboSectionBg.setOrigin(0);
+    this.add(comboSectionBg);
+
+    this.comboLabel = scene.add.text(12, comboY + 4, "", {
+      fontSize: "13px",
+      color: "#ff8800",
+      fontFamily: "monospace",
+      stroke: "#000000",
+      strokeThickness: 2,
+    });
+    this.comboLabel.setVisible(false);
+    this.add(this.comboLabel);
+
+    const comboBarX = 12;
+    const comboBarY = comboY + 26;
+    this.comboBarBg = scene.add.rectangle(
+      comboBarX, comboBarY,
+      COMBO_BAR_W + 2, COMBO_BAR_H + 2,
+      0x333333
+    );
+    this.comboBarBg.setOrigin(0);
+    this.comboBarBg.setVisible(false);
+    this.add(this.comboBarBg);
+
+    this.comboBarFill = scene.add.rectangle(
+      comboBarX + 1, comboBarY + 1,
+      COMBO_BAR_W, COMBO_BAR_H,
+      0xff8800
+    );
+    this.comboBarFill.setOrigin(0);
+    this.comboBarFill.setVisible(false);
+    this.add(this.comboBarFill);
+
+    // Register combo reset callback for visual feedback
+    this.scoreSystem.setOnComboReset(() => {
+      // Will be handled in update()
+    });
+
     // --- Dash cooldown section (US-056) ---
     const DASH_BAR_W = 100;
     const DASH_BAR_H = 10;
-    const dashY = boostY + 44;
+    const dashY = boostY + 92;
     const dashBg = scene.add.rectangle(0, dashY, 160, 36, 0x000000, 0.6);
     dashBg.setOrigin(0);
     this.add(dashBg);
@@ -458,6 +508,38 @@ export class HUD extends Phaser.GameObjects.Container {
       } else {
         this.attackBoostLabel.setText("ATK x2!");
       }
+    }
+
+    // Combo display (US-581)
+    const comboCount = this.scoreSystem.comboCount;
+    const comboMult = this.scoreSystem.currentMultiplier;
+    if (comboCount !== this._cacheComboCount || comboMult !== this._cacheComboMultiplier) {
+      this._cacheComboCount = comboCount;
+      this._cacheComboMultiplier = comboMult;
+      const COMBO_BAR_W = 100;
+      if (comboCount > 0) {
+        this.comboLabel.setVisible(true);
+        this.comboLabel.setText(`Combo x${comboCount} (${comboMult.toFixed(1)}x)`);
+        this.comboBarBg.setVisible(true);
+        this.comboBarFill.setVisible(true);
+        // Update fill based on remaining time
+        const remaining = this.scoreSystem.comboRemainingMs;
+        const pct = remaining / ScoreSystem.COMBO_WINDOW_MS;
+        this.comboBarFill.width = Math.max(0, COMBO_BAR_W * pct);
+        // Color: orange for low combo, red for high
+        const hue = comboMult >= 2.0 ? 0xff4444 : 0xff8800;
+        this.comboBarFill.setFillStyle(hue);
+      } else {
+        this.comboLabel.setVisible(false);
+        this.comboBarBg.setVisible(false);
+        this.comboBarFill.setVisible(false);
+      }
+    } else if (comboCount > 0) {
+      // Still in combo — update timer bar
+      const remaining = this.scoreSystem.comboRemainingMs;
+      const pct = remaining / ScoreSystem.COMBO_WINDOW_MS;
+      const COMBO_BAR_W = 100;
+      this.comboBarFill.width = Math.max(0, COMBO_BAR_W * pct);
     }
 
     // Dash cooldown bar (US-056)
