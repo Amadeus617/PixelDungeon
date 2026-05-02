@@ -1795,7 +1795,7 @@
           "description": "Player 输入冻结有 3 种机制(knockback/transition/dead)互相冲突，缺少统一 frozen 属性。\\n\\n合并自: US-121, US-152, US-268, US-419",
           "type": "code",
           "priority": 96,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "统一 frozen 属性",

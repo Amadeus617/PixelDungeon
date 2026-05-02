@@ -38,6 +38,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private knockbackTimer: number = 0;
   private isDeadAnimating: boolean = false;
 
+  /** Whether the player is alive and can accept input (US-597) */
+  get frozen(): boolean {
+    return this.isDeadAnimating || this.isKnockedBack || this.isDashing || !this.alive;
+  }
+
   // Slash effect graphics reference (US-042)
   private slashGfx: Phaser.GameObjects.Graphics | null = null;
 
@@ -430,6 +435,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Update dash state — skip normal input during dash (US-056)
     if (this.updateDash(_delta)) {
+      this.updateInvincibility(_delta);
+      return;
+    }
+
+    // Frozen (US-597): unified check — skip all input when dead/dashing/knocked-back
+    if (this.frozen) {
       this.updateInvincibility(_delta);
       return;
     }
