@@ -2225,7 +2225,7 @@
           "description": "US-028的runCount在TitleScene.startGame()中递增localStorage，在GameScene.create()中读取。但ResultScene重启到GameScene时走scene.start('GameScene')而非TitleScene，不经过TitleScene.startGame()。所以第一次游戏runCount=1(TitleScene递增为1)，第一次死亡/restart后runCount仍=1(ResultScene→GameScene不递增)。只有通过TitleScene重新开始才会递增。这导致死亡重启的难度不递增，只有完整退出标题再开始才递增。",
           "type": "code",
           "priority": 146,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-028",
             "US-085"

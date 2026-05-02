@@ -146,13 +146,7 @@ export class TitleScene extends Phaser.Scene {
     if (this.startTriggered) return;
     this.startTriggered = true;
 
-    // Increment run count for difficulty scaling (US-028)
-    try {
-      const current = parseInt(localStorage.getItem(RUN_COUNT_KEY) || "0", 10);
-      localStorage.setItem(RUN_COUNT_KEY, String(current + 1));
-    } catch {
-      // localStorage unavailable — treat as run 1
-    }
+        // Run count now incremented in GameScene.create() (US-161)
     this.scene.start("BootScene");
   }
 

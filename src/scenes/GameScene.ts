@@ -1484,7 +1484,12 @@ export class GameScene extends Phaser.Scene {
   /** Load run count from localStorage for difficulty scaling (US-028) */
   private loadRunCount(): number {
     try {
-      return parseInt(localStorage.getItem(RUN_COUNT_KEY) || "1", 10);
+      // US-161: Increment runCount in GameScene.create() so every run counts
+      // even if TitleScene is somehow bypassed
+      const current = parseInt(localStorage.getItem(RUN_COUNT_KEY) || "0", 10);
+      const next = current + 1;
+      localStorage.setItem(RUN_COUNT_KEY, String(next));
+      return next;
     } catch {
       return 1;
     }
