@@ -1878,7 +1878,7 @@
           "description": "合并自: US-078, US-088, US-097, US-189, US-226, US-241, US-300, US-308, US-375, US-397, US-463",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
