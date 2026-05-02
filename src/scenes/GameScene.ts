@@ -31,40 +31,60 @@ interface RoomEnemyConfig {
   skeletonCount: number;
 }
 
+/** Base enemy counts at depth=0, before runCount scaling */
+function baseEnemyCounts(combatIndex: number, combatRoomCount: number): { slimes: number; skeletons: number } {
+  const lastCombatRoom = combatIndex === combatRoomCount - 1;
+
+  if (combatRoomCount <= 1) {
+    return { slimes: 2, skeletons: 1 };
+  }
+
+  const depth = combatIndex / (combatRoomCount - 1);
+
+  if (lastCombatRoom) {
+    // Boss room: skeleton-heavy
+    return { slimes: 1, skeletons: 3 };
+  } else if (depth < 0.3) {
+    // Early: slimes only, gradually increasing
+    const slimes = combatIndex === 0 ? 1 : 2;
+    return { slimes, skeletons: 0 };
+  } else if (depth < 0.6) {
+    // Mid: introduce skeletons, slimes stable
+    return { slimes: 2, skeletons: 1 };
+  } else {
+    // Late-mid: more skeletons
+    return { slimes: 2, skeletons: 2 };
+  }
+}
+
 /**
- * Returns enemy configuration for a given room based on its depth index.
+ * Returns enemy configuration for a given room based on its depth index and run count.
  * Room 0 = entrance (no enemies).
- * Deeper rooms get progressively more and tougher enemies.
+ * Deeper rooms and higher run counts produce more/tougher enemies.
  */
-function getEnemyConfigForRoom(roomIndex: number, totalRooms: number): RoomEnemyConfig {
+function getEnemyConfigForRoom(roomIndex: number, totalRooms: number, runCount: number = 1): RoomEnemyConfig {
   // Entrance room has no enemies
   if (roomIndex === 0) {
     return { slimeCount: 0, skeletonCount: 0 };
   }
 
-  // Combat rooms: rooms 1..totalRooms-1
-  const combatRoomCount = totalRooms - 1; // number of rooms that can have enemies
-  const combatIndex = roomIndex - 1; // 0-based index among combat rooms
-  const lastCombatRoom = combatIndex === combatRoomCount - 1;
+  const combatRoomCount = totalRooms - 1;
+  const combatIndex = roomIndex - 1;
+  const base = baseEnemyCounts(combatIndex, combatRoomCount);
 
-  if (combatRoomCount <= 1) {
-    // Only one combat room: moderate difficulty
-    return { slimeCount: 2, skeletonCount: 1 };
-  }
+  // runCount scaling: each additional run adds +1 enemy (alternating slime/skeleton)
+  // capped so total enemies don't exceed 2 * base count
+  const extraRuns = Math.max(0, runCount - 1);
+  const maxExtra = Math.max(base.slimes + base.skeletons, 2); // at least 2 extra slots
+  const extraEnemies = Math.min(Math.floor(extraRuns * 0.5), maxExtra);
 
-  // Normalize combat depth: 0.0 = first combat room, 1.0 = last combat room
-  const depth = combatIndex / (combatRoomCount - 1);
+  const extraSlimes = Math.ceil(extraEnemies / 2);
+  const extraSkeletons = Math.floor(extraEnemies / 2);
 
-  if (lastCombatRoom) {
-    // Last room before exit: hardest — max enemies
-    return { slimeCount: 1, skeletonCount: 3 };
-  } else if (depth < 0.4) {
-    // Early combat rooms: only slimes, few
-    return { slimeCount: 2, skeletonCount: 0 };
-  } else {
-    // Mid rooms: mix of slimes and skeletons
-    return { slimeCount: 2, skeletonCount: 1 };
-  }
+  return {
+    slimeCount: base.slimes + extraSlimes,
+    skeletonCount: base.skeletons + extraSkeletons,
+  };
 }
 // --- End room depth difficulty (US-044) ---
 
@@ -235,7 +255,7 @@ export class GameScene extends Phaser.Scene {
 
     for (let roomIdx = 0; roomIdx < totalRooms; roomIdx++) {
       const room = dungeonData.rooms[roomIdx];
-      const config = getEnemyConfigForRoom(roomIdx, totalRooms);
+      const config = getEnemyConfigForRoom(roomIdx, totalRooms, this.runCount);
 
       // Spawn slimes for this room
       for (let s = 0; s < config.slimeCount; s++) {
@@ -1166,7 +1186,7 @@ export class GameScene extends Phaser.Scene {
 
       // Respawn enemies for this room
       const room = dungeonData.rooms[roomIdx];
-      const config = getEnemyConfigForRoom(roomIdx, totalRooms);
+      const config = getEnemyConfigForRoom(roomIdx, totalRooms, this.runCount);
 
       const newSlimes: Slime[] = [];
       const newSkeletons: Skeleton[] = [];

@@ -1567,7 +1567,7 @@
           "description": "3房间只有1个战斗房间后直接跳到4个敌人，Slime在最后房间递减。getEnemyConfigForRoom 未接入 runCount。\\n\\n合并自: US-143, US-290, US-336, US-337, US-338, US-339, US-350, US-379, US-414, US-420, US-441, US-533",
           "type": "code",
           "priority": 84,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "slime/skeleton 数量随 depth 单调递增",
