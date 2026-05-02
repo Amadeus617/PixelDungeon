@@ -41,7 +41,6 @@ const EXIT_RADIUS = 4;
  * unvisited rooms are hidden (fog of war).
  */
 export class Minimap extends Phaser.GameObjects.Container {
-  private renderTexture!: Phaser.GameObjects.RenderTexture;
   private border!: Phaser.GameObjects.Rectangle;
 
   private dungeonData: DungeonData;
@@ -134,18 +133,6 @@ export class Minimap extends Phaser.GameObjects.Container {
     );
     bg.setOrigin(0);
     this.add(bg);
-
-    // Render texture for the minimap content
-    this.renderTexture = scene.add.renderTexture(
-      posX,
-      posY,
-      MINIMAP_WIDTH,
-      MINIMAP_HEIGHT
-    );
-    this.renderTexture.setOrigin(0);
-    this.renderTexture.setScrollFactor(0);
-    this.renderTexture.setDepth(101);
-    this.add(this.renderTexture);
 
     // Graphics object for drawing shapes
     this.graphics = scene.add.graphics();
@@ -403,7 +390,6 @@ export class Minimap extends Phaser.GameObjects.Container {
 
   destroy(fromScene?: boolean): void {
     this.graphics?.destroy();
-    this.renderTexture?.destroy();
     super.destroy(fromScene);
   }
 }

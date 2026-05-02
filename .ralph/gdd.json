@@ -3441,6 +3441,73 @@
       ],
       "balanceChanges": [],
       "priority": "PRD去重(US-589)仍是最高meta优先级。US-728/729为低优先级代码质量问题。"
+    },
+    {
+      "round": 74,
+      "date": "2026-05-02",
+      "title": "第74轮设计审查 — 代码验证+关键未实现功能确认+PRD去重",
+      "summary": "全面审查25个源文件和729条PRD后确认：(1) 多个历史顽固bug已在代码中修复（takeDamage返回boolean、HP bar chase跟随、checkWinCondition key+chest检查、GameScene shutdown、ResultScene走TitleScene+keyboard事件、Slime die()事件发射、Skeleton/Slime onHitWall knockback保护）但PRD未同步标记done；(2) 3个GDD定义的feature从未实现：combo连击计分、hitstop命中冻结、金币磁吸效果；(3) Slime主动追踪AI(GDD已定义proximityChase)从未实现；(4) 攻击锥形dot=0.25对应151°与注释120°严重不一致；(5) SoundManager AudioNode未disconnect可能长期退化；(6) PRD 730条含~400条重复需去重。新增US-730~US-736。",
+      "newUserStories": [
+        "US-730",
+        "US-731",
+        "US-732",
+        "US-733",
+        "US-734",
+        "US-735",
+        "US-736"
+      ],
+      "changes": [
+        {
+          "area": "ai",
+          "change": "US-730: Slime主动追踪AI实现",
+          "priority": "P1"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-731: Combo连击计分系统实现",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-732: Hitstop命中冻结30ms实现",
+          "priority": "P1"
+        },
+        {
+          "area": "entities/Coin",
+          "change": "US-733: 金币磁吸30px吸引效果",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-734: PRD去重730→≤100条权威条目",
+          "priority": "meta-P0"
+        },
+        {
+          "area": "audio",
+          "change": "US-735: SoundManager AudioNode disconnect + M键静音",
+          "priority": "P2"
+        },
+        {
+          "area": "combat/balance",
+          "change": "US-736: 攻击锥形151°→120°收窄",
+          "priority": "P1"
+        }
+      ],
+      "fixedInReview": [
+        "takeDamage返回boolean — 代码确认已返回boolean(PRD中9+条pending应标done)",
+        "HP bar chase跟随 — Skeleton/Slime chase分支已有hpBar.follow()(PRD中11+条pending应标done)",
+        "checkWinCondition key+chest检查 — 代码确认检查inventory.has(key)+chest.isOpen(PRD中8+条pending应标done)",
+        "GameScene shutdown() — 代码确认有完整shutdown清理(PRD中8+条pending应标done)",
+        "ResultScene TitleScene重启+keyboard事件 — 代码确认keyboard.once+scene.start TitleScene(PRD中7+条pending应标done)",
+        "Slime die()事件发射 — 代码确认emit enemy-death(PRD中5+条pending应标done)",
+        "Slime takeDamage闪白 — 代码确认setTint(0xffffff)",
+        "Skeleton/Slime onHitWall knockback保护 — 代码确认if(isKnockedBack)return",
+        "Chest.open()战利品掉落 — 代码确认spawnChestLoot完整实现",
+        "Coin跳过entrance房间 — 代码确认US-576已实现",
+        "HUD dirty flag优化 — 代码确认US-572/693已实现",
+        "Minimap楼梯金色标记+AttackBoost显示 — 代码确认US-577/578已实现"
+      ],
+      "priority": "US-734(PRD去重)是meta最高优先级 — 730条PRD严重阻碍开发效率。US-731(combo)和US-732(hitstop)是最高feature优先级 — 直接影响战斗深度和手感。"
     }
   ],
   "improvements": {
@@ -4363,6 +4430,22 @@
       "impact": "多次游玩后Slime成为纯送分怪，缺乏紧张感",
       "fix": "US-643: 中间combat rooms最低1 skeleton + 走廊巡逻密度递增",
       "status": "pending"
+    },
+    "review74ConfirmedState": {
+      "takeDamage": "CONFIRMED FIXED - Player.takeDamage returns boolean",
+      "hpBarChase": "CONFIRMED FIXED - Both Skeleton and Slime chase/knockback branches have hpBar.follow()",
+      "checkWinCondition": "CONFIRMED FIXED - Checks inventory.has(key) AND chest.isOpen",
+      "gameSceneShutdown": "CONFIRMED FIXED - Full shutdown with events.off, tweens.killAll, dynamicOverlaps cleanup",
+      "resultSceneFlow": "CONFIRMED FIXED - keyboard.once + scene.start(TitleScene)",
+      "slimeDieEvent": "CONFIRMED FIXED - emits enemy-death event before destroy",
+      "onHitWallKnockback": "CONFIRMED FIXED - both Slime and Skeleton check isKnockedBack in onHitWall()",
+      "chestLootDrops": "CONFIRMED FIXED - spawnChestLoot with coins(3-5) + 30% potion + 20% attackBoost",
+      "neverImplemented": [
+        "comboSystem",
+        "hitstop",
+        "coinMagnet",
+        "slimeProximityChase"
+      ]
     }
   },
   "healthPotionHeal": 3,

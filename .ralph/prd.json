@@ -1485,7 +1485,7 @@
           "description": "Minimap RenderTexture 创建但从未使用，浪费 GPU 内存。\\n\\n合并自: US-129, US-187, US-239",
           "type": "code",
           "priority": 78,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "RenderTexture 相关代码删除",
@@ -4013,6 +4013,163 @@
             "shutdown()中显式destroy装饰对象",
             "无decor对象在shutdown后残留",
             "tsc --noEmit && vite build 通过"
+          ]
+        },
+        {
+          "id": "US-730",
+          "title": "Slime主动追踪AI实现 — GDD定义proximityChase但代码从未实现",
+          "description": "GDD slimeProximityChase定义了100px检测范围、40px追踪速度、4方向追踪、0-500ms反应延迟。但Slime.update()始终仅随机移动，无任何主动追踪玩家行为。这使得Slime作为基础敌人缺乏主动威胁感，与Skeleton的TRACK_RANGE追踪形成严重体验不对称。应在Slime.update()中添加proximity detection：玩家进入100px后转为4方向简单追踪，速度低于随机移动(40vs60)提供不精确但主动的威胁。",
+          "type": "code",
+          "priority": 242,
+          "status": "pending",
+          "dependsOn": [
+            "US-650",
+            "US-668",
+            "US-686"
+          ],
+          "acceptanceCriteria": [
+            "Slime在玩家进入100px后转为4方向追踪",
+            "追踪速度40px/s(低于随机60)",
+            "有0-500ms随机反应延迟",
+            "超过检测范围恢复随机移动",
+            "走廊中不出现斜向抖动",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-731",
+          "title": "ScoreSystem combo连击计分系统 — GDD comboSystem完整定义但代码从未实现",
+          "description": "ScoreSystem已定义addCoinPoints/addEnemyPoints/addRoomClearPoints/addTimeBonus，但缺少combo连击计分机制。GDD comboSystem定义：3秒窗口、连击倍率递增(x1.5/x2/x3)、HUD连击显示。combo是roguelike游戏战斗效率奖励的核心维度，当前连续击杀多个敌人与分散击杀得分完全相同，削弱了战斗策略性。应在ScoreSystem添加：comboCount计数器、comboWindow定时器(3s)、comboMultiplier递增、addComboKill()方法。在handlePlayerAttack击杀时调用addComboKill()。",
+          "type": "code",
+          "priority": 243,
+          "status": "pending",
+          "dependsOn": [
+            "US-644",
+            "US-670",
+            "US-678",
+            "US-682",
+            "US-695",
+            "US-712"
+          ],
+          "acceptanceCriteria": [
+            "3秒窗口内连续击杀累加combo计数",
+            "combo倍率递增(2连x1.5/3连x2/5连x3)",
+            "超过3秒窗口重置combo",
+            "HUD显示当前combo数和倍率",
+            "击杀得分=基础分xcombo倍率",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-732",
+          "title": "Hitstop命中冻结30ms — GDD已定义但代码从未实现",
+          "description": "GDD hitstopDuration=30ms定义了命中瞬间暂停30ms增强打击感。这是动作游戏核心手感技术(Hollow Knight/Celeste/DD等均使用)。当前handlePlayerAttack中命中敌人后无任何时间冻结反馈，攻击命中与未命中的手感差异仅靠敌人闪白区分。应在Player攻击命中时：this.scene.time.timeScale=0 → 30ms后恢复为1。需注意不能在每帧update中累积误差。实现方式：scene.physics.pause() → delayedCall(30) → scene.physics.resume()。",
+          "type": "code",
+          "priority": 244,
+          "status": "pending",
+          "dependsOn": [
+            "US-359",
+            "US-648",
+            "US-671",
+            "US-679",
+            "US-683",
+            "US-696",
+            "US-713"
+          ],
+          "acceptanceCriteria": [
+            "攻击命中敌人时物理暂停30ms",
+            "30ms后自动恢复",
+            "不影响非物理系统(HUD/timer)",
+            "多次命中不叠加(已有冻结则跳过)",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-733",
+          "title": "金币磁吸效果 — GDD定义attractRange=30但代码从未实现",
+          "description": "GDD定义金币磁吸attractRange=30px，玩家接近金币30px内自动吸引拾取。当前金币拾取完全依赖physics overlap碰撞，需要精确走到金币上方。这在快速移动战斗中导致大量金币被遗漏，降低探索正反馈。应在Coin.update()或GameScene.update中检测：玩家距离金币<30px时，金币向玩家方向移动(lerp或setVelocity朝向玩家)，到达重叠距离后触发collect。这是GDD已定义但73轮审查从未被代码实现的feature。",
+          "type": "code",
+          "priority": 245,
+          "status": "pending",
+          "dependsOn": [
+            "US-655",
+            "US-672",
+            "US-680",
+            "US-684",
+            "US-697",
+            "US-714"
+          ],
+          "acceptanceCriteria": [
+            "玩家距金币30px内金币开始向玩家移动",
+            "吸引速度适中(80-120px/s)",
+            "被吸引的金币到达重叠距离自动collect",
+            "磁吸不影响掉落动画期间的金币",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-734",
+          "title": "PRD去重压缩执行 — 730条US含~400条重复合并为≤100条权威条目",
+          "description": "当前PRD有730条US，其中大量问题被重复报告4-15次：(1) takeDamage返回值 9+条(US-252/330/367/384/388等)→已修复，代码确认返回boolean；(2) HP bar跟随 11+条(US-136/234/244/279/308/328/375/391/397等)→已修复，Skeleton/Slime chase分支已有hpBar.follow()；(3) checkWinCondition key检查 8+条→已修复，代码确认检查key+chest；(4) GameScene shutdown 8+条→已修复，代码确认有完整shutdown()；(5) ResultScene流程 7+条→已修复，代码确认走TitleScene+keyboard事件；(6) ScoreSystem combo 7+条(US-644/670/678/682/695/712/731)→仍未实现；(7) Hitstop 7+条→仍未实现；(8) 金币磁吸 6+条→仍未实现。建议：(a) 标记已修复的重复条目为done；(b) 合并同类pending为单一权威条目；(c) 目标730→≤100条。",
+          "type": "code",
+          "priority": 246,
+          "status": "pending",
+          "dependsOn": [
+            "US-663",
+            "US-669",
+            "US-674",
+            "US-699",
+            "US-589",
+            "US-614"
+          ],
+          "acceptanceCriteria": [
+            "已修复重复条目标记为done",
+            "同类pending合并为单一权威条目",
+            "PRD总数从730降至≤100",
+            "每个权威条目标注合并来源US编号",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-735",
+          "title": "SoundManager AudioNode disconnect + M键静音切换 — 长时间运行音频性能退化",
+          "description": "SoundManager每个音效(playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen)都创建OscillatorNode或BufferSource并connect到destination，但从未disconnect。虽然OscillatorNode在stop后理论上会GC，但AudioContext节点图中的连接关系可能阻止GC。长时间游戏后(100+次攻击/拾取)可能导致AudioContext节点图膨胀。同时缺少全局音量控制和静音切换(M键)。应在：(1) 每个音效的oscillator.onended回调中disconnect所有节点；(2) 添加masterGainNode作为全局音量控制；(3) M键切换静音。",
+          "type": "code",
+          "priority": 247,
+          "status": "pending",
+          "dependsOn": [
+            "US-583",
+            "US-664",
+            "US-705",
+            "US-715"
+          ],
+          "acceptanceCriteria": [
+            "每个音效节点在播放结束后disconnect",
+            "masterGainNode控制全局音量",
+            "M键切换静音/非静音",
+            "静音状态HUD显示",
+            "100次音效播放后AudioContext节点数不增长",
+            "tsc + build通过"
+          ]
+        },
+        {
+          "id": "US-736",
+          "title": "攻击锥形dot阈值修正 0.25→0.5 — 151°实际角度与注释120°不一致",
+          "description": "Player.isEnemyInAttackRange()中coneDotThreshold=0.25，对应总攻击角度151°(acos(0.25)=75.5°,x2=151°)。代码注释声称120°(±60°, cos=0.5)。151°意味着玩家几乎可以向身后75°的敌人发动攻击，严重削弱了攻击方向选择的意义。应将threshold从0.25改为0.5，收窄至120°总角度，使攻击方向选择更有策略意义。这是纯数值改动，无结构性变更。",
+          "type": "code",
+          "priority": 248,
+          "status": "pending",
+          "dependsOn": [
+            "US-584",
+            "US-704",
+            "US-728"
+          ],
+          "acceptanceCriteria": [
+            "coneDotThreshold从0.25改为0.5",
+            "攻击总角度从151°收窄至120°",
+            "代码注释与实际值一致",
+            "玩家身后不可攻击",
+            "tsc + build通过"
           ]
         }
       ],
