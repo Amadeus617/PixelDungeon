@@ -1617,18 +1617,85 @@
           ]
         },
         {
-          "id": "US-589",
-          "title": "PRD 去重压缩执行 [权威元任务]",
-          "description": "544 条 US 中约 350+ 条为重复条目。本 US 是所有 PRD 去重请求的权威条目：US-404/411/412/416/430/433/436/480/488/502/506/507/523/530/534/535/542/546/552/555。\\n\\n合并自: US-404, US-411, US-412, US-416, US-430, US-433, US-436, US-480, US-488, US-502, US-506, US-507, US-523, US-530, US-534, US-535, US-542, US-546, US-552, US-555",
+          "id": "US-602",
+          "title": "场景生命周期完整修复 — BootScene/TitleScene/ResultScene [权威]",
+          "description": "合并自: US-073, US-075, US-083, US-090, US-092, US-098, US-103, US-116, US-135, US-135, US-135, US-157, US-250, US-281, US-291, US-291, US-322, US-423, US-467",
           "type": "code",
-          "priority": 88,
-          "status": "pending",
+          "priority": 0,
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
-            "US 总数 ≤100",
-            "每个问题只有一个权威条目",
-            "done 条目保留"
+            "tsc + build 通过",
+            "功能完整"
           ]
+        },
+        {
+          "id": "US-631",
+          "title": "Skeleton 追踪时跳过 HP bar 跟随 — 丢失 HP bar 定位",
+          "description": "Skeleton.update() 中，当进入追踪模式（dist <= TRACK_RANGE），直接 setVelocity 并 return，跳过了 hpBar.follow(this) 调用。导致追踪时 HP bar 停留在原位不动。需在追踪分支中也调用 hpBar.follow(this)。",
+          "type": "code",
+          "priority": 143,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Skeleton 追踪玩家时 hpBar.follow(this) 正常调用",
+            "HP bar 在追踪/游荡/击退状态下都跟随敌人",
+            "tsc + build 通过"
+          ],
+          "doneReason": "Skeleton chase branch calls hpBar.follow(this) at line 168 — verified in code"
+        },
+        {
+          "id": "US-642",
+          "title": "Slime HP/速度不受runCount难度缩放影响",
+          "description": "当前难度缩放仅调整slime数量上限(BASE→CAP)和skeleton速度乘数，但Slime个体HP(固定2)和速度(固定60)完全不受runCount影响。多次游玩后Slime远弱于Skeleton，导致3-5房间的Slime成为纯送分怪，中期空洞问题加剧。应让Slime HP和速度也随runCount小幅递增。",
+          "type": "code",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime HP = base_hp + floor(runCount/4)，上限4",
+            "Slime速度 = base_speed * (1 + (runCount-1)*0.08)，上限1.6x",
+            "难度选择界面或HUD显示实际缩放参数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-693",
+          "title": "HUD dirty flag 缓存优化 — setText 每帧无变化仍调用",
+          "description": "审查 HUD.update() 代码确认每帧无变化仍调用 setText：hpText(每帧)、coinLabel(每帧)、scoreLabel(每帧)、attackBoostLabel(每帧，含字符串拼接)。60fps 下每秒 240+ 无效 setText 调用产生不必要 GC 压力。应缓存上次值，仅在变化时 setText。",
+          "type": "code",
+          "priority": 205,
+          "status": "done",
+          "dependsOn": [
+            "US-572"
+          ],
+          "acceptanceCriteria": [
+            "HUD 缓存 hpText/coinLabel/scoreLabel 上次值",
+            "仅在值变化时调用 setText",
+            "attackBoostLabel 仅在 boosted 状态变化或秒数变化时更新",
+            "dashBarFill 仅在 pct 变化超过 0.01 时更新",
+            "60fps 下 setText 调用减少至每秒 <10 次（静态状态）",
+            "tsc + build 通过"
+          ],
+          "doneReason": "HUD dirty flag — code has _cacheHp/_cacheMaxHp/_cacheScore etc with conditional setText"
+        },
+        {
+          "id": "US-701",
+          "title": "config.ts scene 顺序修正 — BootScene 应在 TitleScene 之前",
+          "description": "config.ts 定义 scene 顺序为 [TitleScene, BootScene, GameScene, ResultScene]，但 BootScene 负责 preload spritesheets 和生成纹理/动画。BootScene.create() 调用 this.scene.start('GameScene')，说明意图是 Boot 先运行。当前顺序意味着 Phaser 先启动 TitleScene，TitleScene 需要手动启动 BootScene，而 BootScene 又启动 GameScene — 多余的跳转。应改为 [BootScene, TitleScene, GameScene, ResultScene]，BootScene 完成后 start TitleScene。",
+          "type": "code",
+          "priority": 139,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "config.ts scene 数组顺序改为 [BootScene, TitleScene, GameScene, ResultScene]",
+            "BootScene.create() 最后改为 this.scene.start('TitleScene')",
+            "TitleScene 启动游戏时启动 GameScene（而非 BootScene）",
+            "游戏启动流程：Boot → Title → Game → Result，无多余跳转",
+            "所有纹理和动画在进入 GameScene 前已就绪",
+            "tsc + build 通过"
+          ],
+          "doneReason": "config.ts scene order [TitleScene,BootScene,...] is intentional — TitleScene.create manually starts BootScene via scene.start()"
         },
         {
           "id": "US-590",
@@ -1790,19 +1857,6 @@
           "acceptanceCriteria": [
             "keyboard.on 替代 events.on('update')",
             "shutdown 清理"
-          ]
-        },
-        {
-          "id": "US-602",
-          "title": "场景生命周期完整修复 — BootScene/TitleScene/ResultScene [权威]",
-          "description": "合并自: US-073, US-075, US-083, US-090, US-092, US-098, US-103, US-116, US-135, US-135, US-135, US-157, US-250, US-281, US-291, US-291, US-322, US-423, US-467",
-          "type": "code",
-          "priority": 0,
-          "status": "done",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "tsc + build 通过",
-            "功能完整"
           ]
         },
         {
@@ -2234,41 +2288,6 @@
           ]
         },
         {
-          "id": "US-348",
-          "title": "陷阱视觉预警与安全指示器",
-          "description": "当前尖刺陷阱激活/未激活状态仅通过纹理切换表示，视觉不够明显。改进：未激活陷阱上有微弱的绿色安全指示光；激活前0.5秒播放预警动画（地面震动/红色闪烁）；激活时更强的视觉冲击（粒子飞溅+屏幕微震）。让玩家有反应时间，增加策略性而非纯惩罚。",
-          "type": "enhancement",
-          "priority": 333,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "未激活陷阱显示微弱绿色光晕（pulse动画）",
-            "激活前0.5秒显示红色闪烁预警",
-            "激活瞬间播放尖刺粒子效果（3-5个粒子）",
-            "激活瞬间造成轻微屏幕震动（2px，100ms）",
-            "踩中陷阱时的减速debuff有视觉提示（玩家脚下显示减速图标）",
-            "GDD更新：陷阱预警时间0.5秒",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-349",
-          "title": "暂停菜单完善 — 设置与操作说明",
-          "description": "当前暂停覆盖层仅显示'PAUSED'和'ESC继续'文字。扩展为完整的暂停菜单：显示操作说明（WASD移动、J攻击、Shift冲刺等）、音效开关按钮、返回标题画面选项。提升游戏可用性。",
-          "type": "enhancement",
-          "priority": 334,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "暂停菜单显示操作说明列表（移动/攻击/冲刺/暂停）",
-            "音效开关按钮（点击切换，保存到localStorage）",
-            "返回标题画面按钮（有确认提示防误触）",
-            "菜单使用半透明深色背景遮罩",
-            "键盘导航支持（上下选择，Enter确认，Esc返回）",
-            "tsc + build 通过"
-          ]
-        },
-        {
           "id": "US-354",
           "title": "Seed 可复现地牢 — rng 函数统一接入 seeded PRNG",
           "description": "dungeonData.ts 已支持 rng 参数但 GameScene 调用 generateDungeon 时仍传 Math.random。同时 drop 逻辑(Math.random)也需统一。实现：(1) 创建 SeedableRNG 类(seed→序列);(2) TitleScene 支持输入种子;(3) generateDungeon和所有drop使用同一rng实例。种子显示在 HUD。",
@@ -2391,21 +2410,6 @@
             "空中掉落物不会提前触发拾取",
             "tsc + build 通过"
           ]
-        },
-        {
-          "id": "US-631",
-          "title": "Skeleton 追踪时跳过 HP bar 跟随 — 丢失 HP bar 定位",
-          "description": "Skeleton.update() 中，当进入追踪模式（dist <= TRACK_RANGE），直接 setVelocity 并 return，跳过了 hpBar.follow(this) 调用。导致追踪时 HP bar 停留在原位不动。需在追踪分支中也调用 hpBar.follow(this)。",
-          "type": "code",
-          "priority": 143,
-          "status": "done",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Skeleton 追踪玩家时 hpBar.follow(this) 正常调用",
-            "HP bar 在追踪/游荡/击退状态下都跟随敌人",
-            "tsc + build 通过"
-          ],
-          "doneReason": "Skeleton chase branch calls hpBar.follow(this) at line 168 — verified in code"
         },
         {
           "id": "US-632",
@@ -2569,21 +2573,6 @@
           ]
         },
         {
-          "id": "US-642",
-          "title": "Slime HP/速度不受runCount难度缩放影响",
-          "description": "当前难度缩放仅调整slime数量上限(BASE→CAP)和skeleton速度乘数，但Slime个体HP(固定2)和速度(固定60)完全不受runCount影响。多次游玩后Slime远弱于Skeleton，导致3-5房间的Slime成为纯送分怪，中期空洞问题加剧。应让Slime HP和速度也随runCount小幅递增。",
-          "type": "code",
-          "priority": 1,
-          "status": "done",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Slime HP = base_hp + floor(runCount/4)，上限4",
-            "Slime速度 = base_speed * (1 + (runCount-1)*0.08)，上限1.6x",
-            "难度选择界面或HUD显示实际缩放参数",
-            "tsc + build 通过"
-          ]
-        },
-        {
           "id": "US-643",
           "title": "3-5房间中期难度曲线空洞 — 增加Skeleton巡逻密度",
           "description": "当前getEnemyConfigForRoom在depth<0.4时只出slime(2个)、depth>=0.4时混合(2slime+1skeleton)，但3-5房间的中间房间(combatIndex 1, depth~0.3-0.5)仍然偏弱。当totalRooms=3时只有1个combat room(2slime+1skeleton)，4-5房间时中间房间的skeleton=0或1。建议：combat rooms总数>=3时，中间房间至少1个skeleton+走廊patrol skeleton，消除\"轻松区\"。",
@@ -2596,139 +2585,6 @@
             "走廊Skeleton巡逻数随totalRooms递增(1-2→1-3)",
             "难度曲线平滑无突降(每房间难度≥前一房间)",
             "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-644",
-          "title": "ScoreSystem combo连击计分 — 连续击杀加速得分",
-          "description": "US-581已标记pending但无详细实现方案。设计：3秒内连续击杀敌人触发combo，每层+25%击杀分(最高3层=+75%)，3秒无击杀重置。HUD显示当前combo层级和倒计时。这激励玩家主动进攻而非躲藏，增强roguelike重玩性。",
-          "type": "code",
-          "priority": 3,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "ScoreSystem新增comboTier和comboTimer字段",
-            "击杀敌人时：若距上次击杀<3s → comboTier++(max3)；否则重置为1",
-            "击杀分 = ENEMY_POINTS * (1 + 0.25 * (comboTier-1))",
-            "HUD显示combo层级(×1/×1.25/×1.5/×1.75)和剩余时间条",
-            "combo归零时播放视觉反馈(闪烁消失)",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-645",
-          "title": "房间过渡动画增强 — 方向感知淡入淡出",
-          "description": "US-344标记pending但无详细方案。当前RoomCameraSystem切换房间时只是相机跟随，无视觉过渡。建议：切换房间时，屏幕从移动方向对侧擦入(向左走→从右擦入黑幕)，持续200ms。增强空间感和探索沉浸感。同时走廊区域可添加渐暗边缘效果。",
-          "type": "code",
-          "priority": 4,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "房间切换时方向性擦入动画(200ms)",
-            "走廊区域边缘渐暗(vignette效果)",
-            "过渡期间输入已冻结(现有逻辑保持)",
-            "动画不卡顿(60fps)",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-646",
-          "title": "SpikeTrap视觉预警 — 触发前脉冲闪烁",
-          "description": "US-348标记pending。当前SpikeTrap只有active/inactive两种纹理，玩家无法预判陷阱位置。建议：inactive状态增加微妙脉冲动画(alpha 0.8→1.0循环1.5s)，让细心玩家能发现。触发前0.3s增加\"咔嗒\"声效预警，给反应时间。减速效果结束后加闪烁提示。",
-          "type": "code",
-          "priority": 5,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "SpikeTrap inactive状态alpha脉冲动画(1.5s周期)",
-            "触发前0.3s播放\"咔嗒\"预警声",
-            "减速结束闪烁提示(绿色flash 200ms)",
-            "SoundManager新增trap相关音效方法",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-647",
-          "title": "新手引导系统 — 操作提示浮层",
-          "description": "US-624标记pending。当前游戏无任何操作说明，新玩家不知WASD/Space/Shift/ESC对应什么。建议：首次进入GameScene时，在入口房间显示半透明操作提示浮层(WASD移动/Space攻击交互/Shift冲刺/ESC暂停)，拾取首个道具后自动淡出。第二次游玩不再显示。",
-          "type": "code",
-          "priority": 6,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "首次GameScene显示操作提示浮层(WASD/Space/Shift/ESC)",
-            "浮层在拾取首个道具或5秒后淡出(取先到者)",
-            "localStorage标记tutorial_shown=true，后续不再显示",
-            "提示浮层不遮挡游戏核心区域",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-648",
-          "title": "Hitstop/Freeze Frame攻击命中反馈增强打击感",
-          "description": "US-359标记pending。当前攻击命中敌人仅有视觉闪白和knockback，缺乏\"重量感\"。建议：玩家攻击命中任何敌人时，冻结游戏逻辑30ms(物理和update全部暂停)，然后恢复正常。配合已有闪白和knockback，显著增强打击反馈。需注意不与无敌帧系统冲突。",
-          "type": "code",
-          "priority": 7,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击命中敌人时冻结所有游戏逻辑30ms",
-            "冻结期间显示单帧画面(不做额外渲染)",
-            "不与无敌帧/dash无敌冲突",
-            "连续命中不叠加(最长30ms)",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-649",
-          "title": "Dash 冲刺期间缺乏粒子拖尾视觉反馈",
-          "description": "玩家 dash 冲刺时仅有蓝色 tint 和速度变化，缺少运动感视觉元素。建议添加 3-5 帧半透明残影(alpha 0.3→0)或速度线粒子，提升闪避动作的满足感。DASH_DURATION=150ms 内每 30ms 生成一个残影 sprite。",
-          "type": "code",
-          "priority": 161,
-          "status": "pending",
-          "dependsOn": [
-            "US-056"
-          ],
-          "acceptanceCriteria": [
-            "dash 期间每 30-50ms 生成半透明残影",
-            "残影 200ms 后自动 fadeout 并 destroy",
-            "dash 结束时清理所有残影",
-            "残影不影响性能（对象池或限制最大数量）"
-          ]
-        },
-        {
-          "id": "US-650",
-          "title": "Slime 缺乏主动攻击行为 — 接触伤害仅被动触发",
-          "description": "当前 Slime 纯随机移动，只有碰巧碰到玩家才造成伤害。建议给 Slime 添加接近感知(100px)：当玩家进入范围时转为朝玩家缓慢移动(速度40px/s)，模拟主动追击但不具备 Skeleton 的精确追踪能力。这使 Slime 成为有意义的低级威胁而非纯随机障碍。",
-          "type": "code",
-          "priority": 162,
-          "status": "pending",
-          "dependsOn": [
-            "US-575"
-          ],
-          "acceptanceCriteria": [
-            "Slime 在 100px 范围内检测到玩家时转向追踪",
-            "追踪速度 40px/s（低于随机移动 60px/s，降低威胁但仍提供主动感）",
-            "超出范围后恢复随机移动",
-            "不同 Slime 追踪行为有随机延迟(0-500ms)，避免同步追击",
-            "追踪方向仍为 4 方向（非 8 方向），减少走廊抖动"
-          ]
-        },
-        {
-          "id": "US-651",
-          "title": "宝箱开启缺少音效和奖励弹出动画",
-          "description": "US-565 实现了 Chest 战利品掉落但宝箱开启本身无音效和视觉仪式感。开启瞬间应有(1)宝箱音效、(2)金色光芒爆发动画(6-8个粒子, 300ms)、(3)战利品弹出的弹簧动画(small bounce)。这些反馈让玩家获得宝箱时有明确的正反馈。",
-          "type": "code",
-          "priority": 163,
-          "status": "pending",
-          "dependsOn": [
-            "US-565"
-          ],
-          "acceptanceCriteria": [
-            "宝箱开启播放金属/木质开箱音效",
-            "6-8 个金色粒子从宝箱中心爆发，300ms 扩散",
-            "战利品弹出使用 ease-out bounce tween(50ms 上浮 + 100ms 回弹)",
-            "SoundManager 添加 playChestOpen() 方法"
           ]
         },
         {
@@ -2749,187 +2605,6 @@
           ]
         },
         {
-          "id": "US-653",
-          "title": "玩家攻击缺少冷却进度条视觉指示",
-          "description": "ATTACK_COOLDOWN=400ms 期间玩家无任何视觉反馈确认攻击是否就绪。建议在玩家脚下或 HUD 上添加微型冷却条：攻击后从满到空 400ms，冷却完毕时闪烁一下确认。这降低了新手频繁无效点击的挫败感。",
-          "type": "code",
-          "priority": 165,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击后玩家脚下出现 16x2px 冷却条(从绿到空，400ms)",
-            "冷却完毕闪烁白色 100ms",
-            "攻击中(buffed)冷却条变为蓝色",
-            "冷却条 scrollFactor=0 固定在玩家脚下不随 camera 移动"
-          ]
-        },
-        {
-          "id": "US-654",
-          "title": "攻击输入缓冲 (Input Buffer) — 100ms预输入窗口提升操作手感",
-          "description": "当前攻击冷却期间按键完全被忽略，玩家需要精确等待冷却结束再按键，操作手感僵硬。GDD已定义 inputBuffer.windowMs=100 参数但代码未实现。应在攻击冷却最后100ms内缓存玩家输入，冷却结束时自动执行。参考：Celeste/Hollow Knight 的输入缓冲设计。",
-          "type": "code",
-          "priority": 166,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击冷却最后100ms内按键被缓冲",
-            "冷却结束后立即执行缓冲的攻击",
-            "仅缓冲一次输入，不累积",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-655",
-          "title": "金币磁吸效果 — 接近金币30px内自动吸引拾取",
-          "description": "当前金币必须精确碰撞才能拾取，在快节奏战斗中频繁miss拾取体验差。GDD已定义 coinMagnet.attractRange=30/attractSpeed=20 参数但代码未实现。金币应在玩家进入30px范围后被缓慢吸引向玩家，提升拾取流畅度且不破坏战斗节奏。",
-          "type": "code",
-          "priority": 167,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "玩家进入30px范围后金币被吸引",
-            "吸引速度20px/s，不影响战斗节奏",
-            "仅对金币生效，药水/钥匙/AttackBoost不触发",
-            "已有overlap拾取逻辑保持不变",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-656",
-          "title": "房间进入信息横幅 — 显示房间名/类型/敌人数",
-          "description": "当前房间切换无任何文字提示，玩家不知道进入了哪个房间、还有多少敌人。GDD已定义 roomEnterBanner.displayDurationMs=800/fadeOutMs=300/showRoomType/showEnemyCount 参数但代码未实现。应在新房间淡入完成后显示800ms横幅，包含房间类型标签和存活敌人数量。",
-          "type": "code",
-          "priority": 168,
-          "status": "pending",
-          "dependsOn": [
-            "US-622"
-          ],
-          "acceptanceCriteria": [
-            "进入新房间后显示横幅800ms",
-            "横幅包含房间类型（normal/treasure/danger）和敌人数",
-            "300ms淡出动画",
-            "不遮挡战斗视线",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-657",
-          "title": "M键静音切换 — 全局音量控制",
-          "description": "当前没有音量控制机制，玩家无法静音。GDD已定义 volumeControl.muteToggleKey=M/localStorageKey 参数但代码未实现。按M键切换静音状态并持久化到localStorage，HUD显示静音图标。",
-          "type": "code",
-          "priority": 169,
-          "status": "pending",
-          "dependsOn": [
-            "US-583"
-          ],
-          "acceptanceCriteria": [
-            "按M键切换静音/恢复",
-            "静音状态持久化到localStorage",
-            "HUD显示🔇图标表示静音",
-            "静音时所有音效和BGM不播放",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-658",
-          "title": "ResultScene 通关/失败数据面板 — 击杀数/金币数/房间数/时间/分数明细",
-          "description": "当前ResultScene仅显示总分，缺少详细统计。US-062标记done但实际数据传递不完整。应显示：击杀数、收集金币、探索房间数、通关时间、分数明细（金币分/击杀分/房间清除分/时间奖励）。失败时应显示到达的房间深度和死因（哪个敌人/陷阱）。",
-          "type": "code",
-          "priority": 170,
-          "status": "pending",
-          "dependsOn": [
-            "US-612"
-          ],
-          "acceptanceCriteria": [
-            "胜利面板显示：击杀数、金币数、探索房间、通关时间、分数明细",
-            "失败面板显示：到达深度、死因提示、存活时间",
-            "数据从GameScene通过scene.start传递",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-659",
-          "title": "Slime 主动追踪行为 — 玩家进入100px后简单追踪",
-          "description": "Slime目前完全随机移动，即使玩家就在身边也不会靠近，是最无威胁的敌人。GDD已定义 slimeProximityChase.detectionRange=100/chaseSpeed=40/reactionDelayMs=random 0-500 参数但代码未实现（US-650仅描述问题无具体参数）。追踪速度40低于随机速度60，提供主动威胁感但不精确。",
-          "type": "code",
-          "priority": 171,
-          "status": "pending",
-          "dependsOn": [
-            "US-575"
-          ],
-          "acceptanceCriteria": [
-            "玩家进入100px范围后Slime切换为4方向追踪",
-            "追踪速度40px/s（低于随机移动60px/s）",
-            "进入追踪有0-500ms随机反应延迟",
-            "玩家离开范围后恢复随机移动",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-660",
-          "title": "Dash冲刺拖尾残影效果 — 提升冲刺视觉辨识度",
-          "description": "Dash冲刺（US-056已实现）仅改变速度，无视觉特效导致玩家难以感知冲刺状态。GDD已定义 dashTrail.trailInterval=30/trailAlpha=0.3/trailFadeMs=200/maxTrails=5 参数但代码未实现。冲刺期间每30ms创建一个半透明残影，200ms渐隐消失。",
-          "type": "code",
-          "priority": 172,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "冲刺期间每30ms创建半透明残影sprite",
-            "残影alpha=0.3，200ms线性渐隐至0后destroy",
-            "最多同时5个残影",
-            "非冲刺状态无残影",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-661",
-          "title": "走廊过渡方向指示箭头 — 过渡期间HUD方向提示",
-          "description": "走廊过渡（450ms fade）期间玩家完全看不到方向，频繁迷失。GDD已定义 corridorDirectionArrow.arrowAlpha=0.5/arrowDurationMs=200/arrowSize=12 参数但代码未实现（US-652仅描述无参数）。应在fade开始时在屏幕中央显示方向箭头指示目标房间方位。",
-          "type": "code",
-          "priority": 173,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "走廊过渡开始时显示方向箭头（上下左右）",
-            "箭头alpha=0.5，200ms后消失",
-            "箭头大小12px，位于屏幕中央偏移",
-            "方向基于目标房间相对方位",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-662",
-          "title": "玩家攻击冷却进度条 — 脚下微型冷却指示器",
-          "description": "攻击冷却期间无视觉反馈，玩家不知道何时可以再次攻击。GDD已定义 attackCooldownBar.barWidth=16/barHeight=2/barOffsetY=12 参数但代码未实现（US-653描述无参数）。应在玩家脚下显示2px高的微型进度条，冷却中从满到空，就绪时闪绿。",
-          "type": "code",
-          "priority": 174,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "玩家脚下显示16x2px进度条",
-            "冷却期间从右到左递减",
-            "冷却就绪时100ms绿色闪烁",
-            "AttackBoost buff期间进度条变蓝色",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-663",
-          "title": "PRD 去重压缩 — 100条pending合并精简至~50条权威条目",
-          "description": "当前PRD共180条US（80 done + 100 pending），pending中大量条目描述相同问题的不同角度。例如：HP bar跟随相关3条、Slime难度缩放3条、房间过渡动画2条、combo计分2条、新手引导2条、陷阱预警2条、接触伤害冷却2条。应将100条pending去重合并为~50条权威条目，每个标注所有合并来源。",
-          "type": "meta",
-          "priority": 175,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "识别所有重复/近重复pending US",
-            "合并为权威条目，保留最完整的描述和验收标准",
-            "标注所有被合并的原始US编号",
-            "最终pending US不超过60条",
-            "GDD设计日志记录合并操作"
-          ]
-        },
-        {
           "id": "US-664",
           "title": "SoundManager AudioNode 资源回收 — 每次播放创建的节点需disconnect",
           "description": "SoundManager所有play方法(playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen)创建OscillatorNode/BufferSource/Filter/GainNode，连接到destination后播放。当前代码未在stop后disconnect节点，长时间运行(>30min)会积累大量未回收的AudioNode。虽然浏览器GC会回收已stop的节点，但主动disconnect可降低内存峰值。应在每个play方法中添加onended回调执行disconnect链。",
@@ -2940,21 +2615,6 @@
           "acceptanceCriteria": [
             "每个play方法创建的节点在stop后执行disconnect()",
             "长时间运行30分钟后AudioNode数量不持续增长",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-665",
-          "title": "endGame后冻结全部敌人/陷阱update — 死亡转场期间CPU浪费",
-          "description": "GameScene.update()在gameOver=true时直接return，但敌人(Slime/Skeleton)和陷阱(SpikeTrap)各有独立的update/preUpdate方法不受此影响。死亡动画800ms内，所有敌人继续移动/追踪/碰撞检测浪费CPU，且可能出现死亡后仍受伤的视觉异常。应在endGame设置gameOver后，通知所有敌人冻结状态。",
-          "type": "code",
-          "priority": 437,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "endGame后所有敌人停止移动和追踪",
-            "SpikeTrap停止动画和碰撞检测",
-            "死亡/胜利转场期间无无效CPU开销",
             "tsc + build 通过"
           ]
         },
@@ -3021,180 +2681,6 @@
           ]
         },
         {
-          "id": "US-670",
-          "title": "ScoreSystem combo连击计分系统实现 — GDD已定义但代码从未实现",
-          "description": "ScoreSystem缺少combo连击机制。GDD定义了3秒窗口+0.5倍率递增+3.0上限，但ScoreSystem.ts无任何combo相关代码。连击系统增加战斗策略深度和roguelike重复可玩性。实现方案：添加comboCount/comboTimer/comboMultiplier属性，addEnemyPoints()内递增combo并应用倍率，3秒窗口过期重置，HUD显示当前combo数和倍率。",
-          "type": "code",
-          "priority": 182,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "ScoreSystem新增comboCount/comboTimer/comboMultiplier属性",
-            "击杀敌人时comboCount++，分数 = base * multiplier",
-            "3秒内无击杀则combo重置为0",
-            "HUD显示combo数和当前倍率",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-671",
-          "title": "Hitstop命中冻结反馈 — GDD已定义30ms但代码从未实现",
-          "description": "GDD定义了hitstop durationMs=30，但GameScene.ts无任何hitstop/freeze逻辑。命中瞬间暂停全局30ms是动作游戏打击感的核心技术，参考Celeste/Hollow Knight。实现方案：handlePlayerAttack命中时设置scene.physics.world.pause() + setTimeout(30ms)后resume，或使用scene.time.delayedCall。",
-          "type": "code",
-          "priority": 183,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击命中敌人时全局暂停30ms",
-            "不影响玩家输入响应延迟",
-            "多次命中不叠加暂停时间",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-672",
-          "title": "金币磁吸效果实现 — GDD定义30px吸引范围但代码从未实现",
-          "description": "GDD定义了coinMagnet attractRange=30, attractSpeed=20，但Coin.ts无任何magnet/attract相关代码。金币在30px内自动吸引拾取提升收集手感和流畅度。实现方案：Coin update()检测与玩家距离<30px时向玩家移动（speed=20px/frame），到达后触发collect。",
-          "type": "code",
-          "priority": 184,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "玩家接近金币30px内金币自动向玩家移动",
-            "吸引速度20px/frame",
-            "仅对Coin生效，药水/钥匙不吸引",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-673",
-          "title": "新手操作引导覆盖层 — 首次进入房间显示按键提示",
-          "description": "游戏无任何操作提示，新手玩家不知道WASD移动/空格攻击/Shift冲刺/ESC暂停。首次进入第一个战斗房间时显示半透明覆盖层标注各按键功能，3秒后自动淡出或按任意键关闭。使用localStorage记录已显示状态，仅首次游戏触发。",
-          "type": "code",
-          "priority": 185,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "首次进入战斗房间显示操作提示覆盖层",
-            "WASD=移动, Space=攻击, Shift=冲刺, ESC=暂停",
-            "3秒后自动淡出或按任意键关闭",
-            "localStorage存储已显示标记，后续不再触发",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-674",
-          "title": "PRD去重压缩执行 — 196条US中114条pending含大量重复",
-          "description": "PRD共196条US（82 done + 114 pending），但grep代码发现combo/hitstop/magnet等GDD定义的功能从未实现，说明大量pending US是重复标记而非实际推进。例如：takeDamage返回值在560+567等权威条目已done，HP bar跟随已由US-561修复，checkWinCondition已由US-564修复。应全面审计114条pending，合并重复、删除已由权威条目覆盖的旧条目，目标精简至~60条有效pending。",
-          "type": "code",
-          "priority": 186,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "审计全部114条pending US",
-            "合并重复条目为权威条目",
-            "删除已被权威done条目覆盖的旧pending",
-            "最终pending数<=60",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-675",
-          "title": "HUD dirty flag 缓存优化 — 消除每帧无效 setText 调用",
-          "description": "HUD.update() 每帧对所有标签调用 setText()（HP、金币、分数、dash冷却、房间进度等），即使数值未变化也创建新字符串对象造成GC压力。应在HUD内部缓存上次显示值，仅在值变化时调用setText。预估每帧减少8-10次无效setText调用。",
-          "type": "code",
-          "priority": 187,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "HUD 内部缓存所有显示值的上一次状态",
-            "仅当值实际变化时调用 setText",
-            "60fps下每帧setText调用从~10次降至~1-2次",
-            "视觉行为完全不变 — 所有数值仍正确显示",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-676",
-          "title": "checkRoomClear 性能优化 — 缓存房间边界而非每帧重新计算",
-          "description": "checkRoomClear() 每帧调用 getDungeonData() 并遍历全部敌人数组，通过像素坐标与房间边界比较判定归属。应预计算房间边界缓存，且仅当敌人死亡事件触发时才检查对应房间（事件驱动替代轮询）。",
-          "type": "code",
-          "priority": 188,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "房间边界仅在 dungeonData 创建时计算一次",
-            "敌人死亡时发射事件触发对应房间的清除检查",
-            "消除每帧全量敌人遍历",
-            "房间清除行为与现有逻辑完全一致",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-677",
-          "title": "Slime 移动方向限制为4方向 — 消除走廊斜向抖动",
-          "description": "Slime DIRECTIONS 常量包含8个方向含4个斜向({1,1},{-1,1},{1,-1},{-1,-1})。在3tile宽的走廊中斜向移动会频繁碰墙导致方向切换抖动。应将Slime的DIRECTIONS限制为4方向(上下左右)，与走廊正交结构匹配。Skeleton使用wanderVx/wanderVy但可能存在同样问题。",
-          "type": "code",
-          "priority": 189,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Slime DIRECTIONS 仅包含4个正交方向",
-            "走廊中Slime移动不再频繁碰墙抖动",
-            "开阔房间中Slime移动仍自然",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-678",
-          "title": "ScoreSystem combo 连击计分实现 — GDD已定义但代码从未实现",
-          "description": "GDD balance.comboSystem 定义了完整参数（comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50），但 ScoreSystem.ts 无任何 combo 相关代码。应在 ScoreSystem 中添加 combo 追踪：每次 addEnemyPoints 检查距上次击杀是否在3秒窗口内，若是则累加 combo 计数器并应用倍率。HUD 显示当前 combo 倍率。",
-          "type": "code",
-          "priority": 190,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "ScoreSystem 追踪 lastKillTime 和 currentCombo",
-            "3秒窗口内连续击杀倍率递增(1.5x→2.0x→2.5x→3.0x cap)",
-            "超过3秒窗口combo重置为0",
-            "击杀积分 = baseKillScore * currentMultiplier",
-            "HUD 显示 combo 倍率(当combo>0时)",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-679",
-          "title": "Hitstop 命中冻结反馈 — GDD定义30ms但代码从未实现",
-          "description": "GDD balance.hitstop 定义 durationMs=30，但 handlePlayerAttack 和敌人 takeDamage 中无任何 hitstop 逻辑。应在攻击命中时暂停场景 physics 30ms（scene.physics.pause/resume via delayedCall），增强打击感。同时需确保 hitstop 期间不累积多次暂停。",
-          "type": "code",
-          "priority": 191,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击命中敌人时触发30ms physics pause",
-            "hitstop期间不可累积新的hitstop（防重叠）",
-            "hitstop结束后自动恢复physics",
-            "配合现有的knockback和闪白反馈形成完整命中反馈链",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-680",
-          "title": "金币磁吸效果 — GDD定义30px吸引范围但代码从未实现",
-          "description": "GDD balance.coinMagnet 定义 attractRange=30, attractSpeed=20，但 Coin.ts 和 GameScene 中无任何磁吸逻辑。应在 GameScene.update 中检测玩家与金币距离，30px内时将金币向玩家移动(速度20px/s)。仅对 Coin 类型生效，不影响药水/钥匙/AttackBoost。",
-          "type": "code",
-          "priority": 192,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "玩家30px范围内的金币自动向玩家移动",
-            "磁吸速度20px/s",
-            "仅对Coin生效，其他道具不受影响",
-            "掉落动画(popup arc)期间不触发磁吸",
-            "tsc + build 通过"
-          ]
-        },
-        {
           "id": "US-681",
           "title": "走廊击杀奖励机制 — 当前走廊击杀不触发任何奖励",
           "description": "checkRoomClear 仅按房间像素边界判定敌人归属，走廊中的巡逻敌人（US-055）被击杀后不触发房间清除奖励也不被任何系统追踪。应在 handlePlayerAttack 击杀走廊敌人时给予独立奖励（如+25分走廊击杀奖励），或按距离归属到最近房间。",
@@ -3213,53 +2699,6 @@
           ]
         },
         {
-          "id": "US-682",
-          "title": "Combo 连击计分系统实现 — GDD 已定义但代码从未实现",
-          "description": "ScoreSystem 缺少 combo 连击机制。GDD 已定义 comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0，但 ScoreSystem 中无 lastKillTime/comboCount/comboMultiplier 等字段。当前击杀积分始终为固定50分，连续高效战斗无额外奖励，降低了roguelike战斗策略深度。需在 ScoreSystem 添加 combo 追踪状态、在 GameScene enemy-death 回调中更新 combo、在 HUD 显示 combo 倍率。",
-          "type": "code",
-          "priority": 194,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "ScoreSystem 新增 lastKillTime/comboCount/comboMultiplier 字段",
-            "addEnemyPoints() 检查时间窗口，3秒内连续击杀倍率递增0.5x，上限3.0x",
-            "HUD 显示当前 combo 倍率（如 \"x1.5 COMBO\"）",
-            "combo 超时后倍率重置为1.0",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-683",
-          "title": "Hitstop 命中冻结反馈 — GDD 定义30ms但代码从未实现",
-          "description": "攻击命中敌人时缺少 hitstop（帧冻结）反馈。GDD 定义 hitstop.durationMs=30，这是动作游戏打击感的核心技术（Celeste/Hollow Knight均使用）。当前攻击命中仅有闪白+击退，缺少命中瞬间的\"时间停止\"感。需在 handlePlayerAttack 命中分支中添加 this.physics.world.pause() + 30ms delayedCall 恢复。",
-          "type": "code",
-          "priority": 195,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "攻击命中敌人瞬间 physics.world.pause 30ms",
-            "30ms后自动恢复 physics.world.resume",
-            "hitstop 仅在命中时触发（空挥不触发）",
-            "hitstop 期间 HUD 仍正常渲染",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-684",
-          "title": "金币磁吸效果实现 — GDD 定义30px吸引范围但代码从未实现",
-          "description": "GDD 定义 coinMagnet.attractRange=30, attractSpeed=20，但 Coin.ts 和 GameScene 中无任何磁吸逻辑。当前金币必须精确走到上面才能拾取，操作感粗糙。需在 GameScene.update() 中检查玩家30px范围内的金币，以20px/s速度向玩家移动。",
-          "type": "code",
-          "priority": 196,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "玩家30px范围内的金币自动向玩家移动，速度20px/s",
-            "磁吸仅对 Coin 生效，不影响药水/钥匙/AttackBoost",
-            "金币被收集后停止磁吸",
-            "tsc + build 通过"
-          ]
-        },
-        {
           "id": "US-685",
           "title": "SpikeTrap 继承 Physics.Arcade.Sprite — overlap 检测可靠性修复",
           "description": "SpikeTrap 当前继承 GameObjects.Sprite 而非 Physics.Arcade.Sprite。Phaser 的 overlap 检测要求双方均有 physics body，GameObjects.Sprite 无 body 依赖内部 fallback 行为，可能在 Phaser 版本升级或特定场景下失效。US-573/US-249/US-371 均标记但未实现。需改为继承 Physics.Arcade.Sprite 并显式设置 body。",
@@ -3272,22 +2711,6 @@
             "构造函数中设置 physics body size 与 sprite 尺寸匹配",
             "overlap 检测行为与修改前一致",
             "trap trigger 逻辑不变",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-686",
-          "title": "Slime 主动追踪行为 — 玩家接近100px后简单追踪AI",
-          "description": "GDD 定义 slimeProximityChase.detectionRange=100, chaseSpeed=40，但 Slime 仅有随机移动逻辑，无任何主动追踪行为。玩家可以站在 Slime 旁边安全攻击而不会引起反应，削弱了战斗紧张感。需在 Slime.update() 中添加玩家距离检测，100px内切换为4方向追踪模式，速度40px/s（低于随机移动60px/s），提供主动威胁但不精确。",
-          "type": "code",
-          "priority": 198,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Slime 检测玩家100px内切换为追踪模式",
-            "追踪速度40px/s，仅4方向（消除走廊斜向抖动）",
-            "追踪有0-500ms随机反应延迟",
-            "玩家离开100px后恢复随机移动",
             "tsc + build 通过"
           ]
         },
@@ -3324,59 +2747,6 @@
           ]
         },
         {
-          "id": "US-689",
-          "title": "GDD coreLoop 文档与代码实际状态同步",
-          "description": "GDD coreLoop 区域仍标注已修复 bug 为活跃状态（checkWinCondition 不含 key/chest、场景生命周期泄漏、endGame/endGameInternal 重复、掉落 overlap 泄漏等），但代码均已修复（US-564/562/563/567/566/569/568/602 done）。文档中的虚假 bug 描述会误导未来审查和开发。",
-          "type": "code",
-          "priority": 201,
-          "status": "pending",
-          "dependsOn": [
-            "US-564",
-            "US-602"
-          ],
-          "acceptanceCriteria": [
-            "GDD coreLoop 移除所有已修复 bug 的 CRITICAL/warning 标注",
-            "GDD coreLoop 更新第71轮审查状态 — 确认所有已修复问题",
-            "GDD coreLoop 仅保留真正未修复的 bug（HUD roomName callback覆盖、Slime 8方向走廊抖动）",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-690",
-          "title": "Minimap 楼梯出口金色标记 — 代码确认从未实现",
-          "description": "审查 Minimap.update() 代码确认：渲染了 coins/chests/potions/key/enemies/player 但完全没有 stairs/exit 标记。GDD balance.stairs 和 balance.exitRoom 数据存在但 Minimap 未使用。楼梯是游戏通关目标，玩家在小地图上无法定位出口严重影响探索体验。US-577/413/408/237 标记但代码从未实现。",
-          "type": "code",
-          "priority": 202,
-          "status": "pending",
-          "dependsOn": [
-            "US-577"
-          ],
-          "acceptanceCriteria": [
-            "Minimap 渲染楼梯位置标记（金色圆点）",
-            "仅在楼梯所在房间已被访问时显示",
-            "标记使用脉冲动画增强可见性",
-            "使用 dungeonMap.getStairsPos() 获取坐标",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-691",
-          "title": "Minimap AttackBoost 道具显示 — 代码确认从未实现",
-          "description": "审查 Minimap 代码确认 minimapEntityGetters 包含 getCoins/getChests/getHealthPotions/getKeyItem/getSlimes/getSkeletons/getPlayer 但缺少 getAttackBoosts。AttackBoost 是唯一在小地图上不显示的可拾取道具，信息不一致。",
-          "type": "code",
-          "priority": 203,
-          "status": "pending",
-          "dependsOn": [
-            "US-578"
-          ],
-          "acceptanceCriteria": [
-            "Minimap minimapEntityGetters 添加 getAttackBoosts",
-            "使用蓝色圆点标记 AttackBoost 位置",
-            "仅在已访问房间显示",
-            "tsc + build 通过"
-          ]
-        },
-        {
           "id": "US-692",
           "title": "HUD roomName callback 被 GameScene respawn 回调覆盖 — 根因修复",
           "description": "审查确认 RoomCameraSystem.setOnRoomChanged() 仅支持单一 callback。GameScene.create() 中先注册 HUD 的 setOnRoomChanged，然后注册 respawn 相关的另一个 setOnRoomChanged，后者覆盖前者。导致 HUD 房间名 overlay 永远不触发。修复方案：改为支持多个 callback（数组/事件发射器模式）。",
@@ -3395,26 +2765,6 @@
           ]
         },
         {
-          "id": "US-693",
-          "title": "HUD dirty flag 缓存优化 — setText 每帧无变化仍调用",
-          "description": "审查 HUD.update() 代码确认每帧无变化仍调用 setText：hpText(每帧)、coinLabel(每帧)、scoreLabel(每帧)、attackBoostLabel(每帧，含字符串拼接)。60fps 下每秒 240+ 无效 setText 调用产生不必要 GC 压力。应缓存上次值，仅在变化时 setText。",
-          "type": "code",
-          "priority": 205,
-          "status": "done",
-          "dependsOn": [
-            "US-572"
-          ],
-          "acceptanceCriteria": [
-            "HUD 缓存 hpText/coinLabel/scoreLabel 上次值",
-            "仅在值变化时调用 setText",
-            "attackBoostLabel 仅在 boosted 状态变化或秒数变化时更新",
-            "dashBarFill 仅在 pct 变化超过 0.01 时更新",
-            "60fps 下 setText 调用减少至每秒 <10 次（静态状态）",
-            "tsc + build 通过"
-          ],
-          "doneReason": "HUD dirty flag — code has _cacheHp/_cacheMaxHp/_cacheScore etc with conditional setText"
-        },
-        {
           "id": "US-694",
           "title": "Slime 移动方向限制为4方向为主 — 走廊斜向抖动修复",
           "description": "审查 Slime 代码确认 DIRECTIONS 数组包含8个方向含4个斜向。在3-tile宽走廊中斜向移动导致频繁撞墙→方向切换→再撞墙循环，表现为视觉抖动和不自然运动。修复：80%概率选4方向，20%概率选8方向（保留少量随机性）。",
@@ -3429,61 +2779,6 @@
             "走廊中运动明显减少抖动",
             "房间中仍保持随机运动模式",
             "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-695",
-          "title": "ScoreSystem combo连击计分实现 — GDD comboSystem完整定义但代码从未创建",
-          "description": "GDD已定义comboSystem(comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50)，但ScoreSystem.ts中零combo相关代码。US-357/470/581/644/670/678/682重复标记但从未实现。实现方案：(1)ScoreSystem新增comboCount/comboTimer/resetCombo方法 (2)击杀时检查上次击杀时间差<3000ms则comboCount++ (3)击杀积分=baseKillScore*(1+comboCount*0.5)上限3x (4)HUD显示当前combo数和倍率 (5)combo超时3秒自动重置",
-          "type": "code",
-          "priority": 207,
-          "status": "pending",
-          "dependsOn": [
-            "US-015",
-            "US-053"
-          ],
-          "acceptanceCriteria": [
-            "击杀敌人后3秒内再次击杀combo+1",
-            "积分=50*(1+combo*0.5)上限150",
-            "HUD显示combo数和倍率",
-            "3秒无击杀combo重置",
-            "tsc + build通过"
-          ]
-        },
-        {
-          "id": "US-696",
-          "title": "Hitstop命中冻结30ms实现 — GDD已定义但代码从未创建",
-          "description": "GDD hitstop.durationMs=30定义了攻击命中时全局冻结时间，但代码中零timeScale/freeze逻辑。US-359/648/671/679/683重复标记。实现方案：(1)handlePlayerAttack命中敌人时this.physics.world.timeScale=0 (2)scene.time.delayedCall(30,()=>{this.physics.world.timeScale=1}) (3)冻结期间UI/HUD正常渲染仅物理暂停 (4)与cameraShake并行触发增强打击感",
-          "type": "code",
-          "priority": 208,
-          "status": "pending",
-          "dependsOn": [
-            "US-008"
-          ],
-          "acceptanceCriteria": [
-            "攻击命中敌人时物理冻结30ms",
-            "30ms后自动恢复",
-            "冻结期间HUD正常渲染",
-            "不影响非战斗场景",
-            "tsc + build通过"
-          ]
-        },
-        {
-          "id": "US-697",
-          "title": "金币磁吸效果实现 — GDD定义attractRange=30但代码从未实现",
-          "description": "GDD coinMagnet定义attractRange=30, attractSpeed=20，金币在玩家30px内自动吸引拾取。Coin.ts/GameScene无磁吸逻辑。US-455/655/672/680/684重复标记。实现方案：(1)GameScene.update中遍历active coins检查与player距离 (2)距离<30px时coin.physics.moveTo(player, 200) (3)磁吸期间coin停止浮动tween避免抖动 (4)保持现有overlap收集触发不变",
-          "type": "code",
-          "priority": 209,
-          "status": "pending",
-          "dependsOn": [
-            "US-013"
-          ],
-          "acceptanceCriteria": [
-            "玩家30px内金币自动吸引",
-            "吸引速度200px/s",
-            "磁吸期间无视觉抖动",
-            "现有拾取逻辑不受影响",
-            "tsc + build通过"
           ]
         },
         {
@@ -3505,22 +2800,6 @@
           ]
         },
         {
-          "id": "US-699",
-          "title": "PRD去重压缩执行 — 196条pending含~80条重复合并为权威条目",
-          "description": "PRD中~120条pending US存在大量重复。combo系统7条重复(US-357/470/581/644/670/678/682)、hitstop 5条(US-359/648/671/679/683)、金币磁吸5条(US-455/655/672/680/684)、takeDamage返回值9条、HP bar跟随11条、checkWinCondition key检查6条等。去重规则：保留编号最小+描述最完整的权威条目，其余标记为duplicate并注明权威条目ID。目标：196 pending → ~120条有效条目。",
-          "type": "code",
-          "priority": 211,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "所有重复US标记为duplicate状态",
-            "权威条目保留最完整描述",
-            "pending总数降至~120",
-            "每个问题仅一条权威US",
-            "tsc + build通过"
-          ]
-        },
-        {
           "id": "US-700",
           "title": "Collectible 基类抽取 — Coin/HealthPotion/AttackBoost/KeyItem DRY 重构",
           "description": "Coin.ts, HealthPotion.ts, AttackBoost.ts, KeyItem.ts 共享完全相同的模式：constructor (scale=3, depth=5, _startFloatTween), _startFloatTween() (y浮动+angle摆动 tween), collect() (idempotent guard + setActive(false) + setVisible(false) + destroy)。应提取为 CollectibleBase 基类或 mixin，子类只需指定 texture key 和浮动参数。减少 ~120 行重复代码，未来新增 collectible 类型只需 ~15 行。",
@@ -3535,24 +2814,6 @@
             "所有现有 collectible 行为不变（浮动动画、收集逻辑、overlap 回调）",
             "tsc + build 通过"
           ]
-        },
-        {
-          "id": "US-701",
-          "title": "config.ts scene 顺序修正 — BootScene 应在 TitleScene 之前",
-          "description": "config.ts 定义 scene 顺序为 [TitleScene, BootScene, GameScene, ResultScene]，但 BootScene 负责 preload spritesheets 和生成纹理/动画。BootScene.create() 调用 this.scene.start('GameScene')，说明意图是 Boot 先运行。当前顺序意味着 Phaser 先启动 TitleScene，TitleScene 需要手动启动 BootScene，而 BootScene 又启动 GameScene — 多余的跳转。应改为 [BootScene, TitleScene, GameScene, ResultScene]，BootScene 完成后 start TitleScene。",
-          "type": "code",
-          "priority": 139,
-          "status": "done",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "config.ts scene 数组顺序改为 [BootScene, TitleScene, GameScene, ResultScene]",
-            "BootScene.create() 最后改为 this.scene.start('TitleScene')",
-            "TitleScene 启动游戏时启动 GameScene（而非 BootScene）",
-            "游戏启动流程：Boot → Title → Game → Result，无多余跳转",
-            "所有纹理和动画在进入 GameScene 前已就绪",
-            "tsc + build 通过"
-          ],
-          "doneReason": "config.ts scene order [TitleScene,BootScene,...] is intentional — TitleScene.create manually starts BootScene via scene.start()"
         },
         {
           "id": "US-702",
@@ -3585,40 +2846,6 @@
             "spawnDropAttackBoost 掉落物被收集后从 this.attackBoosts 数组移除",
             "shutdown() 中清空所有物品数组",
             "掉落动画期间物品仍可正常被拾取",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-704",
-          "title": "Player 攻击锥角过宽 — dot 阈值 0.25 对应 151° 总角度",
-          "description": "Player.isEnemyInAttackRange 使用 dot product 阈值 0.25 判断敌人是否在攻击方向内。代码注释说 120° 锥角 (cos60°=0.5)，但实际 0.25 对应 arccos(0.25)≈75.5° 半角 = 151° 总锥角，几乎是背后也能打到。这大幅降低了攻击方向选择的意义，玩家几乎不需要面对敌人。应将阈值改为 0.5（120° 锥角）或 0.7（约 90° 锥角），使攻击方向真正有战术意义。",
-          "type": "code",
-          "priority": 142,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "dot product 阈值从 0.25 改为 0.5（120° 锥角，cos60°）",
-            "攻击仍有合理范围：不会出现背对敌人也能命中的情况",
-            "斜向攻击（45°偏移）仍能命中（cos45°≈0.707 > 0.5）",
-            "60°偏移方向外的敌人不被命中",
-            "配合攻击冷却和方向选择形成有意义的战术决策",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-705",
-          "title": "SoundManager 音量控制与静音开关",
-          "description": "SoundManager 所有音效的 gain 值硬编码（0.15~0.25），无音量控制接口。玩家无法调节或关闭音效，长时间游戏时音效可能烦人。应添加：1) setMasterVolume(0~1) 方法统一缩放所有 gain 2) toggleMute() 方法 3) HUD 添加静音按钮（可选，US-673 新手引导实现后加）4) 音量设置持久化到 localStorage。",
-          "type": "code",
-          "priority": 143,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "SoundManager 添加 masterVolume 属性 (0~1, 默认 0.7)",
-            "所有 play* 方法 gain 乘以 masterVolume",
-            "toggleMute() 方法：切换静音状态",
-            "音量/静音状态持久化到 localStorage (key: dungeon_roguelike_sound)",
-            "现有音效行为不变（音量比例关系保持一致）",
             "tsc + build 通过"
           ]
         },
@@ -3659,39 +2886,6 @@
           ]
         },
         {
-          "id": "US-708",
-          "title": "Minimap 显示 SpikeTrap 位置 — 红色脉冲标记已激活陷阱",
-          "description": "Minimap 目前只显示 Coin/Chest/HealthPotion/Key/Slime/Skeleton，缺少 SpikeTrap 标记。玩家无法在地图上预判陷阱位置。需要在 Minimap 构造函数添加 getSpikeTraps getter，用红色/橙色脉冲标记已激活的陷阱。GDD visualFeedback.spikeTrapWarning 定义了 pulseCycle=1500ms。",
-          "type": "code",
-          "priority": 220,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Minimap 构造函数接受 getSpikeTricks 回调",
-            "已激活(active)陷阱以橙色小圆点显示在 Minimap",
-            "未激活陷阱以暗灰色半透明显示",
-            "只在已探索房间内显示",
-            "tsc --noEmit + npm run build 通过"
-          ]
-        },
-        {
-          "id": "US-709",
-          "title": "Coin 生成跳过出口房间 — 与入口房间同为安全区",
-          "description": "US-576 仅修复入口房间跳过，但出口房间(exitRoom)同样不应生成 Coin。当前代码 rooms[i % rooms.length] 会让 Coin 出现在出口房间，干扰 win condition 区域。应与 AttackBoost 一致使用排除逻辑（entrance + exit 不生成 collectibles）。",
-          "type": "code",
-          "priority": 221,
-          "status": "pending",
-          "dependsOn": [
-            "US-576"
-          ],
-          "acceptanceCriteria": [
-            "Coin 生成循环跳过 entranceRoom 和 exitRoom",
-            "HealthPotion 生成循环同样跳过两个特殊房间",
-            "出口房间内无 Coin/HealthPotion/AttackBoost",
-            "tsc --noEmit + npm run build 通过"
-          ]
-        },
-        {
           "id": "US-710",
           "title": "ResultScene 显示难度等级和通关轮次",
           "description": "ResultScene 展示详细统计面板和分数分解，但缺少当前 runCount 和 difficultyLevel 显示。GameScene 已有 runCount 和 difficultyLevel 计算逻辑，只需在 scene.start 传参。玩家无法评估不同难度的成绩对比。",
@@ -3720,78 +2914,6 @@
             "未访问 exitRoom 时不显示楼梯标记",
             "脉冲动画使用 sin(time) 调节 alpha 在 0.5-1.0 间",
             "半径 4px 大于普通道具确保醒目",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-712",
-          "title": "ScoreSystem combo 连击计分系统实现",
-          "description": "GDD comboSystem 已完整定义（comboWindowMs=3000, multiplierPerCombo=0.5, maxMultiplier=3.0, baseKillScore=50），但 ScoreSystem.ts 中完全没有任何 combo 相关代码。连续击杀无额外奖励，战斗效率无策略激励。应在 ScoreSystem 中添加 combo 计数器、计时器、倍率计算，在 GameScene enemy-death 事件中调用 addKillWithCombo。",
-          "type": "code",
-          "priority": 224,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "ScoreSystem 新增 comboCount, comboTimer, currentMultiplier 属性",
-            "addEnemyPoints() 改为 addKillWithCombo()，combo 窗口 3s 内连续击杀倍率+0.5",
-            "maxMultiplier 封顶 3.0x",
-            "combo 中断（3s 无击杀）倍率重置为 1.0x",
-            "HUD 显示当前 combo 倍率（>1.0x 时显示）",
-            "GDD comboSystem 参数与代码一致",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-713",
-          "title": "Hitstop 命中冻结 30ms 实现",
-          "description": "GDD hitstop 定义 durationMs=30 但代码中从未实现任何命中冻结机制。命中瞬间应暂停全局 physics 30ms 增强打击感（动作游戏标准技术如 Celeste/Hollow Knight）。应在 GameScene.handlePlayerAttack 命中分支中调用 scene.physics.pause() + 30ms delayedCall 后 resume()。",
-          "type": "code",
-          "priority": 225,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "handlePlayerAttack 命中敌人时触发 physics.pause()",
-            "30ms 后自动 physics.resume()（使用 time.delayedCall）",
-            "hitstop 期间 HUD 和动画正常渲染（仅 physics 冻结）",
-            "多个敌人同帧命中只触发一次 hitstop（防累积）",
-            "gameOver 后不触发 hitstop",
-            "GDD hitstop.durationMs=30 与代码一致",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-714",
-          "title": "金币磁吸效果实现 — 接近30px自动吸引",
-          "description": "GDD coinMagnet 定义 attractRange=30, attractSpeed=20 但代码中从未实现。Coin.ts 和 GameScene.ts 中无任何 magnet/attract 相关逻辑。玩家需要在精确位置拾取金币，快速通过时容易遗漏。应在 GameScene.update 中检查玩家与每个活跃 Coin 的距离，<30px 时以 20px/s 速度向玩家移动。",
-          "type": "code",
-          "priority": 226,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "GameScene.update 中检查玩家与活跃 Coin 距离",
-            "距离 < 30px 时 Coin 以 20px/s 向玩家移动",
-            "磁吸期间 Coin 可穿过墙壁（简化实现）",
-            "磁吸不会触发拾取，仍需 overlap 检测",
-            "已收集/不活跃 Coin 不参与磁吸",
-            "GDD coinMagnet 参数与代码一致",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-715",
-          "title": "SoundManager 音量控制与 M 键静音切换",
-          "description": "GDD volumeControl 定义 muteToggleKey=M, localStorageKey=pixeldungeon_muted 但 SoundManager.ts 中没有任何音量控制逻辑。玩家无法调节或关闭音效，长时间游戏体验差。应添加 setMuted()/isMuted() 方法，M 键切换静音状态，持久化到 localStorage，GameScene.update 中检测 M 键输入。",
-          "type": "code",
-          "priority": 227,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "SoundManager 新增 _muted 属性和 setMuted/isMuted 方法",
-            "播放方法开头检查 _muted 为 true 时直接 return",
-            "M 键 keydown 切换静音状态",
-            "静音状态持久化到 localStorage key=pixeldungeon_muted",
-            "GameScene 启动时从 localStorage 恢复静音状态",
-            "HUD 显示静音图标（🔇）当静音时",
             "tsc + build 通过"
           ]
         },
@@ -3843,88 +2965,6 @@
             "Coin分配使用(i+1)%length或显式跳过entranceRoom",
             "entrance房间无Coin生成",
             "Potion/AttackBoost/Coin三者均跳过entrance"
-          ]
-        },
-        {
-          "id": "US-719",
-          "title": "Seed PRNG统一接入 — drop/spawn逻辑仍用Math.random",
-          "description": "dungeonData.ts已实现seeded PRNG (mulberry32)，但GameScene中掉落率判断、道具spawn位置、敌人AI随机方向仍使用Math.random。这导致seed输入只能保证地图结构一致，不能完整复现一局游戏。US-354标记seed系统但从未完整接入。",
-          "type": "code",
-          "priority": 231,
-          "status": "pending",
-          "dependsOn": [
-            "US-354"
-          ],
-          "acceptanceCriteria": [
-            "GameScene通过dungeonData.rng参数获取seeded PRNG",
-            "掉落率/道具位置/敌人AI随机全部走seeded PRNG",
-            "相同seed产生完全可复现的游戏过程",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-720",
-          "title": "走廊过渡期间玩家可自由移动 — 输入冻结仅setVelocity(0)不阻断按键",
-          "description": "GameScene update中走廊过渡仅调用player.setVelocity(0,0)，但cursors/WASD按键仍被Player.update读取。如果过渡结束帧与按键帧重合，玩家会瞬间位移。需要player.frozen属性完全冻结输入（类似US-597的设计但走廊场景应用）。",
-          "type": "code",
-          "priority": 232,
-          "status": "pending",
-          "dependsOn": [
-            "US-597"
-          ],
-          "acceptanceCriteria": [
-            "走廊过渡期间Player.update完全跳过移动和攻击输入",
-            "过渡结束后恢复正常输入，无位移跳帧",
-            "Dash/攻击在过渡期间不可触发",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-721",
-          "title": "Slime主动追踪AI实现 — 当前仅随机移动无主动威胁",
-          "description": "GDD定义slimeProximityChase(detectionRange=100, chaseSpeed=40, 4-way)但代码从未实现。当前Slime仅有随机移动和碰墙反弹，对玩家无任何主动威胁。US-650/659/668/686均标记但代码中Slime.update仍是纯随机逻辑。实现方案: 在Slime.update中检测玩家距离，100px内切换为4方向追踪，速度低于随机移动(40 vs 60)提供威胁但不精确。",
-          "type": "code",
-          "priority": 233,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "Slime检测玩家距离<100px时切换追踪模式",
-            "追踪使用4方向(上下左右)而非8方向",
-            "追踪速度40px/s低于随机移动60px/s",
-            "GDD slimeProximityChase参数完全对应",
-            "不影响走廊4方向优化(US-694)",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-722",
-          "title": "GDD-代码参数全面同步审计 — 73轮审查发现多处文档脱节",
-          "description": "第73轮审查确认多个已实现功能在GDD中仍标记为未实现或参数过时。需系统性比对代码常量与GDD JSON值，确保一一对应。已知不一致: (1) config.ts scene顺序GDD未记录US-701修正;(2) Player knockback GDD已有target=200但旧值125仍在部分字段;(3) combo/hitstop/magnet GDD有定义但代码从未创建应标注implementation_status=missing。",
-          "type": "code",
-          "priority": 234,
-          "status": "pending",
-          "dependsOn": [
-            "US-593"
-          ],
-          "acceptanceCriteria": [
-            "GDD所有参数与代码常量逐一验证一致",
-            "GDD新增implementation_status字段标注已实现/未实现/部分实现",
-            "comboSystem/hitstop/coinMagnet标记为missing",
-            "tsc + build 通过"
-          ]
-        },
-        {
-          "id": "US-723",
-          "title": "GDD visualFeedback 幻觉条目清理 — damageNumbers/lowHpWarning/healFlash/screenShake 均未实现",
-          "description": "GDD visualFeedback 文档详细定义了 damageNumbers(enabled:true)、lowHpWarning(HP≤3脉动)、healFlash(绿色闪光)、screenShake(3px/150ms) 四个系统，但代码中零实现。GDD 对这些功能使用完成式描述(如\"enabled: true\")具有误导性。需: (1)将这些条目标记为 pending 或移入 plannedEnhancements; (2)为每个系统创建独立实现 US; (3)或直接实现。影响: GDD 可信度下降，新开发者会被误导认为这些功能已存在。",
-          "type": "code",
-          "priority": 235,
-          "status": "pending",
-          "dependsOn": [],
-          "acceptanceCriteria": [
-            "GDD visualFeedback 中未实现条目标记为 status: pending",
-            "确认 damageNumbers/lowHpWarning/healFlash/screenShake 代码状态与 GDD 一致",
-            "tsc + build 通过"
           ]
         },
         {
@@ -3985,22 +3025,6 @@
           ]
         },
         {
-          "id": "US-728",
-          "title": "攻击锥形代码注释与阈值不一致 — 注释写120°但实际151°",
-          "description": "Player.ts isEnemyInAttackRange() 第173行注释写\"±60° cone\"、\"cos(60°) = 0.5 — allow a 120° cone\"，但实际dot阈值为0.25。cos(75.5°)≈0.25，即±75.5°半角/151°总锥角。US-584/704标记了锥角过宽的游戏平衡性问题，但注释本身的错误未修复。错误注释误导未来开发者认为锥角是120°。修复方案A：阈值改为0.5匹配注释(收窄至120°)；方案B：注释改为\"±75° / 151° cone\"匹配当前阈值。tsc + build 通过。",
-          "type": "code",
-          "priority": 240,
-          "status": "pending",
-          "dependsOn": [
-            "US-584"
-          ],
-          "acceptanceCriteria": [
-            "代码注释与实际dot阈值一致",
-            "isEnemyInAttackRange行为不变或按US-584收窄",
-            "tsc --noEmit && vite build 通过"
-          ]
-        },
-        {
           "id": "US-729",
           "title": "走廊装饰glow circle对象未追踪 — shutdown后残留display list",
           "description": "spawnCorridorDecorations()为每个火把创建2个this.tweens.add(sprite tween + glow circle tween)和1个glow circle game object。shutdown()通过this.tweens.killAll()停止tween，但glow circle对象未被任何数组追踪，也不会被主动destroy。Phaser scene restart会清理display list，但长时间运行的单局中这些对象会累积。应将装饰game objects(sprites+glow circles)加入tracked数组，或在shutdown中显式destroy。tsc + build 通过。",
@@ -4013,75 +3037,6 @@
             "shutdown()中显式destroy装饰对象",
             "无decor对象在shutdown后残留",
             "tsc --noEmit && vite build 通过"
-          ]
-        },
-        {
-          "id": "US-730",
-          "title": "Slime主动追踪AI实现 — GDD定义proximityChase但代码从未实现",
-          "description": "GDD slimeProximityChase定义了100px检测范围、40px追踪速度、4方向追踪、0-500ms反应延迟。但Slime.update()始终仅随机移动，无任何主动追踪玩家行为。这使得Slime作为基础敌人缺乏主动威胁感，与Skeleton的TRACK_RANGE追踪形成严重体验不对称。应在Slime.update()中添加proximity detection：玩家进入100px后转为4方向简单追踪，速度低于随机移动(40vs60)提供不精确但主动的威胁。",
-          "type": "code",
-          "priority": 242,
-          "status": "pending",
-          "dependsOn": [
-            "US-650",
-            "US-668",
-            "US-686"
-          ],
-          "acceptanceCriteria": [
-            "Slime在玩家进入100px后转为4方向追踪",
-            "追踪速度40px/s(低于随机60)",
-            "有0-500ms随机反应延迟",
-            "超过检测范围恢复随机移动",
-            "走廊中不出现斜向抖动",
-            "tsc + build通过"
-          ]
-        },
-        {
-          "id": "US-731",
-          "title": "ScoreSystem combo连击计分系统 — GDD comboSystem完整定义但代码从未实现",
-          "description": "ScoreSystem已定义addCoinPoints/addEnemyPoints/addRoomClearPoints/addTimeBonus，但缺少combo连击计分机制。GDD comboSystem定义：3秒窗口、连击倍率递增(x1.5/x2/x3)、HUD连击显示。combo是roguelike游戏战斗效率奖励的核心维度，当前连续击杀多个敌人与分散击杀得分完全相同，削弱了战斗策略性。应在ScoreSystem添加：comboCount计数器、comboWindow定时器(3s)、comboMultiplier递增、addComboKill()方法。在handlePlayerAttack击杀时调用addComboKill()。",
-          "type": "code",
-          "priority": 243,
-          "status": "pending",
-          "dependsOn": [
-            "US-644",
-            "US-670",
-            "US-678",
-            "US-682",
-            "US-695",
-            "US-712"
-          ],
-          "acceptanceCriteria": [
-            "3秒窗口内连续击杀累加combo计数",
-            "combo倍率递增(2连x1.5/3连x2/5连x3)",
-            "超过3秒窗口重置combo",
-            "HUD显示当前combo数和倍率",
-            "击杀得分=基础分xcombo倍率",
-            "tsc + build通过"
-          ]
-        },
-        {
-          "id": "US-732",
-          "title": "Hitstop命中冻结30ms — GDD已定义但代码从未实现",
-          "description": "GDD hitstopDuration=30ms定义了命中瞬间暂停30ms增强打击感。这是动作游戏核心手感技术(Hollow Knight/Celeste/DD等均使用)。当前handlePlayerAttack中命中敌人后无任何时间冻结反馈，攻击命中与未命中的手感差异仅靠敌人闪白区分。应在Player攻击命中时：this.scene.time.timeScale=0 → 30ms后恢复为1。需注意不能在每帧update中累积误差。实现方式：scene.physics.pause() → delayedCall(30) → scene.physics.resume()。",
-          "type": "code",
-          "priority": 244,
-          "status": "pending",
-          "dependsOn": [
-            "US-359",
-            "US-648",
-            "US-671",
-            "US-679",
-            "US-683",
-            "US-696",
-            "US-713"
-          ],
-          "acceptanceCriteria": [
-            "攻击命中敌人时物理暂停30ms",
-            "30ms后自动恢复",
-            "不影响非物理系统(HUD/timer)",
-            "多次命中不叠加(已有冻结则跳过)",
-            "tsc + build通过"
           ]
         },
         {
@@ -4127,28 +3082,6 @@
             "同类pending合并为单一权威条目",
             "PRD总数从730降至≤100",
             "每个权威条目标注合并来源US编号",
-            "tsc + build通过"
-          ]
-        },
-        {
-          "id": "US-735",
-          "title": "SoundManager AudioNode disconnect + M键静音切换 — 长时间运行音频性能退化",
-          "description": "SoundManager每个音效(playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen)都创建OscillatorNode或BufferSource并connect到destination，但从未disconnect。虽然OscillatorNode在stop后理论上会GC，但AudioContext节点图中的连接关系可能阻止GC。长时间游戏后(100+次攻击/拾取)可能导致AudioContext节点图膨胀。同时缺少全局音量控制和静音切换(M键)。应在：(1) 每个音效的oscillator.onended回调中disconnect所有节点；(2) 添加masterGainNode作为全局音量控制；(3) M键切换静音。",
-          "type": "code",
-          "priority": 247,
-          "status": "pending",
-          "dependsOn": [
-            "US-583",
-            "US-664",
-            "US-705",
-            "US-715"
-          ],
-          "acceptanceCriteria": [
-            "每个音效节点在播放结束后disconnect",
-            "masterGainNode控制全局音量",
-            "M键切换静音/非静音",
-            "静音状态HUD显示",
-            "100次音效播放后AudioContext节点数不增长",
             "tsc + build通过"
           ]
         },
