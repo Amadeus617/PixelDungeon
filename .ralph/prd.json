@@ -1891,7 +1891,7 @@
           "description": "合并自: US-071, US-126, US-132, US-182, US-213, US-241, US-398, US-471",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
