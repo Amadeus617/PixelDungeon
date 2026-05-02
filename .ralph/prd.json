@@ -1729,7 +1729,7 @@
           "description": "掉落药水(heal=2)与地图药水(heal=3)使用相同 sprite，无视觉区分误导玩家。\\n\\n合并自: US-220, US-355, US-421, US-476",
           "type": "code",
           "priority": 91,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "掉落药水不同颜色/大小",

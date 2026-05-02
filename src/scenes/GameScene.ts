@@ -1035,7 +1035,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Spawn a dropped small health potion with popup arc animation */
   private spawnDropPotion(targetX: number, targetY: number, originX: number, originY: number): void {
-    const potion = new HealthPotion(this, originX, originY);
+    const potion = new HealthPotion(this, originX, originY, true); // isSmall=true for dropped potion (US-592)
     potion.setAlpha(0); // Start invisible
     this.healthPotions.push(potion);
 
