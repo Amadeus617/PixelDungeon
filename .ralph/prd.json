@@ -1716,7 +1716,7 @@
           "description": "Skeleton die() 未清理 takeDamage 中的 _clearTintTimer delayedCall，destroyed sprite 的回调可能崩溃。Slime 已修复。\\n\\n合并自: US-145, US-214, US-396, US-407",
           "type": "code",
           "priority": 90,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "die() 中清理 _clearTintTimer",
