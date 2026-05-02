@@ -1809,7 +1809,7 @@
           "description": "checkRoomClear 每帧调用 getDungeonData 和全量敌人遍历。roomClearedThisFrame 和 lastCheckedRoomIndex 声明但从未使用（死代码）。\\n\\n合并自: US-258, US-259, US-271, US-272",
           "type": "code",
           "priority": 97,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "事件驱动替代轮询",

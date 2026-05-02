@@ -166,8 +166,6 @@ export class GameScene extends Phaser.Scene {
 
   // Room clear tracking (US-040)
   private clearedRooms: Set<number> = new Set();
-  private roomClearedThisFrame = false;
-  private lastCheckedRoomIndex = -1;
 
   // Chest hint (US-051)
   private chestHintText: Phaser.GameObjects.Text | null = null;
@@ -974,6 +972,9 @@ export class GameScene extends Phaser.Scene {
       const targetY = y + Math.sin(offsetAngle) * offsetDist;
       this.spawnDropPotion(targetX, targetY, x, y);
     }
+
+    // Event-driven room clear check (US-598)
+    this.checkRoomClear();
   }
 
   /** Spawn a brief particle burst at enemy death position */
@@ -1245,37 +1246,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Check if the current room's enemies are all defeated (US-040) */
+  /** Check if the current room is cleared (event-driven: call on enemy death, not every frame) (US-598). */
   private checkRoomClear(): void {
     if (this.gameOver) return;
 
     const currentRoom = this.roomCameraSystem.getCurrentRoomIndex();
     if (currentRoom < 0) return; // In corridor
     if (this.clearedRooms.has(currentRoom)) return; // Already cleared
+    if (currentRoom === 0) {
+      // Entrance room has no enemies, auto-clear
+      this.clearedRooms.add(currentRoom);
+      return;
+    }
 
-    // Determine which enemies belong to this room
-    const dungeonData = this.dungeonMap.getDungeonData();
-    if (currentRoom >= dungeonData.rooms.length) return;
-    const room = dungeonData.rooms[currentRoom];
-    const px = this.dungeonMap.TILE_SIZE * 3; // tileScale = 3
-    const roomMinX = room.col * px;
-    const roomMaxX = (room.col + room.width) * px;
-    const roomMinY = room.row * px;
-    const roomMaxY = (room.row + room.height) * px;
+    // Use cached roomEnemyMap for enemy lookup instead of position scan
+    const roomEnemies = this.roomEnemyMap.get(currentRoom);
+    if (!roomEnemies) return; // No enemies tracked for this room
 
     // Check if any enemy is still alive in this room
-    const allEnemies = [...this.slimes, ...this.skeletons];
-    const hasAliveEnemyInRoom = allEnemies.some((e) => {
-      return e.active && e.x >= roomMinX && e.x <= roomMaxX && e.y >= roomMinY && e.y <= roomMaxY;
-    });
+    const hasAliveEnemy = [...roomEnemies.slimes, ...roomEnemies.skeletons].some((e) => e.active);
 
-    if (!hasAliveEnemyInRoom) {
-      // Check that this room actually had enemies to begin with (skip entrance)
-      if (currentRoom === 0) {
-        // Entrance room has no enemies, auto-clear
-        this.clearedRooms.add(currentRoom);
-        return;
-      }
-
+    if (!hasAliveEnemy) {
       this.clearedRooms.add(currentRoom);
       this.scoreSystem.addRoomClearPoints();
       this.showRoomClearText();
@@ -1657,9 +1648,6 @@ export class GameScene extends Phaser.Scene {
     for (const trap of this.spikeTraps) {
       trap.update(delta);
     }
-
-    // Check room clear reward (US-040)
-    this.checkRoomClear();
 
     // Stairs proximity hint — remind player to open chest first (US-387)
     this.updateStairsProximityHint();
