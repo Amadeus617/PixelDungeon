@@ -663,72 +663,47 @@ export class GameScene extends Phaser.Scene {
     this.soundManager.playAttack();
 
     const damage = this.player.attackPower;
-    // Buff stays active for the full duration (timed, not one-shot)
 
     // Track if any enemy was hit (US-120: shake + particles only on hit)
     let didHit = false;
 
-    // Filter out dead slimes
-    this.slimes = this.slimes.filter((s) => s.active);
-
-    for (const slime of this.slimes) {
-      if (!slime.active) continue;
-      if (this.player.isEnemyInAttackRange(slime.x, slime.y)) {
-        // Calculate knockback direction (away from player)
-        const dx = slime.x - this.player.x;
-        const dy = slime.y - this.player.y;
-        const wasDead = slime.isDead;
-        slime.takeDamage(damage, dx, dy);
-        didHit = true;
-        this.spawnHitParticles(slime.x, slime.y);
-        // Award score only on the kill blow
-        if (!wasDead && slime.isDead) {
-          this.killCount++;
-          this.scoreSystem.addEnemyPoints();
-          this.soundManager.playEnemyDeath();
+    // Helper: process attack against an enemy array (in-place, no array allocation)
+    const processAttack = (enemies: { active: boolean; x: number; y: number; isDead: boolean;
+      takeDamage: (dmg: number, dx: number, dy: number) => void; }[],
+    group: Phaser.Physics.Arcade.Group) => {
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        if (!e.active) {
+          // Already dead — compact array by swapping with last element
+          group.remove(e as any, true, true);
+          enemies[i] = enemies[enemies.length - 1];
+          enemies.pop();
+          continue;
+        }
+        if (this.player.isEnemyInAttackRange(e.x, e.y)) {
+          const dx = e.x - this.player.x;
+          const dy = e.y - this.player.y;
+          const wasDead = e.isDead;
+          e.takeDamage(damage, dx, dy);
+          didHit = true;
+          this.spawnHitParticles(e.x, e.y);
+          if (!wasDead && e.isDead) {
+            this.killCount++;
+            this.scoreSystem.addEnemyPoints();
+            this.soundManager.playEnemyDeath();
+          }
         }
       }
-    }
+    };
 
-    // Clean up dead slimes from the group
-    const deadSlimes = this.slimes.filter((s) => !s.active);
-    for (const ds of deadSlimes) {
-      this.slimeGroup.remove(ds, true, true);
-    }
-    this.slimes = this.slimes.filter((s) => s.active);
-
-    // --- Attack skeletons ---
-    this.skeletons = this.skeletons.filter((s) => s.active);
-
-    for (const skeleton of this.skeletons) {
-      if (!skeleton.active) continue;
-      if (this.player.isEnemyInAttackRange(skeleton.x, skeleton.y)) {
-        // Calculate knockback direction (away from player)
-        const dx = skeleton.x - this.player.x;
-        const dy = skeleton.y - this.player.y;
-        const wasDead = skeleton.isDead;
-        skeleton.takeDamage(damage, dx, dy);
-        didHit = true;
-        this.spawnHitParticles(skeleton.x, skeleton.y);
-        if (!wasDead && skeleton.isDead) {
-          this.killCount++;
-          this.scoreSystem.addEnemyPoints();
-          this.soundManager.playEnemyDeath();
-        }
-      }
-    }
+    processAttack(this.slimes as any, this.slimeGroup);
+    processAttack(this.skeletons as any, this.skeletonGroup);
 
     // US-120: single shake on any hit (no stacking)
     if (didHit) {
       this.cameras.main.shake(50, 0.003);
       this.hitstopTimer = 30; // US-359: 30ms hitstop on hit
     }
-
-    const deadSkeletons = this.skeletons.filter((s) => !s.active);
-    for (const ds of deadSkeletons) {
-      this.skeletonGroup.remove(ds, true, true);
-    }
-    this.skeletons = this.skeletons.filter((s) => s.active);
   }
 
   /** Try to open a nearby chest if the player has a key. */

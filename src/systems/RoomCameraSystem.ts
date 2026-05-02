@@ -34,8 +34,8 @@ export class RoomCameraSystem {
   private inCorridor = false;
   /** Tracked set of visited room indices */
   private visitedRooms: Set<number> = new Set();
-  /** Room change event callback */
-  private onRoomChangedCallback?: RoomChangedCallback;
+  /** Room change event callbacks (observer pattern — supports multiple listeners) */
+  private onRoomChangedCallbacks: RoomChangedCallback[] = [];
 
   constructor(
     scene: Phaser.Scene,
@@ -69,14 +69,20 @@ export class RoomCameraSystem {
     return this.transitioning;
   }
 
-  /** Set a callback for room change events */
+  /** Add a callback for room change events. Supports multiple listeners. */
   setOnRoomChanged(cb: RoomChangedCallback): void {
-    this.onRoomChangedCallback = cb;
+    this.onRoomChangedCallbacks.push(cb);
+  }
+
+  /** Remove a specific room change callback */
+  removeOnRoomChanged(cb: RoomChangedCallback): void {
+    const idx = this.onRoomChangedCallbacks.indexOf(cb);
+    if (idx >= 0) this.onRoomChangedCallbacks.splice(idx, 1);
   }
 
   /** Clean up references and listeners (US-594). Call in GameScene shutdown(). */
   destroy(): void {
-    this.onRoomChangedCallback = undefined;
+    this.onRoomChangedCallbacks.length = 0;
     this.visitedRooms.clear();
     // Remove any pending camera fade listeners
     const cam = this.scene.cameras?.main;
@@ -245,9 +251,9 @@ export class RoomCameraSystem {
         this.currentRoomIndex = newRoomIndex;
         this.setCameraToRoom(newRoomIndex, cam);
 
-        // Fire room-changed callback
-        if (this.onRoomChangedCallback) {
-          this.onRoomChangedCallback(
+        // Fire all room-changed callbacks
+        for (const cb of this.onRoomChangedCallbacks) {
+          cb(
             newRoomIndex,
             this.dungeonData.rooms[newRoomIndex],
             this.previousRoomIndex

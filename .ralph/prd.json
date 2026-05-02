@@ -3967,6 +3967,71 @@
             "如果文本超出画布宽度则缩小字号或换行",
             "tsc + build 通过"
           ]
+        },
+        {
+          "id": "US-792",
+          "title": "HUD setOnRoomChanged 覆盖 GameScene 回调 — tryRespawnClearedRooms 永不执行",
+          "description": "RoomCameraSystem.setOnRoomChanged 只支持单一回调。GameScene:538 注册 tryRespawnClearedRooms，但 HUD:410 随后覆盖为 showRoomName，导致房间重生机制完全失效。修复方案：RoomCameraSystem 改为支持多回调（事件发射器模式），或 GameScene 在 HUD 构建后重新注册、HUD 改为监听独立事件。",
+          "type": "bug",
+          "priority": 1,
+          "status": "done",
+          "dependsOn": [
+            "US-640",
+            "US-692"
+          ],
+          "acceptanceCriteria": [
+            "tryRespawnClearedRooms 在房间切换时正常执行",
+            "HUD roomName 和 GameScene respawn 都响应房间切换",
+            "RoomCameraSystem 支持多个 onRoomChanged 回调",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-793",
+          "title": "暂停期间敌人 update() 仍执行 — physics.pause 不阻止手动 setVelocity",
+          "description": "togglePause 调用 this.physics.pause() 冻结物理引擎，但 update() 循环在 isPaused return 前仍执行 slime.update(delta) 和 skeleton.update(delta)。敌人内部有 dirTimer 累积和 setVelocity 调用，暂停解除后敌人行为突变。修复：在 enemy.update 入口检查 scene.physics.world.isPaused，或 delta 传入 0。",
+          "type": "bug",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停期间敌人 timer/velocity 完全冻结",
+            "恢复后敌人从暂停位置继续正常行为",
+            "暂停/恢复不影响物理碰撞体位置",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-794",
+          "title": "playVictoryCelebration 30个粒子 tween 未追踪 — shutdown 残留",
+          "description": "playVictoryCelebration 创建30个 circle + tween (onComplete destroy)，但若 scene shutdown 在 onComplete 之前触发（如快速重启），这些对象残留。虽然 tweens.killAll() 在 shutdown 中调用会清理 tween，但 circle 对象需要显式 destroy 或检查 active 状态。应将所有粒子引用存入数组，shutdown 时统一清理。",
+          "type": "code",
+          "priority": 5,
+          "status": "pending",
+          "dependsOn": [
+            "US-706"
+          ],
+          "acceptanceCriteria": [
+            "胜利粒子对象追踪到数组中",
+            "shutdown 时清理所有残留粒子",
+            "正常流程 onComplete 仍能正确 destroy",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-795",
+          "title": "handlePlayerAttack 每次攻击重建 slimes/skeletons 数组 — filter + reassign 性能浪费",
+          "description": "handlePlayerAttack 每次调用都 filter + reassign this.slimes 和 this.skeletons，即使没有死亡敌人也创建新数组。攻击频率约 400ms/次，5个房间×10+敌人，造成不必要的 GC 压力。建议：只在确实有死亡敌人时才 filter，或改用 in-place splice。",
+          "type": "code",
+          "priority": 7,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "无死亡敌人时不创建新数组",
+            "有死亡敌人时仍正确清理",
+            "攻击命中逻辑行为不变",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"

@@ -3266,16 +3266,7 @@
     }
   ],
   "improvements": {
-    "nextPriority": [
-      "US-775: Player 死亡动画与无敌帧闪烁冲突修复",
-      "US-776: BootScene loaderror 回调泄漏修复",
-      "US-777: GameScene shutdown enemyContactCooldowns 清理",
-      "US-778: Slime playerRef 空引用 guard",
-      "US-779: 低血量警告增强",
-      "US-780: 房间清除音效",
-      "US-781: HUD 布局压缩",
-      "US-782: TitleScene 控件提示补全 Dash"
-    ],
+    "nextPriority": "US-792 (critical) → US-793 (high) → existing medium US",
     "designNotes": [
       "AttackBoost 是一次性消耗品，考虑改为持续 10 秒的 buff 以增加策略性",
       "当前无死亡动画，玩家直接冻结，需添加死亡播放/渐隐效果",
@@ -3363,6 +3354,24 @@
           "US-783",
           "US-777"
         ]
+      },
+      {
+        "round": 60,
+        "date": "2026-05-03 02:22",
+        "title": "第60轮设计审查：发现房间重生回调覆盖 critical bug + 暂停敌人行为异常",
+        "newUS": [
+          "US-792",
+          "US-793",
+          "US-794",
+          "US-795"
+        ],
+        "findings": [
+          "CRITICAL: RoomCameraSystem.setOnRoomChanged 单回调设计导致 HUD 覆盖 GameScene 的 tryRespawnClearedRooms",
+          "HIGH: physics.pause() 不阻止 enemy.update() 中手动 setVelocity",
+          "LOW: playVictoryCelebration 粒子对象未追踪",
+          "LOW: handlePlayerAttack 无死亡时也重建数组"
+        ],
+        "recommendation": "优先修复 US-792（回调覆盖）和 US-793（暂停行为），建议 RoomCameraSystem 改为事件发射器模式"
       }
     ]
   },
@@ -4063,7 +4072,7 @@
         "攻击冷却指示器未实现"
       ]
     },
-    "overall": "代码质量显著提升。8个历史critical issue全部已修复。剩余问题以UX打磨和防御性编程为主，无阻塞级缺陷。",
+    "overall": "发现1个 critical 级别回归：HUD setOnRoomChanged 覆盖导致房间重生机制完全失效（US-792）。另有1个 high 级暂停 bug（US-793）。加上已有的9个 open issues，建议优先修复 US-792 和 US-793。其余为 UX 打磨和防御性编程。",
     "openIssues": [
       {
         "area": "HUD 信息密度过高",
@@ -4118,12 +4127,36 @@
         "severity": "medium",
         "us": "US-778",
         "detail": "playVictoryCelebration zoom=1.5未在shutdown重置"
+      },
+      {
+        "area": "HUD setOnRoomChanged 覆盖 respawn 回调",
+        "severity": "critical",
+        "us": "US-792",
+        "detail": "HUD:410 覆盖 GameScene:538 回调，tryRespawnClearedRooms 永不执行，房间重生完全失效"
+      },
+      {
+        "area": "暂停期间敌人 update 继续运行",
+        "severity": "high",
+        "us": "US-793",
+        "detail": "physics.pause 不阻止 enemy.update(delta) 中 dirTimer 累积和 setVelocity 调用"
+      },
+      {
+        "area": "胜利庆祝粒子未追踪",
+        "severity": "low",
+        "us": "US-794",
+        "detail": "playVictoryCelebration 30个 circle 对象 shutdown 时可能残留"
+      },
+      {
+        "area": "handlePlayerAttack 无谓 filter 重建",
+        "severity": "low",
+        "us": "US-795",
+        "detail": "每次攻击都 filter + reassign 数组，无死亡时造成不必要 GC"
       }
     ],
-    "lastReview": "2026-05-03 00:27",
-    "pendingUS": 72,
-    "totalUS": 255,
-    "completionRate": "71.8%"
+    "lastReview": "2026-05-03 02:22",
+    "pendingUS": 75,
+    "totalUS": 259,
+    "completionRate": 71.0
   },
   "knownIssues": {
     "performance": {
