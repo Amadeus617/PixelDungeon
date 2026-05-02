@@ -132,10 +132,14 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     if (this.hpBar) this.hpBar.destroy();
     this.setVelocity(0, 0);
 
+    // Cache position before destroy (US-633)
+    const cx = this.x;
+    const cy = this.y;
+
     // Emit death event for loot drops before destroying
     this.scene.events.emit("enemy-death", {
-      x: this.x,
-      y: this.y,
+      x: cx,
+      y: cy,
       type: "slime",
     });
 

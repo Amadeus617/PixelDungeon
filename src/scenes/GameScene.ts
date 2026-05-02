@@ -1806,7 +1806,7 @@ export class GameScene extends Phaser.Scene {
     this.updateStairsProximityHint();
 
     // Check win condition: player reaches the stairs (requires chest opened)
-    if (this.checkWinCondition()) {
+    if (this.player.alive && this.checkWinCondition()) {
       this.endGame("win");
     }
   }

@@ -2357,7 +2357,7 @@
           "description": "GameScene 没有 shutdown() 方法。create() 中注册了 events.on(\"player-attack\"), events.on(\"enemy-death\") 和 16+ physics.add.overlap 回调，场景重启后全部泄漏。需要实现 shutdown() 依次: (1) this.events.off 所有自定义事件 (2) this.tweens.killAll() (3) 清理 HUD/Minimap/RoomCameraSystem 引用。实测: 快速重启5次后 overlap 回调叠加导致 N×伤害。",
           "type": "code",
           "priority": 139,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "GameScene.shutdown() 存在并清理所有 events.on 监听器",
@@ -2372,7 +2372,7 @@
           "description": "ResultScene.create() 用 this.events.on(\"update\", ...) 注册键盘监听，但从不 off。每次重新显示 ResultScene 就叠加一个 listener，导致 Space/Enter 触发多次 scene.start(\"GameScene\")。需改为 this.input.keyboard.on(\"keydown-SPACE\", ...) 或在 shutdown 中 off。",
           "type": "code",
           "priority": 140,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "ResultScene 不使用 events.on(\"update\") 监听键盘",
@@ -2417,7 +2417,7 @@
           "description": "GameScene.update() 中 checkLoseCondition() 设置 gameOver=true 并 return，但 player.playDeathAnimation 是异步的。如果在死亡动画播放期间（gameOver=true 但 endGameInternal 尚未调用），checkWinCondition() 不应该被检查。当前代码是安全的（因为 gameOver guard），但 endGameInternal 在死亡回调中绕过了 gameOver。如果未来有人在 gameOver 前移动 checkWinCondition，就会出 bug。建议在 lose 分支 return 后不再检查 win。",
           "type": "code",
           "priority": 144,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "死亡后确保不会误触发胜利",
@@ -2431,7 +2431,7 @@
           "description": "Slime.die() 和 Skeleton.die() 先 emit(\"enemy-death\") 再 destroy()。但 enemy-death 回调 (handleEnemyDeathDrop) 会读取 this.x, this.y 并 spawn 新对象。如果 enemy-death handler 中有异步操作引用已 destroy 的 sprite，可能出问题。当前同步调用是安全的，但建议在 die() 中先保存 x,y 到局部变量，再传给 emit。",
           "type": "code",
           "priority": 145,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "die() 方法在 emit 前 x,y 已缓存为局部变量",
@@ -2481,7 +2481,7 @@
           "description": "当前游戏重启路径不一致: 首次运行 TitleScene → BootScene → GameScene，但 ResultScene 重启直接 GameScene。虽然 BootScene 的 anims 已注册（Phaser 全局持久），且 ResultScene 流程闭环已由 US-563 追踪，但更深层问题是: (1) ResultScene 直接重启 GameScene 导致 runCount 不递增（因为 runCount 在 TitleScene.startGame() 中递增）; (2) 跳过 TitleScene 意味着无法选择 seed/难度; (3) 从未经过 BootScene 意味着如果未来 BootScene preload 新增必要资源，重启后会缺失。应统一为 ResultScene → TitleScene 路径。",
           "type": "code",
           "priority": 148,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-563",
             "US-621"
@@ -2531,7 +2531,7 @@
           "description": "ResultScene.create() 第270行创建了一个完整的 ScoreSystem 实例（包含 score state、breakdown tracking 等），但仅用于调用 getHighScore() 和间接的 localStorage 读写。GameScene 已经传递了 score 数据。\n\n问题：(1) ResultScene 中的 ScoreSystem 是无状态的空实例，不应该承载 high score 读写职责；(2) 该实例的 saveHighScore 从未调用但 getHighScore 被调用；(3) localStorage 高分写入直接内联在 ResultScene 中而非通过 ScoreSystem。\n\n修复方案：(1) 将 high score 读写提取为独立的 utility 函数；(2) 或通过 scene data 传递 prevHigh 值避免重新实例化。",
           "type": "code",
           "priority": 151,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "ResultScene 不再 new ScoreSystem()",
@@ -2610,7 +2610,7 @@
           "description": "SoundManager所有play方法(playAttack/playEnemyDeath/playPickup/playHurt/playChestOpen)创建OscillatorNode/BufferSource/Filter/GainNode，连接到destination后播放。当前代码未在stop后disconnect节点，长时间运行(>30min)会积累大量未回收的AudioNode。虽然浏览器GC会回收已stop的节点，但主动disconnect可降低内存峰值。应在每个play方法中添加onended回调执行disconnect链。",
           "type": "code",
           "priority": 436,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "每个play方法创建的节点在stop后执行disconnect()",
@@ -2639,7 +2639,7 @@
           "description": "BootScene的preload()如果引用了不存在的纹理或加载失败，Phaser会抛出未捕获异常导致游戏白屏。当前无load.on(\"loaderror\")处理。虽然当前使用程序化纹理生成不依赖外部文件，但未来添加资源加载时缺少健壮性保护。应添加loaderror监听和fallback纹理机制。",
           "type": "code",
           "priority": 439,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "load.on(\"loaderror\")有fallback处理",
