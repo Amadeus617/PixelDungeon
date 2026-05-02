@@ -1498,7 +1498,7 @@
           "description": "US-053 通关时间奖励从未完整实现。addTimeBonus 方法需验证数据完整性。\\n\\n合并自: US-286, US-324, US-460",
           "type": "code",
           "priority": 79,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "addTimeBonus 按阈值返回正确奖励",
