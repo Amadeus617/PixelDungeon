@@ -1917,7 +1917,7 @@
           "description": "合并自: US-070, US-076, US-109, US-183, US-364, US-459, US-419",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
