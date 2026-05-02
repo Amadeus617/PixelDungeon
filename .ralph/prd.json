@@ -1769,7 +1769,7 @@
           "description": "playDeathAnimation 与无敌帧闪烁 alpha 冲突，角色可能停在半透明状态。应在 playDeathAnimation 前重置 alpha。\\n\\n合并自: US-105, US-150, US-173, US-206",
           "type": "code",
           "priority": 94,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "死亡前 alpha 重置为 1",
