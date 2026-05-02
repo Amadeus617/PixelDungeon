@@ -1,6 +1,10 @@
 /**
  * SoundManager — Procedural sound effects using Phaser's Web Audio API.
  * No external audio files required. All sounds are synthesized at runtime.
+ *
+ * AudioNode resource cleanup (US-583):
+ * Every oscillator / buffer-source is disconnected after it stops,
+ * preventing long-running performance degradation.
  */
 export class SoundManager {
   private scene: Phaser.Scene;
@@ -19,6 +23,31 @@ export class SoundManager {
       this.ctx = manager.context;
     }
     return this.ctx;
+  }
+
+  /**
+   * Schedule automatic disconnect of all nodes after the source stops.
+   * Nodes are disconnected in reverse order (gain → filter → source).
+   */
+  private autoDisconnect(
+    source: AudioScheduledSourceNode,
+    nodes: AudioNode[],
+    stopTime: number
+  ): void {
+    source.onended = () => {
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        try {
+          nodes[i].disconnect();
+        } catch {
+          // Node may already be disconnected
+        }
+      }
+      try {
+        source.disconnect();
+      } catch {
+        // Already disconnected
+      }
+    };
   }
 
   // ─── Public API ──────────────────────────────────────────────────
@@ -53,6 +82,7 @@ export class SoundManager {
     noise.connect(hp).connect(gain).connect(ctx.destination);
     noise.start(now);
     noise.stop(now + duration);
+    this.autoDisconnect(noise, [hp, gain], now + duration);
   }
 
   /** Play a short "pop" sound for enemy death. */
@@ -73,6 +103,7 @@ export class SoundManager {
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.2);
+    this.autoDisconnect(osc, [gain], now + 0.2);
   }
 
   /** Play a bright ascending arpeggio for item pickup. */
@@ -95,6 +126,7 @@ export class SoundManager {
       osc.connect(gain).connect(ctx.destination);
       osc.start(now + i * 0.06);
       osc.stop(now + i * 0.06 + 0.12);
+      this.autoDisconnect(osc, [gain], now + i * 0.06 + 0.12);
     });
   }
 
@@ -116,6 +148,7 @@ export class SoundManager {
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.25);
+    this.autoDisconnect(osc, [gain], now + 0.25);
   }
 
   /** Play a "click + rising" sound for opening a chest. */
@@ -137,6 +170,7 @@ export class SoundManager {
     click.connect(clickGain).connect(ctx.destination);
     click.start(now);
     click.stop(now + 0.08);
+    this.autoDisconnect(click, [clickGain], now + 0.08);
 
     // Rising arpeggio component
     const riseNotes = [392, 523.25, 659.25, 783.99]; // G4, C5, E5, G5
@@ -153,6 +187,7 @@ export class SoundManager {
       osc.connect(g).connect(ctx.destination);
       osc.start(now + 0.06 + i * 0.07);
       osc.stop(now + 0.06 + i * 0.07 + 0.18);
+      this.autoDisconnect(osc, [g], now + 0.06 + i * 0.07 + 0.18);
     });
   }
 }

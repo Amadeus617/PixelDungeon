@@ -1540,7 +1540,7 @@
           "description": "每次播放创建新 AudioNode 但不 disconnect，长时间运行性能下降。\\n\\n合并自: US-114, US-292, US-321",
           "type": "code",
           "priority": 82,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "AudioNode stop 后 disconnect",
