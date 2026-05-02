@@ -173,7 +173,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const ndy = dy / dist;
       const dot = ndx * zone.dx + ndy * zone.dy;
       // cos(60°) = 0.5 — allow a 120° cone in front
-      if (dot < 0.25) return false;
+      if (dot < 0.5) return false;
     }
 
     return true;

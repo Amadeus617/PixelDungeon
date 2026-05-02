@@ -1553,7 +1553,7 @@
           "description": "攻击 dot threshold 0.25(约151度) 与注释 0.5(120度) 不一致。应统一为 0.5 收窄攻击范围增加方向选择策略性。\\n\\n合并自: US-069, US-459",
           "type": "code",
           "priority": 83,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "dot threshold 统一为 0.5",
