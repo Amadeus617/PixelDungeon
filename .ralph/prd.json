@@ -1930,7 +1930,7 @@
           "description": "合并自: US-063, US-064, US-049, US-101, US-190, US-232, US-240, US-242, US-305, US-309, US-325, US-353, US-366, US-455",
           "type": "code",
           "priority": 0,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "tsc + build 通过",
