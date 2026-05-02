@@ -4180,6 +4180,22 @@
         "coinMagnet",
         "slimeProximityChase"
       ]
+    },
+    "round75_status": {
+      "coreLoopComplete": true,
+      "hitstopImplemented": true,
+      "comboImplemented": true,
+      "minimapComplete": true,
+      "collectibleDRY": true,
+      "difficultyScalingComplete": true,
+      "remainingGaps": [
+        "Slime 无追踪 AI（近身时随机漫游）",
+        "攻击无命中上限（策略深度不足）",
+        "Combo 暂停不冻结（暂停 bug）",
+        "金币磁吸未实现",
+        "Dash 残影未实现",
+        "攻击冷却指示器未实现"
+      ]
     }
   },
   "knownIssues": {
@@ -4518,6 +4534,86 @@
         "US-706 GameScene shutdown cleanup",
         "US-707 Slime death hpBar timing"
       ]
+    },
+    {
+      "round": 75,
+      "date": "2026-05-02",
+      "title": "第75轮设计审查 — Slime追踪AI+攻击命中上限+Combo暂停冻结",
+      "summary": "全面审查25个源文件和218条PRD（168 done / 48 pending）。确认核心游戏循环完整（checkWinCondition含key+chest检查、Chest.open()生成战利品、Space JustDown宝箱交互已修复）。发现3个新改进机会：(1) Slime完全不追踪玩家，即使紧贴也随机漫游——GDD slimeProximityChase已定义但代码从未实现；(2) 攻击扇形检测无单次命中上限，一次挥剑可同时命中全部重叠敌人——降低战斗策略深度；(3) ScoreSystem combo使用setTimeout管理3秒窗口，ESC暂停时combo继续倒计时过期——应改用Phaser TimerEvent。",
+      "newUserStories": [
+        "US-751",
+        "US-752",
+        "US-753",
+        "US-754"
+      ],
+      "changes": [
+        {
+          "area": "entities/Slime",
+          "change": "US-751: Slime 近身追踪 AI — 100px 内追踪玩家，速度80%",
+          "priority": "P1"
+        },
+        {
+          "area": "combat",
+          "change": "US-752: 攻击命中上限 maxHit=2 — 增强战术选择",
+          "priority": "P2"
+        },
+        {
+          "area": "systems/ScoreSystem",
+          "change": "US-753: combo setTimeout→Phaser TimerEvent — 暂停冻结",
+          "priority": "P1"
+        },
+        {
+          "area": "meta",
+          "change": "US-754: config scene 顺序确认 — TitleScene 在前是有意设计",
+          "priority": "done"
+        }
+      ],
+      "confirmedDone": [
+        "US-387/564: checkWinCondition 含 key + chest opened 检查",
+        "US-565: Chest.open() 生成战利品（50% coin / 30% potion / 20% attackBoost）",
+        "US-560: Player.takeDamage() 返回 boolean",
+        "US-562: GameScene shutdown() 统一资源清理",
+        "US-563: ResultScene keyboard events + TitleScene restart",
+        "US-567: endGame/endGameInternal 合并",
+        "US-566: Slime/Skeleton onHitWall knockback guard",
+        "US-568: gameOver 后敌人/陷阱冻结",
+        "US-577/711: Minimap 楼梯出口金色标记",
+        "US-716: Minimap AttackBoost + SpikeTrap 显示",
+        "US-359: Hitstop 30ms 命中冻结已实现",
+        "US-581: Combo 连击计分已实现",
+        "US-586: 玩家攻击力跨局成长",
+        "US-700: Collectible 基类抽取 DRY 重构",
+        "US-643: 中期难度曲线修复",
+        "US-693: HUD dirty flag 缓存优化",
+        "US-602: 场景生命周期完整修复",
+        "US-701: config scene 顺序无需修改"
+      ],
+      "stillPending": [
+        "US-751: Slime 近身追踪 AI",
+        "US-752: 攻击命中上限",
+        "US-753: Combo 暂停冻结",
+        "US-616: 新功能愿景（Boss/多层/成就/难度选择/战争迷雾/蝙蝠）",
+        "US-698: 地牢连通性 BFS 验证",
+        "US-733: 金币磁吸效果",
+        "US-687: Dash 冲刺残影",
+        "US-688: 攻击冷却进度条",
+        "US-450: 暂停菜单完善",
+        "US-344: 房间过渡动画优化",
+        "US-354: Seed 可复现地牢"
+      ],
+      "healthMetrics": {
+        "totalUS": 218,
+        "done": 170,
+        "pending": 48,
+        "completionRate": "78.0%",
+        "pendingP0": 3,
+        "pendingP1": 8,
+        "pendingP2": 15,
+        "pendingP3": 10,
+        "pendingMeta": 2,
+        "pendingVision": 10
+      },
+      "priority": "US-751 (Slime追踪) 和 US-753 (Combo暂停) 是最高优先级 — 前者影响核心战斗体验，后者是暂停功能的bug。"
     }
   ],
   "gameSystems": {

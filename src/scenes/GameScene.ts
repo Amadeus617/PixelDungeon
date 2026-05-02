@@ -278,6 +278,7 @@ export class GameScene extends Phaser.Scene {
       for (let s = 0; s < config.slimeCount; s++) {
         const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
         const slime = new Slime(this, spos.x, spos.y, this.slimeHpMultiplier, this.slimeSpeedMultiplier);
+        slime.setPlayerRef(this.player);
         this.physics.add.collider(slime, wallLayer, (_slimeObj) => {
           slime.onHitWall();
         });
@@ -1362,6 +1363,7 @@ export class GameScene extends Phaser.Scene {
       for (let s = 0; s < config.slimeCount; s++) {
         const spos = this.dungeonMap.getRandomFloorPosInRoom(room);
         const slime = new Slime(this, spos.x, spos.y, this.slimeHpMultiplier, this.slimeSpeedMultiplier);
+        slime.setPlayerRef(this.player);
         this.physics.add.collider(slime, wallLayer, () => {
           slime.onHitWall();
         });

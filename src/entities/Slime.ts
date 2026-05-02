@@ -10,6 +10,8 @@ const SLIME_MAX_HP = 2;
 const SLIME_MAX_HP_CAP = 4;
 const KNOCKBACK_SPEED = 300;
 const KNOCKBACK_DURATION = 150;
+const NEARBY_TRACK_RANGE = 100; // Start tracking player when this close
+const TRACK_SPEED_RATIO = 0.7; // Track at 70% of normal speed
 
 const DIRECTIONS: Array<{ vx: number; vy: number }> = [
   { vx: 1, vy: 0 },
@@ -32,6 +34,7 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
   private knockbackTimer: number = 0;
   private hpBar!: EnemyHpBar;
   private _clearTintTimer: Phaser.Time.TimerEvent | null = null;
+  private playerRef: Phaser.GameObjects.Sprite | null = null;
 
   get hp(): number {
     return this._hp;
@@ -79,6 +82,11 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
     // Random interval before next direction change
     this.dirInterval = Phaser.Math.Between(DIR_CHANGE_MIN, DIR_CHANGE_MAX);
     this.dirTimer = 0;
+  }
+
+  /** Set a reference to the player for proximity tracking AI. */
+  setPlayerRef(player: Phaser.GameObjects.Sprite): void {
+    this.playerRef = player;
   }
 
   /** Called when slime collides with a wall – bounce into a new direction */
@@ -165,6 +173,22 @@ export class Slime extends Phaser.Physics.Arcade.Sprite {
       }
       if (this.hpBar && this.hpBar.active) this.hpBar.follow(this);
       return;
+    }
+
+    // Proximity tracking AI: chase player when very close (US-746/US-668)
+    if (this.playerRef && this.playerRef.active) {
+      const dx = this.playerRef.x - this.x;
+      const dy = this.playerRef.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= NEARBY_TRACK_RANGE && dist > 0) {
+        const trackSpeed = this._speed * TRACK_SPEED_RATIO;
+        this.setVelocity(
+          (dx / dist) * trackSpeed,
+          (dy / dist) * trackSpeed
+        );
+        if (this.hpBar && this.hpBar.active) this.hpBar.follow(this);
+        return;
+      }
     }
 
     // Keep HP bar positioned above sprite

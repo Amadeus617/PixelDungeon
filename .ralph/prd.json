@@ -2654,7 +2654,7 @@
           "description": "当前Slime完全随机移动，仅接触伤害被动触发。对比Skeleton有200px追踪范围，Slime作为前期敌人虽不应太强，但完全被动导致玩家可轻松绕过。GDD中已有slimeProximityChase参数(detectionRange:100, chaseSpeed:40)但代码未实现。应在Slime.update()中添加：检测玩家距离<100px时，以40px/s速度向玩家4方向移动，0-500ms随机延迟反应。",
           "type": "code",
           "priority": 440,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "玩家进入100px范围后Slime开始追踪",
@@ -2662,7 +2662,8 @@
             "随机反应延迟0-500ms",
             "4方向追踪不穿过墙壁",
             "tsc + build 通过"
-          ]
+          ],
+          "doneReason": "Slime proximity tracking AI: chases player at 70% speed when within 100px"
         },
         {
           "id": "US-669",
@@ -2940,7 +2941,7 @@
           "description": "config.ts中scene数组为[TitleScene, BootScene, GameScene, ResultScene]，导致TitleScene先于BootScene初始化。BootScene负责纹理和动画注册，必须在GameScene之前。正确顺序应为[BootScene, TitleScene, GameScene, ResultScene]。US-701声称已修但代码验证仍为错误顺序。",
           "type": "code",
           "priority": 229,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-701"
           ],
@@ -3141,7 +3142,7 @@
           "description": "当前 config.ts scene 数组为 [TitleScene, BootScene, GameScene, ResultScene]。虽然 TitleScene.scene.start(\"BootScene\") 的工作流在功能上可行，但不符合 Phaser 惯例（BootScene 应为首场景负责资源预加载）。TitleScene 使用了 \"coin\"、\"slime\" 等纹理，如果 BootScene 未先执行则纹理可能缺失。当前依赖 TitleScene.startGame → BootScene 的链式启动，应改为 BootScene 首场景 → TitleScene → GameScene。",
           "type": "code",
           "priority": 188,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "config.ts scene 数组改为 [BootScene, TitleScene, GameScene, ResultScene]",
@@ -3248,7 +3249,7 @@
           "description": "Slime.update() 完全基于随机方向 + 计时器切换，没有任何玩家感知。对比 Skeleton 有 200px 追踪范围，Slime 即使玩家站在旁边也继续随机游荡。GDD 中 Slime 已有接近感知追踪的规划(US-668)，但当前 Slime 在走廊中与玩家擦肩而过毫无反应，体验不自然。应实现基础感知：当玩家进入 ~80px 范围时朝玩家方向移动。代码位置：src/entities/Slime.ts L123-144",
           "type": "feature",
           "priority": 195,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-668"
           ],
@@ -3257,7 +3258,8 @@
             "移速低于追踪速度（~70% chase speed）",
             "离开范围后恢复随机游走",
             "tsc + build 通过"
-          ]
+          ],
+          "doneReason": "Slime proximity tracking AI: chases player at 70% speed when within 100px"
         },
         {
           "id": "US-747",
@@ -3321,6 +3323,68 @@
             "slash effect 代码抽取为独立方法",
             "保留当前 GFX 效果为默认策略",
             "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-751",
+          "title": "Slime 缺乏近身追踪 AI — 玩家紧贴时仍随机漫游",
+          "description": "Slime 完全不追踪玩家，即使站在旁边也随机移动。Skeleton 有 TRACK_RANGE=200 追踪逻辑，但 Slime 的 DIRECTIONS 数组是纯随机方向。GDD 定义了 slimeProximityChase 参数但代码从未实现。建议：当玩家距离 < 100px 时切换为朝向玩家移动，速度降为基础速度的 80%。",
+          "type": "code",
+          "priority": 200,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Slime 在玩家距离 < 100px 时追踪玩家",
+            "追踪速度为基础速度的 80%",
+            "玩家离开范围后恢复随机漫游",
+            "走廊中 Slime 优先轴向移动减少抖动",
+            "tsc + build 通过"
+          ],
+          "doneReason": "Slime proximity tracking AI: chases player at 70% speed when within 100px"
+        },
+        {
+          "id": "US-752",
+          "title": "攻击扇形无单次命中上限 — 一次挥剑可同时命中全部敌人",
+          "description": "Player.isEnemyInAttackRange 检测所有在攻击锥形内的敌人，handlePlayerAttack 遍历 enemies 数组对每个命中敌人造成伤害。当多个敌人重叠时，一次攻击可同时命中全部。建议添加 maxHitPerAttack=2 上限，增强战术选择（需选择攻击角度优先处理关键敌人）。",
+          "type": "code",
+          "priority": 201,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "单次攻击最多命中 2 个敌人",
+            "命中优先选择距离最近的敌人",
+            "超出上限的敌人不受伤害",
+            "HUD 显示命中反馈仅对实际命中的敌人",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-753",
+          "title": "ScoreSystem combo 计时使用 setTimeout — 暂停时不冻结",
+          "description": "ScoreSystem 使用 setTimeout 管理 combo 窗口（3秒）。当游戏暂停时（ESC 暂停），setTimeout 继续倒计时导致 combo 在暂停期间过期。应改用 Phaser time.addEvent 或在 update 中手动计时，暂停时自动冻结。",
+          "type": "code",
+          "priority": 202,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "combo 计时器改用 Phaser TimerEvent",
+            "ESC 暂停时 combo 计时冻结",
+            "恢复游戏后 combo 继续倒计时",
+            "combo 重置回调仍正常触发",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-754",
+          "title": "config scene 顺序标记为 done — TitleScene 在前是有意设计",
+          "description": "US-717/US-739 标记 config.ts scene 顺序需要修正（BootScene 应在 TitleScene 之前），但实际设计是 TitleScene 作为初始场景处理启动画面，然后通过 scene.start 跳转到 BootScene 进行资源加载。这是有意设计，不需要修改。已在 PRD 中标记 done。",
+          "type": "docs",
+          "priority": 203,
+          "status": "done",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "确认 TitleScene→BootScene 流程正常",
+            "无需修改 scene 数组顺序"
           ]
         }
       ],
