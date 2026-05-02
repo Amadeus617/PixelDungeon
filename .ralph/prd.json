@@ -1823,7 +1823,7 @@
           "description": "returnWorldHeight() 拼写错误遗留方法 + buildCorridor() 死函数。paintCorridors() direction 字段随机赋值。\\n\\n合并自: US-058, US-087, US-093, US-125, US-294, US-314, US-315, US-146, US-148, US-333",
           "type": "code",
           "priority": 98,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "returnWorldHeight 删除",

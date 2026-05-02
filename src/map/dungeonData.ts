@@ -180,78 +180,6 @@ function tryPlaceRoom(
  * Connect two rooms with an L-shaped corridor.
  * The corridor is CORRIDOR_WIDTH tiles wide.
  */
-function buildCorridor(
-  fromRoom: RoomDef,
-  toRoom: RoomDef,
-  rng: () => number
-): CorridorDef[] {
-  const corridors: CorridorDef[] = [];
-
-  // Pick center points of each room
-  const fromCenterCol = Math.floor(fromRoom.col + fromRoom.width / 2);
-  const fromCenterRow = Math.floor(fromRoom.row + fromRoom.height / 2);
-  const toCenterCol = Math.floor(toRoom.col + toRoom.width / 2);
-  const toCenterRow = Math.floor(toRoom.row + toRoom.height / 2);
-
-  // L-shaped corridor: go horizontal first then vertical (or vice versa)
-  const goHorizontalFirst = rng() > 0.5;
-  const halfW = Math.floor(CORRIDOR_WIDTH / 2);
-
-  if (goHorizontalFirst) {
-    // Horizontal segment from fromCenter to toCenter.col
-    const startCol = Math.min(fromCenterCol, toCenterCol);
-    const endCol = Math.max(fromCenterCol, toCenterCol);
-    for (let c = startCol; c <= endCol; c++) {
-      for (let dr = -halfW; dr <= halfW; dr++) {
-        corridors.push({
-          fromRoom: fromRoom.id,
-          toRoom: toRoom.id,
-          start: { col: startCol, row: fromCenterRow },
-          end: { col: endCol, row: fromCenterRow },
-          direction: "horizontal",
-        });
-        // We'll paint these separately; for now just note the corridor data
-        // We only need one corridor entry for metadata
-        if (c === startCol && dr === -halfW) {
-          // first one
-        }
-      }
-    }
-    // Vertical segment from fromCenterRow to toCenterRow at toCenterCol
-    const startRow = Math.min(fromCenterRow, toCenterRow);
-    const endRow = Math.max(fromCenterRow, toCenterRow);
-    for (let r = startRow; r <= endRow; r++) {
-      for (let dc = -halfW; dc <= halfW; dc++) {
-        // painted below
-      }
-    }
-
-    corridors.push({
-      fromRoom: fromRoom.id,
-      toRoom: toRoom.id,
-      start: { col: startCol, row: fromCenterRow },
-      end: { col: toCenterCol, row: toCenterRow },
-      direction: "horizontal",
-    });
-  } else {
-    const startRow = Math.min(fromCenterRow, toCenterRow);
-    const endRow = Math.max(fromCenterRow, toCenterRow);
-    const startCol = Math.min(fromCenterCol, toCenterCol);
-    const endCol = Math.max(fromCenterCol, toCenterCol);
-
-    corridors.push({
-      fromRoom: fromRoom.id,
-      toRoom: toRoom.id,
-      start: { col: fromCenterCol, row: startRow },
-      end: { col: toCenterCol, row: endRow },
-      direction: "vertical",
-    });
-  }
-
-  return corridors;
-}
-
-/** Paint a room onto the tile grid */
 function paintRoom(tiles: number[][], room: RoomDef, rng: () => number): void {
   for (let r = 0; r < room.height; r++) {
     for (let c = 0; c < room.width; c++) {
@@ -312,12 +240,16 @@ function paintCorridors(
       carveHorizontal(tiles, fromCCol, toCCol, toCRow, halfW, rng);
     }
 
+    // Determine primary direction based on whether horizontal or vertical span is larger
+    const dCol = Math.abs(toCCol - fromCCol);
+    const dRow = Math.abs(toCRow - fromCRow);
+
     corridors.push({
       fromRoom: from.id,
       toRoom: to.id,
       start: { col: fromCCol, row: fromCRow },
       end: { col: toCCol, row: toCRow },
-      direction: rng() > 0.5 ? "horizontal" : "vertical",
+      direction: dCol >= dRow ? "horizontal" : "vertical",
     });
   }
 
