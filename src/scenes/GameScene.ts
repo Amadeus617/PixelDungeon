@@ -643,6 +643,9 @@ export class GameScene extends Phaser.Scene {
     const damage = this.player.attackPower;
     // Buff stays active for the full duration (timed, not one-shot)
 
+    // Track if any enemy was hit (US-120: shake + particles only on hit)
+    let didHit = false;
+
     // Filter out dead slimes
     this.slimes = this.slimes.filter((s) => s.active);
 
@@ -654,6 +657,8 @@ export class GameScene extends Phaser.Scene {
         const dy = slime.y - this.player.y;
         const wasDead = slime.isDead;
         slime.takeDamage(damage, dx, dy);
+        didHit = true;
+        this.spawnHitParticles(slime.x, slime.y);
         // Award score only on the kill blow
         if (!wasDead && slime.isDead) {
           this.killCount++;
@@ -681,12 +686,19 @@ export class GameScene extends Phaser.Scene {
         const dy = skeleton.y - this.player.y;
         const wasDead = skeleton.isDead;
         skeleton.takeDamage(damage, dx, dy);
+        didHit = true;
+        this.spawnHitParticles(skeleton.x, skeleton.y);
         if (!wasDead && skeleton.isDead) {
           this.killCount++;
           this.scoreSystem.addEnemyPoints();
           this.soundManager.playEnemyDeath();
         }
       }
+    }
+
+    // US-120: single shake on any hit (no stacking)
+    if (didHit) {
+      this.cameras.main.shake(50, 0.003);
     }
 
     const deadSkeletons = this.skeletons.filter((s) => !s.active);
@@ -1174,6 +1186,27 @@ export class GameScene extends Phaser.Scene {
         y: y + Math.sin(angle) * dist,
         alpha: 0,
         duration: 300,
+        ease: "Power2",
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
+  /** Spawn hit particles at attack impact point (US-120) */
+  private spawnHitParticles(x: number, y: number): void {
+    const colors = [0xffffff, 0xffff00];
+    for (let i = 0; i < 5; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 8 + Math.random() * 12;
+      const color = colors[i % colors.length];
+      const p = this.add.circle(x, y, 2, color, 0.9);
+      p.setDepth(200);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        duration: 100,
         ease: "Power2",
         onComplete: () => p.destroy(),
       });
