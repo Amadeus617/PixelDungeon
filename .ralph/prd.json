@@ -4299,6 +4299,95 @@
             "走廊击杀给予50%房间清除分数奖励",
             "GDD走廊击杀参数同步"
           ]
+        },
+        {
+          "id": "US-814",
+          "title": "Chest.open() 战利品掉落实现 — 宝箱开启时生成随机奖励 [权威]",
+          "description": "Chest.open() 目前仅切换贴图和播放动画，不生成任何战利品。key→chest 探索循环完成后零奖励，导致 key/chest 系统成为功能死胡同。需要在 open() 时发射 chest-opened 事件，GameScene 监听后生成随机掉落（50% coin, 30% potion, 20% attackBoost）。这与 US-387(checkWinCondition 已要求宝箱开启) 形成完整闭环。",
+          "type": "code",
+          "priority": 263,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Chest.open() 发射 chest-opened 事件含位置信息",
+            "GameScene 监听 chest-opened 生成随机战利品掉落",
+            "掉落概率: 50% Coin(3-5), 30% HealthPotion, 20% AttackBoost",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-815",
+          "title": "CollectibleBase.destroy() 前停止浮动 tween — 防止 orphan callback [权威]",
+          "description": "CollectibleBase.collect() 调用 this.destroy() 但不先停止浮动 tween。两个无限循环 tween(y浮动+角度摆动) 在 destroy 后仍尝试更新已销毁对象，可能导致 Phaser 内部警告或 orphan callback。应在 destroy 前显式 this.scene.tweens.killTweensOf(this)。合并 US-638/US-738。",
+          "type": "code",
+          "priority": 264,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "CollectibleBase.collect() 在 destroy 前调用 scene.tweens.killTweensOf(this)",
+            "不再出现 orphan tween callback 警告",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-816",
+          "title": "ScoreSystem combo 计时改用 Phaser TimerEvent — 暂停时冻结 [权威]",
+          "description": "ScoreSystem combo 窗口使用 setTimeout(_comboTimer) 而非 Phaser TimerEvent。游戏暂停时(physics.pause / scene.pause) setTimeout 仍继续倒计时，导致暂停期间 combo 窗口过期。应改为 this.scene.time.delayedCall 并在 _resetCombo 中清理。合并 US-744/US-771/US-799/US-812。",
+          "type": "code",
+          "priority": 265,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ScoreSystem 使用 Phaser TimerEvent 替代 setTimeout",
+            "暂停游戏时 combo 计时冻结",
+            "场景 shutdown 时 TimerEvent 自动清理",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-817",
+          "title": "走廊击杀掉落和奖励机制 — handleEnemyDeathDrop 扩展走廊判定 [权威]",
+          "description": "handleEnemyDeathDrop 仅对 roomEnemyMap 中的敌人触发掉落，走廊巡逻敌人(Skeleton)被击杀后不掉落任何战利品也不计入击杀分数。随着 US-055 走廊巡逻和 US-555 走廊击杀奖励的引入，走廊战斗已成为游戏体验的一部分但奖励系统未跟进。应扩展掉落判定和分数统计覆盖走廊击杀。合并 US-681/US-787/US-801/US-813。",
+          "type": "code",
+          "priority": 266,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊击杀敌人触发战利品掉落(coin/potion概率)",
+            "走廊击杀计入 ScoreSystem 击杀分数",
+            "走廊击杀触发 combo 连击计数",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-818",
+          "title": "金币磁吸效果实现 — GDD attractRange=30 从未实现 [权威]",
+          "description": "GDD 定义了 coin attractRange=30 的磁吸效果但代码从未实现。当玩家进入磁吸范围时金币应被吸引过来自动拾取，提升战斗中的流畅感和正反馈。实现方案：在 Coin.update 或 GameScene.update 中检测玩家距离，小于 attractRange 时 coin 向玩家移动(speed 随距离递减)。合并 US-733/US-809。",
+          "type": "code",
+          "priority": 267,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家进入 attractRange(30px) 时金币向玩家移动",
+            "磁吸速度随距离递减(近快远慢)",
+            "磁吸拾取触发正常 collect 流程(分数+tween清理)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-819",
+          "title": "PRD 去重清理 — 82条 pending 合并精简至 ≤40 条独立有效条目 [权威元任务]",
+          "description": "PRD 经过多轮去重后仍有 82 条 pending US，其中大量重复：(1) combo 计时: US-744/771/799/812 四条完全相同;(2) 走廊击杀: US-681/787/801/813 四条相同;(3) 金币磁吸: US-733/809 两条相同;(4) Dash拾取守卫: US-755/769/804 三条相同;(5) 攻击命中上限: US-756/770/798 三条相同;(6) 暂停菜单: US-450/789/802/808 四条相近;(7) 敌人粒子颜色: US-783/803/810 三条相同;(8) room_clear音效: US-780/786/811 三条相近。应合并重复条目标记旧编号为 done。本轮已添加 US-814~US-819 作为权威合并条目。",
+          "type": "meta",
+          "priority": 268,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "82 条 pending 精简至 ≤40 条独立有效条目",
+            "重复 US 标记为 done 并备注\"合并至 US-XXX\"",
+            "每条权威 US 的 dependsOn 列出被合并的旧编号",
+            "tsc + build 通过"
+          ]
         }
       ],
       "description": "游戏核心功能 — 第66轮审查去重压缩 (原544条→138条)"

@@ -4532,6 +4532,85 @@
       ],
       "buildStatus": "pass",
       "tscStatus": "pass"
+    },
+    {
+      "round": 60,
+      "date": "2026-05-03",
+      "title": "第60轮设计审查 — 核心循环战利品闭环+CollectibleBase tween清理+combo TimerEvent+走廊击杀奖励+金币磁吸+PRD去重",
+      "summary": "审查全部源码和82条pending PRD后确认：(1) 之前43+轮反复标记的顽固bug大部分已修复(takeDamage返回boolean✓、HP bar跟随✓、GameScene shutdown✓、ResultScene keyboard事件+TitleScene重启✓、onHitWall knockback守卫✓);(2) Chest.open()仍无战利品产出是核心循环最后缺失环节;(3) CollectibleBase destroy不停止浮动tween有orphan callback风险;(4) ScoreSystem combo用setTimeout暂停不冻结;(5) 走廊击杀无掉落无奖励;(6) 金币磁吸从未实现;(7) PRD仍有大量重复需去重。新增6条权威合并US(US-814~US-819)。",
+      "newUserStories": [
+        "US-814",
+        "US-815",
+        "US-816",
+        "US-817",
+        "US-818",
+        "US-819"
+      ],
+      "changes": [
+        {
+          "area": "core-loop",
+          "change": "US-814: Chest.open() 战利品掉落 — 核心奖励闭环",
+          "priority": "P0"
+        },
+        {
+          "area": "entities",
+          "change": "US-815: CollectibleBase tween 清理 — orphan callback 防护",
+          "priority": "P1"
+        },
+        {
+          "area": "systems",
+          "change": "US-816: ScoreSystem combo TimerEvent — 暂停冻结",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/reward",
+          "change": "US-817: 走廊击杀掉落和奖励 — 合并4条重复",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/feel",
+          "change": "US-818: 金币磁吸效果 — GDD attractRange 实现",
+          "priority": "P2"
+        },
+        {
+          "area": "meta",
+          "change": "US-819: PRD 去重 82→≤40 条独立有效",
+          "priority": "meta-P0"
+        }
+      ],
+      "fixedInReview": [
+        "takeDamage 返回 boolean — Player.ts line 206 确认返回 boolean",
+        "HP bar chase/knockback 跟随 — Skeleton.ts line 206/213/214 和 Slime.ts line 174/189/195 均已实现 hpBar.follow",
+        "GameScene shutdown — line 1672 确认完整清理(事件/tween/timer/overlap)",
+        "ResultScene keyboard 事件 + TitleScene 重启 — 确认用 keyboard.once + scene.start('TitleScene')",
+        "onHitWall knockback 守卫 — Skeleton.ts line 144 if(this.isKnockedBack) return 已实现",
+        "checkWinCondition 宝箱检查 — line 1496-1497 确认检查 chestOpened",
+        "SpikeTrap Physics.Arcade.Sprite — 继承确认正确",
+        "BootScene anims 幂等保护 — 已有检查",
+        "SoundManager AudioNode disconnect — 已实现",
+        "CollectibleBase 抽取 — Coin/HealthPotion/AttackBoost/KeyItem 均继承 CollectibleBase"
+      ],
+      "balanceChanges": [
+        {
+          "param": "chestLootTable",
+          "from": "N/A",
+          "to": "50% coin(3-5), 30% potion, 20% attackBoost",
+          "reason": "宝箱开启战利品掉落表，平衡探索奖励"
+        },
+        {
+          "param": "corridorKillDropRate",
+          "from": "0%",
+          "to": "与房间内敌人相同(30% coin, 10% potion)",
+          "reason": "走廊击杀应享有同等奖励以激励走廊战斗"
+        },
+        {
+          "param": "coinAttractRange",
+          "from": "从未实现",
+          "to": "30px (GDD定义)",
+          "reason": "实现 GDD 中已定义但从未编码的磁吸参数"
+        }
+      ],
+      "priority": "US-814 (Chest战利品) 是核心循环最后缺失环节 — P0。US-815/816/817 是 P1 稳定性修复。US-819 (PRD去重) 是最高 meta 优先级。"
     }
   ],
   "gameSystems": {

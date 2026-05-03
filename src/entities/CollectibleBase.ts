@@ -80,6 +80,10 @@ export abstract class CollectibleBase extends Phaser.Physics.Arcade.Sprite {
   collect(): boolean {
     if (this.collected) return false;
     this.collected = true;
+    // Stop floating/swing tweens before destroy to prevent callbacks on destroyed sprite
+    if (this.scene && this.scene.tweens) {
+      this.scene.tweens.killTweensOf(this);
+    }
     this.setVisible(false);
     this.setActive(false);
     this.destroy();
