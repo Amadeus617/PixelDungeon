@@ -80,6 +80,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   /** Total dash cooldown duration in ms */
   static readonly DASH_COOLDOWN = DASH_COOLDOWN;
 
+  /** Total attack cooldown duration in ms */
+  static readonly ATTACK_COOLDOWN = ATTACK_COOLDOWN;
+
+  /** Remaining attack cooldown in ms (0 if ready) */
+  get attackCooldownRemaining(): number {
+    const now = this.scene ? this.scene.time.now : 0;
+    const remaining = ATTACK_COOLDOWN - (now - this.lastAttackTime);
+    return Math.max(0, remaining);
+  }
+
   /** Whether the player currently has the ATK x2 buff */
   get attackBoosted(): boolean {
     return this._attackBoosted;

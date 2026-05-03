@@ -2516,7 +2516,7 @@
           "description": "Coin._startFloatTween() 在构造时注册了两个 repeat:-1 的 tween（y 飘浮 + angle 摇摆）。collect() 调用 destroy() 时，如果 tween 回调在 destroy 后触发，可能导致 \"Cannot read property of destroyed object\" 错误。\n\n虽然 Phaser 通常会清理被 destroy 对象的 tween，但在高帧率或 overlap 回调时序竞争下，tween.onUpdate 可能在 destroy 和 tween.kill 之间执行。\n\n修复方案：在 collect() 中先 this.scene.tweens.killTweensOf(this) 再 destroy()。",
           "type": "code",
           "priority": 150,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Coin.collect() 先 killTweensOf(this) 再 destroy",
@@ -2593,7 +2593,7 @@
           "description": "房间过渡使用 camera follow 纯位移，玩家没有方向感知。建议在 fade 期间显示 1-2 帧的方向箭头(↑↓←→)指引玩家移动方向，降低新手迷路感。实现：RoomCameraSystem.isTransitioning() 为 true 时在 HUD 层绘制方向箭头(从当前房间中心到目标房间中心的方向)。",
           "type": "code",
           "priority": 164,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [
             "US-623"
           ],
@@ -2737,7 +2737,7 @@
           "description": "玩家攻击有400ms冷却但无视觉反馈，玩家无法判断何时可以再次攻击。GDD 定义 attackCooldownBar.barWidth=16, barHeight=2, barOffsetY=12, normalColor=0x00ff00, buffColor=0x4488ff。需在 Player 下方添加微型进度条，攻击后从满到空，冷却完毕时闪烁提示。AttackBoost 激活时颜色变为蓝色。",
           "type": "code",
           "priority": 200,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Player 下方16x2px 进度条显示攻击冷却",
@@ -2876,7 +2876,7 @@
           "description": "Slime.die() 方法中，先 emit 'enemy-death' 事件（触发 GameScene 掉落物生成），然后才 setActive(false) + destroy()。但 hpBar.destroy() 在 setActive(false) 之前调用。如果 enemy-death 事件处理中有任何异步操作或 tween 引用到已 destroyed 的 hpBar，会导致 null reference。虽然当前代码路径安全，但这是一个脆弱的时序依赖。建议统一死亡流程为：stop movement → destroy HP bar → emit event → deactivate → destroy self。",
           "type": "code",
           "priority": 145,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime.die() 死亡流程明确有序：setVelocity(0) → hpBar.destroy() → emit event → setActive(false) → destroy()",
@@ -3127,7 +3127,7 @@
           "description": "Coin._startFloatTween() 创建两个无限循环 tween (y 浮动 + angle 旋转)，collect() 中直接 destroy()。虽然 destroy 会清理 tween targets，但 Phaser 不保证立即停止 tween。应在 collect() 中先 this.scene.tweens.killTweensOf(this) 再 destroy，避免一帧延迟中的 tween 回调访问已销毁对象。",
           "type": "code",
           "priority": 187,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Coin.collect() 在 destroy 前调用 tweens.killTweensOf(this)",
@@ -3665,7 +3665,7 @@
           "description": "TitleScene 硬编码 v0.1.0 字符串（与 package.json 的 1.0.0 不一致）。应通过 Vite 的 define 注入 __APP_VERSION__ 常量，或在 BootScene preload 中读取 package.json。",
           "type": "code",
           "priority": 221,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "TitleScene 版本号从 package.json 读取",
@@ -3831,7 +3831,7 @@
           "description": "spawnDeathParticles() 中死亡粒子统一使用 0xffffff。GDD balanceAnalysis 要求 Slime 死亡粒子为绿色 (0x44ff44)、Skeleton 为白色。区分颜色可帮助玩家快速识别击杀目标类型。",
           "type": "improvement",
           "priority": 232,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "spawnDeathParticles 接受 type 参数",
@@ -4141,7 +4141,7 @@
           "description": "GDD 规定 Slime 死亡粒子为绿色、Skeleton 为白色，但代码中统一使用 0xffffff。根据敌人类型使用不同粒子颜色增强视觉辨识度。",
           "type": "code",
           "priority": 252,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime 死亡粒子为绿色 (0x44ff44)",
@@ -4246,7 +4246,7 @@
           "description": "GDD规定Slime死亡粒子为绿色(0x44ff44)、Skeleton为白色(0xffffff)，但代码中spawnDeathParticles统一使用0xffffff。应按敌人类型使用不同粒子颜色增强视觉辨识度。",
           "type": "code",
           "priority": 259,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Slime死亡粒子使用绿色(0x44ff44)",
@@ -4306,7 +4306,7 @@
           "description": "Chest.open() 目前仅切换贴图和播放动画，不生成任何战利品。key→chest 探索循环完成后零奖励，导致 key/chest 系统成为功能死胡同。需要在 open() 时发射 chest-opened 事件，GameScene 监听后生成随机掉落（50% coin, 30% potion, 20% attackBoost）。这与 US-387(checkWinCondition 已要求宝箱开启) 形成完整闭环。",
           "type": "code",
           "priority": 263,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "Chest.open() 发射 chest-opened 事件含位置信息",
@@ -4321,7 +4321,7 @@
           "description": "CollectibleBase.collect() 调用 this.destroy() 但不先停止浮动 tween。两个无限循环 tween(y浮动+角度摆动) 在 destroy 后仍尝试更新已销毁对象，可能导致 Phaser 内部警告或 orphan callback。应在 destroy 前显式 this.scene.tweens.killTweensOf(this)。合并 US-638/US-738。",
           "type": "code",
           "priority": 264,
-          "status": "pending",
+          "status": "done",
           "dependsOn": [],
           "acceptanceCriteria": [
             "CollectibleBase.collect() 在 destroy 前调用 scene.tweens.killTweensOf(this)",
@@ -4386,6 +4386,99 @@
             "82 条 pending 精简至 ≤40 条独立有效条目",
             "重复 US 标记为 done 并备注\"合并至 US-XXX\"",
             "每条权威 US 的 dependsOn 列出被合并的旧编号",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-820",
+          "title": "暂停菜单交互按钮 — 重新开始+返回标题+继续游戏",
+          "description": "当前暂停菜单(ESC)仅显示PAUSED文字和继续提示，缺少重新开始和返回标题的按钮。应添加3个可交互选项：继续游戏(ESC/Space)、重新开始(R)、返回标题(Q)，提升用户体验和操作灵活性。",
+          "type": "code",
+          "priority": 1,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "暂停菜单显示3个选项：继续/重新开始/返回标题",
+            "各选项有对应快捷键提示",
+            "返回标题走TitleScene流程保持runCount一致性",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-821",
+          "title": "单次攻击命中上限 — 最多3个敌人防止一刀清屏",
+          "description": "当前handlePlayerAttack中攻击扇形可同时命中无限敌人，在走廊/密集区域一次挥剑可清空全场。应添加MAX_HIT_PER_ATTACK=3常量，在命中循环中计数并提前break。提升战斗策略深度——玩家需考虑攻击角度和敌人站位。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "单次攻击最多命中3个敌人",
+            "命中上限为config常量可调",
+            "命中达到上限时停止遍历剩余敌人",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-822",
+          "title": "ResultScene 通关数据面板扩展 — runCount/难度/combo/清除率",
+          "description": "当前ResultScene不显示runCount(通关轮次)、难度等级、combo最高连杀数、房间清除率等关键数据。ScoreSystem已追踪comboCount但结果页无体现。应传递GameScene的runCount、maxCombo、clearedRooms/totalRooms等数据到ResultScene显示，给玩家完整的游戏反馈。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "ResultScene显示runCount(第N轮)",
+            "显示combo最高连杀数",
+            "显示房间清除率(X/Y房间已清除)",
+            "显示通关时间",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-823",
+          "title": "走廊击杀掉落和奖励机制 — handleEnemyDeathDrop扩展走廊判定",
+          "description": "当前handleEnemyDeathDrop只对roomEnemyMap内注册的敌人触发掉落，走廊中巡逻的Skeleton被击杀后不掉落任何物品也不触发房间清除奖励。走廊是US-055巡逻敌人的活动区域，击杀奖励缺失降低了探索激励。应在enemy-death事件中增加走廊位置判定，走廊击杀触发coin/potion掉落。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "走廊击杀敌人正常触发掉落判定",
+            "走廊击杀计入ScoreSystem击杀积分",
+            "掉落物位置落在可行走区域(非墙内)",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-824",
+          "title": "金币磁吸效果实现 — GDD attractRange=30从未实现",
+          "description": "GDD定义了coinAttractRange=30px的金币磁吸参数，当玩家进入范围后金币应自动飞向玩家。但代码中从未实现此功能，金币完全依赖手动拾取。应在GameScene.update或Coin类中添加距离检测，玩家进入attractRange后Coin以匀速/加速移向玩家，拾取距离增大提升流畅感。",
+          "type": "code",
+          "priority": 3,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "玩家进入attractRange(30px)后金币自动飞向玩家",
+            "金币飞行速度适中(150-200px/s)",
+            "飞行途中可被墙壁阻挡则取消磁吸",
+            "GDD attractRange参数与代码同步",
+            "tsc + build 通过"
+          ]
+        },
+        {
+          "id": "US-825",
+          "title": "ScoreSystem combo计时改用Phaser TimerEvent — 暂停时冻结",
+          "description": "当前ScoreSystem combo窗口使用setTimeout实现，游戏暂停时(pause)combo计时器继续倒数，导致暂停3秒后combo自动重置。应改为Phaser.Time.TimerEvent，暂停时物理引擎暂停自动冻结combo计时，恢复时继续倒计。保证combo机制的公平性。",
+          "type": "code",
+          "priority": 2,
+          "status": "pending",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "combo计时使用Phaser TimerEvent替代setTimeout",
+            "暂停时combo计时冻结",
+            "恢复时combo计时继续",
+            "combo窗口时长不变(3000ms)",
             "tsc + build 通过"
           ]
         }

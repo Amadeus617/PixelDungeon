@@ -5494,5 +5494,74 @@
         "PRD去重清理(US-805)"
       ]
     }
+  ],
+  "designHistory": [
+    {
+      "round": 60,
+      "date": "2026-05-03",
+      "title": "第60轮设计审查 — PRD去重验证+新功能US+已完成US标记",
+      "summary": "定期设计审查。审查283条PRD(195 done / 78 pending after cleanup)、25个源文件、git log。标记10条已实现但PRD仍为pending的US为done(US-638/652/707/738/772/783/803/810/814/815)。新增6条独立功能US(US-820~825)聚焦：(1)暂停菜单交互完善；(2)攻击命中上限防清屏；(3)ResultScene数据面板扩展；(4)走廊击杀掉落奖励；(5)金币磁吸效果；(6)combo计时改用Phaser TimerEvent。PRD从663条压缩至283条，去重效果显著。",
+      "newUserStories": [
+        "US-820",
+        "US-821",
+        "US-822",
+        "US-823",
+        "US-824",
+        "US-825"
+      ],
+      "markedDone": [
+        "US-638",
+        "US-652",
+        "US-707",
+        "US-738",
+        "US-772",
+        "US-783",
+        "US-803",
+        "US-810",
+        "US-814",
+        "US-815"
+      ],
+      "changes": [
+        {
+          "area": "ui/pause",
+          "change": "US-820: 暂停菜单交互按钮 — 重新开始+返回标题+继续",
+          "priority": "P1"
+        },
+        {
+          "area": "combat/balance",
+          "change": "US-821: 单次攻击命中上限3个 — 防一刀清屏",
+          "priority": "P2"
+        },
+        {
+          "area": "ui/result",
+          "change": "US-822: ResultScene数据面板 — runCount/combo/清除率",
+          "priority": "P2"
+        },
+        {
+          "area": "core-loop",
+          "change": "US-823: 走廊击杀掉落奖励 — handleEnemyDeathDrop扩展",
+          "priority": "P2"
+        },
+        {
+          "area": "gameplay",
+          "change": "US-824: 金币磁吸效果 — attractRange=30px",
+          "priority": "P3"
+        },
+        {
+          "area": "systems",
+          "change": "US-825: combo改用Phaser TimerEvent — 暂停冻结",
+          "priority": "P2"
+        }
+      ],
+      "balanceChanges": [],
+      "prdHealth": {
+        "totalUS": 283,
+        "done": 195,
+        "pending": 78,
+        "completionRate": "68.9%",
+        "note": "PRD从663条压缩至283条，完成率从13%提升至69%。去重效果显著。"
+      },
+      "priority": "US-820(暂停菜单)和US-821(攻击上限)影响核心体验。US-823(走廊击杀)是游戏循环完善。"
+    }
   ]
 }

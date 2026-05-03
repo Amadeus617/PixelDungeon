@@ -13,6 +13,7 @@ import { isWall, createRng } from "@/map/dungeonData";
 import { Inventory } from "@/systems/Inventory";
 import { ScoreSystem } from "@/systems/ScoreSystem";
 import { HUD } from "@/ui/HUD";
+import { AttackCooldownBar } from "@/ui/AttackCooldownBar";
 import { RoomCameraSystem } from "@/systems/RoomCameraSystem";
 import { SoundManager } from "@/systems/SoundManager";
 
@@ -161,6 +162,9 @@ export class GameScene extends Phaser.Scene {
   private slimeHpMultiplier = 1.0;
   private slimeSpeedMultiplier = 1.0;
 
+  // Attack cooldown bar (US-688)
+  private attackCooldownBar!: AttackCooldownBar;
+
   // Seed for deterministic dungeon generation (US-054)
   private seed: number | undefined;
 
@@ -243,6 +247,9 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.dungeonMap.getWallLayer());
 
     this.player.setWorldBounds();
+
+    // Attack cooldown bar (US-688): tiny bar below player sprite
+    this.attackCooldownBar = new AttackCooldownBar(this, this.player);
 
     // Room-based camera system with smooth follow and transition effects
     this.roomCameraSystem = new RoomCameraSystem(
@@ -1787,6 +1794,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.player.update(delta, time);
+    // Update attack cooldown bar (US-688)
+    this.attackCooldownBar.update();
     // Only update active slimes and skeletons (US-603)
     for (const slime of this.slimes) {
       if (slime.active) slime.update(delta);
